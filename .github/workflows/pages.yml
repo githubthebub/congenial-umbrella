@@ -1,0 +1,36 @@
+# Optional: auto-deploy LINKMON to GitHub Pages on every push.
+# Prefer this over "Deploy from a branch" if your game lives on a non-default
+# branch. In repo Settings → Pages, set Source = "GitHub Actions", then push.
+name: Deploy LINKMON to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - claude/pokemon-multiplayer-game-eyz5j4
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          # the whole repo is the static site (index.html at root)
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4
