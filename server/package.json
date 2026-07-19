@@ -1,0 +1,16 @@
+{
+  "name": "darkroom-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Darkroom — a roll of film shared by exactly four people. Cloudflare Worker + D1.",
+  "scripts": {
+    "setup": "bash ./setup.sh",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "schema": "wrangler d1 execute darkroom --remote --file=./schema.sql",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

@@ -4,12 +4,24 @@
 
 Instagram shows you everyone. Darkroom is for your three.
 
-## Run it
+## Two ways to run it
 
-Open `index.html` in any browser. That's it — no build, no server, no account. It also works hosted anywhere static (GitHub Pages, Netlify, an artifact link). Photos never leave the device; state lives in `localStorage`.
+**1. The instant demo — `index.html` (repo root).**
+Open it in any browser. No build, no server, no account; hostable anywhere static (GitHub Pages, Netlify, an artifact link). State lives in `localStorage` and the other three players are simulated, so you can feel the whole loop — start a roll → give away 3 spots → shoot blind → frame 24 develops — entirely on one device.
+
+**2. The real, synced version — [`server/`](./server).**
+A Cloudflare Worker + D1 database that syncs rolls across everyone's phones for real: when a friend taps your invite on *their* device your seat count ticks up, when anyone shoots a frame everyone's counter moves, and frame 24 develops on all four phones at once. Deploy it free in ~3 minutes:
+
+```bash
+cd server && npm install && npm run setup
+```
+
+See [`server/README.md`](./server/README.md) for details. The "blind" rule is enforced in the backend — the photo endpoint returns `403` until a roll develops, so you can't peek early even via the API.
+
+Both versions share the same behavior:
 
 - **Start a roll** → you get 3 spots to give away → shoot blind → frame 24 develops for all four of you at once.
-- **Watch one develop (30s demo)** → seeded roll with simulated friends so you can feel the reveal without recruiting anyone.
+- **Watch one develop (30s demo)** → seeded roll so you can feel the reveal without recruiting anyone.
 - **Invite links work for real**: the share button produces a URL that opens the recipient onto a "someone saved you a spot" claim screen.
 
 ## Why this beats Instagram (the psycho-logic)

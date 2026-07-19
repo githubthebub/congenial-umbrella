@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Darkroom — a roll of film shared by four people</title>
+<meta name="description" content="Instagram shows you everyone. Darkroom is for your three. A roll of film shared by exactly four people — everyone shoots blind, and nothing develops until it's full.">
+<style>
+  :root{
+    --bg:#0d0b09; --bg2:#15110d; --panel:#1c1712; --line:#2e261d;
+    --ink:#efe6d8; --ink-dim:#a89a86; --ink-faint:#6b5f4f;
+    --safe:#ff5a1f; --safe-soft:#ff8a50; --amber:#e8b04b;
+    --ok:#8fb96a; --radius:14px;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--serif);line-height:1.55;min-height:100vh;-webkit-font-smoothing:antialiased}
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:999;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");}
+  .wrap{max-width:640px;margin:0 auto;padding:0 20px}
+  a{color:var(--safe-soft)}
+  .view{display:none}
+  .view.on{display:block;animation:fade .5s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  header.site{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+  .wordmark{font-family:var(--mono);font-size:15px;letter-spacing:.16em;color:var(--ink);text-transform:uppercase;display:flex;align-items:center;gap:10px;cursor:pointer;background:none;border:0}
+  .wordmark .lamp{width:9px;height:9px;border-radius:50%;background:var(--safe);box-shadow:0 0 12px 3px rgba(255,90,31,.55);animation:lamp 3.5s ease-in-out infinite}
+  @keyframes lamp{0%,100%{opacity:1}50%{opacity:.55}}
+  .roll-no{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:.1em}
+
+  .hero{padding:9vh 0 5vh;text-align:left}
+  .hero h1{font-size:clamp(34px,7.5vw,52px);line-height:1.12;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+  .hero h1 em{font-style:italic;color:var(--safe-soft)}
+  .hero p.sub{margin-top:20px;font-size:18px;color:var(--ink-dim);max-width:44ch}
+  .rule{border:0;border-top:1px solid var(--line);margin:34px 0}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;font-family:var(--mono);font-size:14px;letter-spacing:.06em;padding:15px 24px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;text-decoration:none;transition:transform .15s ease,background .2s;-webkit-tap-highlight-color:transparent}
+  .btn:hover{transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn.primary{background:var(--safe);border-color:var(--safe);color:#160a04;font-weight:700}
+  .btn.primary:hover{background:var(--safe-soft);border-color:var(--safe-soft)}
+  .btn.ghost{background:transparent}
+  .btn.small{padding:10px 16px;font-size:12px}
+  .btn.block{width:100%}
+  .btn:disabled{opacity:.45;cursor:default;transform:none}
+
+  .laws{margin:8px 0 40px}
+  .laws li{list-style:none;display:flex;gap:14px;align-items:baseline;padding:13px 0;border-bottom:1px dashed var(--line);color:var(--ink-dim);font-size:16px}
+  .laws li b{color:var(--ink);font-weight:600}
+  .laws .no{font-family:var(--mono);color:var(--safe);font-size:12px;min-width:22px}
+
+  .how{display:grid;gap:0;margin-bottom:44px}
+  .how .step{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--line)}
+  .how .n{font-family:var(--mono);color:var(--amber);font-size:13px;padding-top:3px}
+  .how h3{font-size:17px;font-weight:600}
+  .how p{color:var(--ink-dim);font-size:15px;margin-top:3px}
+
+  .fineprint{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:.06em;line-height:1.9;padding:26px 0 60px}
+
+  .field{margin:18px 0}
+  .field label{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:8px}
+  .field input{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;color:var(--ink);font-family:var(--serif);font-size:18px;padding:13px 14px;outline:none}
+  .field input:focus{border-color:var(--safe)}
+  .hint{font-size:14px;color:var(--ink-faint);margin-top:8px}
+
+  .canister{background:linear-gradient(160deg,var(--panel),#171208);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin:22px 0;position:relative;overflow:hidden}
+  .canister::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--safe),var(--amber))}
+  .canister .kicker{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faint)}
+  .canister h2{font-size:26px;margin:6px 0 2px;font-weight:600;text-wrap:balance}
+  .canister .meta{font-family:var(--mono);font-size:12px;color:var(--ink-dim)}
+
+  .members{display:flex;gap:10px;margin:18px 0 6px;flex-wrap:wrap}
+  .seat{flex:1;min-width:110px;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;background:var(--bg2)}
+  .seat .avatar{width:40px;height:40px;border-radius:50%;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:15px;color:#160a04}
+  .seat .nm{font-size:14px;font-weight:600;word-break:break-word}
+  .seat .role{font-family:var(--mono);font-size:10px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+  .seat.empty{border-style:dashed;color:var(--ink-faint)}
+  .seat.empty .avatar{background:transparent;border:1px dashed var(--line);color:var(--ink-faint);font-weight:400}
+  .seat.me{outline:1px solid var(--amber);outline-offset:2px}
+
+  .counter{display:flex;align-items:baseline;gap:10px;margin:26px 0 12px}
+  .counter .big{font-family:var(--mono);font-size:38px;color:var(--amber);font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .counter .of{font-family:var(--mono);font-size:13px;color:var(--ink-faint)}
+  .strip{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;background:#000;border:1px solid var(--line);border-radius:10px;padding:14px 10px;position:relative}
+  .strip::before,.strip::after{content:"";position:absolute;left:10px;right:10px;height:6px;background-image:radial-gradient(circle,#0d0b09 2.2px,transparent 2.3px);background-size:14px 6px;opacity:.9}
+  .strip::before{top:3px}.strip::after{bottom:3px}
+  .frame{aspect-ratio:1;background:#171310;border-radius:3px;position:relative;overflow:hidden}
+  .frame.shot{background:linear-gradient(135deg,#241c12,#191108)}
+  .frame.shot::after{content:"\25CF";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--safe);opacity:.8;font-size:9px}
+  .frame.mine.shot::after{color:var(--amber)}
+
+  .bar{display:flex;gap:10px;margin:20px 0;flex-wrap:wrap}
+  .notice{border:1px solid var(--line);border-left:3px solid var(--safe);border-radius:8px;background:var(--bg2);padding:14px 16px;font-size:15px;color:var(--ink-dim);margin:18px 0}
+  .notice b{color:var(--ink)}
+
+  .spots{display:grid;gap:12px;margin:20px 0}
+  .spot{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px dashed var(--line);border-radius:12px;padding:14px 16px;background:var(--bg2)}
+  .spot .t{font-size:15px}
+  .spot .t small{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-faint);letter-spacing:.1em;text-transform:uppercase;margin-top:2px}
+
+  .developing{text-align:center;padding:60px 0}
+  .developing .tray{width:120px;height:120px;margin:0 auto 26px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a1503,#170701 70%);box-shadow:0 0 60px 10px rgba(255,90,31,.25),inset 0 0 30px rgba(0,0,0,.8);animation:sway 2.2s ease-in-out infinite}
+  @keyframes sway{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+  .developing p{font-family:var(--mono);font-size:13px;color:var(--ink-dim);letter-spacing:.08em}
+
+  .gallery{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:24px 0 40px}
+  .photo{background:#f5efe2;padding:10px 10px 34px;border-radius:3px;transform:rotate(var(--tilt,0deg));box-shadow:0 8px 24px rgba(0,0,0,.5);position:relative;animation:dev 2.4s ease both;animation-delay:var(--d,0s)}
+  @keyframes dev{0%{filter:brightness(.05) sepia(1) saturate(3) hue-rotate(-30deg);opacity:.3}60%{filter:brightness(.7) sepia(.5) saturate(1.6) hue-rotate(-15deg);opacity:1}100%{filter:none;opacity:1}}
+  .photo img{width:100%;aspect-ratio:1;object-fit:cover;display:block;border-radius:2px;background:#111}
+  .photo .cap{position:absolute;left:12px;bottom:9px;font-family:var(--mono);font-size:10px;color:#6b5f4f;letter-spacing:.08em}
+
+  .center{text-align:center}
+  .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#160a04;font-family:var(--mono);font-size:13px;padding:12px 20px;border-radius:999px;opacity:0;pointer-events:none;transition:all .3s ease;z-index:1000;font-weight:700;max-width:88vw;text-align:center}
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  input[type=file]{display:none}
+  @media (max-width:520px){.strip{grid-template-columns:repeat(6,1fr)}.members{display:grid;grid-template-columns:1fr 1fr}.seat{min-width:0}}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.001s!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <button class="wordmark" onclick="home()"><span class="lamp"></span>DARKROOM</button>
+    <span class="roll-no" id="hdrRight"></span>
+  </header>
+
+  <!-- LANDING -->
+  <section class="view" id="v-landing">
+    <div class="hero">
+      <h1>Instagram shows you everyone.<br>This is for <em>your three.</em></h1>
+      <p class="sub">A roll of film shared by exactly four people. Everyone shoots blind. Nothing is visible until the roll is full — then it develops for all of you at once.</p>
+    </div>
+    <div class="bar">
+      <button class="btn primary" onclick="go('new')">Start a roll — you get 3 spots</button>
+      <button class="btn ghost" onclick="startDemo()">Watch one develop (30s demo)</button>
+    </div>
+    <hr class="rule">
+    <ul class="laws">
+      <li><span class="no">I.</span><span><b>Four people. No more.</b> A roll can’t develop until all four seats are filled. Your invite isn’t a growth hack — it’s a chemical requirement.</span></li>
+      <li><span class="no">II.</span><span><b>You shoot blind.</b> No preview, no retakes, no filters. 24 exposures between four people. Every frame costs something, so every frame means something.</span></li>
+      <li><span class="no">III.</span><span><b>Nothing develops early.</b> The reveal happens once, together — the server won’t even hand out a photo before then.</span></li>
+      <li><span class="no">IV.</span><span><b>No likes. No followers. No feed. No algorithm. Ever.</b> Nobody performs for an audience of four they already love.</span></li>
+    </ul>
+    <div class="how">
+      <div class="step"><span class="n">01</span><div><h3>Start a roll</h3><p>Name it. Weekend trips, a semester, a group chat that deserves better.</p></div></div>
+      <div class="step"><span class="n">02</span><div><h3>Give away your 3 spots</h3><p>Not “invites.” Spots. There are only three, and a roll is useless without them.</p></div></div>
+      <div class="step"><span class="n">03</span><div><h3>Shoot blind together</h3><p>24 frames, first come first served, across everyone’s phones. You’ll see a counter, never the photos.</p></div></div>
+      <div class="step"><span class="n">04</span><div><h3>Development night</h3><p>Frame 24 hits and the roll develops for all four of you at the same moment.</p></div></div>
+    </div>
+    <p class="fineprint" id="landFine">A REAL ROLL SYNCS ACROSS EVERYONE’S PHONES. NO FEED. NO ALGORITHM. NO ADS. THE OPPOSITE OF A GOOD IDEA CAN ALSO BE A GOOD IDEA.</p>
+  </section>
+
+  <!-- NEW ROLL -->
+  <section class="view" id="v-new">
+    <div class="hero" style="padding-bottom:2vh"><h1 style="font-size:clamp(28px,6vw,40px)">Load a fresh roll.</h1></div>
+    <div class="field"><label for="inName">Your name</label><input id="inName" maxlength="18" placeholder="maya" autocomplete="off"></div>
+    <div class="field"><label for="inRoll">Name the roll</label><input id="inRoll" maxlength="28" placeholder="summer, allegedly" autocomplete="off"><p class="hint">Name it like an inside joke, because it’s about to become one.</p></div>
+    <div class="bar"><button class="btn primary block" id="createBtn" onclick="createRoll()">Load it — then give away your 3 spots</button></div>
+  </section>
+
+  <!-- JOIN -->
+  <section class="view" id="v-join">
+    <div class="canister">
+      <div class="kicker">You’ve been handed something</div>
+      <h2 id="joinTitle"></h2>
+      <div class="meta" id="joinMeta"></div>
+      <div class="notice" id="joinNotice"></div>
+      <div class="field"><label for="joinName">Your name (so they know their spot went to the right person)</label><input id="joinName" maxlength="18" placeholder="your name" autocomplete="off"></div>
+      <div class="bar"><button class="btn primary block" id="joinBtn" onclick="acceptJoin()">Take the spot</button></div>
+      <p class="hint center">A spot in a roll isn’t offered twice.</p>
+    </div>
+  </section>
+
+  <!-- ROLL -->
+  <section class="view" id="v-roll">
+    <div class="canister">
+      <div class="kicker" id="rKicker">Active roll</div>
+      <h2 id="rName"></h2>
+      <div class="meta" id="rMeta"></div>
+      <div class="members" id="rMembers"></div>
+      <div id="rSpots"></div>
+    </div>
+    <div class="counter"><span class="big" id="rCount">0</span><span class="of">/ 24 exposures · you never see a frame until it develops</span></div>
+    <div class="strip" id="rStrip"></div>
+    <div class="bar">
+      <label class="btn primary" id="shootBtn" for="filePick">＋ Shoot a frame</label>
+      <input type="file" id="filePick" accept="image/*" capture="environment" onchange="shootFrame(event)">
+    </div>
+    <div class="notice" id="rNotice"></div>
+  </section>
+
+  <!-- DEVELOPING -->
+  <section class="view" id="v-develop">
+    <div class="developing"><div class="tray"></div><p id="devMsg">THE ROLL IS FULL · AGITATING THE TANK…</p></div>
+  </section>
+
+  <!-- GALLERY -->
+  <section class="view" id="v-gallery">
+    <div class="hero" style="padding:4vh 0 1vh"><h1 style="font-size:clamp(26px,6vw,38px)" id="gTitle"></h1><p class="sub" id="gSub"></p></div>
+    <div class="gallery" id="gGrid"></div>
+    <div class="canister">
+      <div class="kicker">The loop, closed</div>
+      <h2 style="font-size:20px">Good rolls deserve sequels.</h2>
+      <p style="color:var(--ink-dim);margin:8px 0 14px;font-size:15px">Start the next one — you get 3 fresh spots. The other three just watched this develop; they’ll each want a roll of their own.</p>
+      <div class="bar" style="margin:0"><button class="btn primary" onclick="go('new')">Load the next roll</button><button class="btn ghost" onclick="home()">Back to the door</button></div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================ config + storage ============================ */
+const API = ""; // same origin
+const CAP = 4, EXP = 24;
+const PALETTE = ["#e8b04b","#ff8a50","#8fb96a","#7fa8c9"];
+const LS = "darkroom.session.v2";
+
+// session: { active: ROLLID, rolls: { ROLLID: {memberId, seat, me} }, me }
+let S = loadSession();
+function loadSession(){ try{ return JSON.parse(localStorage.getItem(LS)) || {rolls:{}} }catch(e){ return {rolls:{}} } }
+function saveSession(){ try{ localStorage.setItem(LS, JSON.stringify(S)) }catch(e){} }
+function myMember(rollId){ return (S.rolls && S.rolls[rollId]) || null; }
+function setMember(rollId, m){ S.rolls = S.rolls||{}; S.rolls[rollId] = m; S.active = rollId; if(m.me) S.me=m.me; saveSession(); }
+
+/* ================================ tiny api ================================ */
+async function api(path, opts){
+  opts = opts || {};
+  const headers = Object.assign({}, opts.headers);
+  if(opts.body && !headers["content-type"]) headers["content-type"]="application/json";
+  const res = await fetch(API+path, {method:opts.method||"GET", headers, body:opts.body?JSON.stringify(opts.body):undefined});
+  let data=null; try{ data = await res.json(); }catch(e){}
+  if(!res.ok){ const err=new Error((data&&data.error)||("http_"+res.status)); err.status=res.status; err.data=data; throw err; }
+  return data;
+}
+
+/* ================================ router ================================= */
+let pollTimer=null, developShown=false, currentRoll=null;
+function go(v){
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("on"));
+  document.getElementById("v-"+v).classList.add("on");
+  window.scrollTo({top:0});
+  if(v!=="roll" && v!=="develop" && v!=="gallery") stopPolling();
+}
+function home(){ stopPolling(); demo=false; currentRoll=null; go("landing"); document.getElementById("hdrRight").textContent=""; history.replaceState(null,"",location.pathname); }
+
+/* ================================ toast ================================== */
+let toastT;
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("on"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("on"),2800); }
+
+/* ============================== create roll ============================== */
+async function createRoll(){
+  const me=(document.getElementById("inName").value||"").trim();
+  const nm=(document.getElementById("inRoll").value||"").trim();
+  if(!me){ toast("your name first"); return; }
+  if(!nm){ toast("name the roll — inside jokes welcome"); return; }
+  const btn=document.getElementById("createBtn"); btn.disabled=true; btn.textContent="Loading the film…";
+  try{
+    const r = await api("/api/rolls", {method:"POST", body:{name:nm, hostName:me}});
+    setMember(r.rollId, {memberId:r.memberId, seat:r.seat, me});
+    openRoll(r.rollId);
+    toast("roll loaded — now give away your 3 spots");
+  }catch(e){ toast("couldn’t load the roll — try again"); }
+  finally{ btn.disabled=false; btn.textContent="Load it — then give away your 3 spots"; }
+}
+
+/* ============================== invite / join =========================== */
+function inviteURL(rollId){
+  const u=new URL(location.href); u.search=""; u.hash="";
+  u.searchParams.set("join", rollId);
+  return u.toString();
+}
+function shareSpot(rollId, seatsLeft){
+  const msg = `i saved you one of my 3 spots in a darkroom roll called “${(currentRoll&&currentRoll.name)||""}”. four people shoot one roll of film blind — nothing develops until it’s full, and it can’t develop without you. ${seatsLeft<=1?"last spot.":seatsLeft+" spots left."}\n\n`+inviteURL(rollId);
+  if(navigator.share){ navigator.share({text:msg}).catch(()=>{}); }
+  else if(navigator.clipboard){ navigator.clipboard.writeText(msg).then(()=>toast("invite copied — paste it in the group chat")).catch(()=>prompt("copy your invite:",msg)); }
+  else prompt("copy your invite:", msg);
+}
+
+async function checkJoinParam(){
+  const rollId=(new URLSearchParams(location.search).get("join")||"").toUpperCase();
+  if(!rollId) return false;
+  // Already in this roll on this device? Go straight in.
+  if(myMember(rollId)){ openRoll(rollId); return true; }
+  let st; try{ st = await api("/api/rolls/"+rollId); }catch(e){ toast("that roll link isn’t valid"); return false; }
+  const host=(st.members.find(m=>m.host)||{}).name || "a friend";
+  const seatsLeft=st.capacity - st.seatsFilled;
+  document.getElementById("joinTitle").textContent="“"+st.name+"”";
+  document.getElementById("joinMeta").textContent="ROLL Nº "+rollId+" · HOSTED BY "+host.toUpperCase();
+  if(st.status==="developed"){
+    document.getElementById("joinNotice").innerHTML="This roll has already developed — its four seats are taken. But you can <b>start your own</b>.";
+    document.getElementById("joinBtn").textContent="Start my own roll";
+    document.getElementById("joinBtn").onclick=()=>go("new");
+  }else if(seatsLeft<=0){
+    document.getElementById("joinNotice").innerHTML="Every seat in this roll is filled. <b>Start your own</b> instead.";
+    document.getElementById("joinBtn").textContent="Start my own roll";
+    document.getElementById("joinBtn").onclick=()=>go("new");
+  }else{
+    document.getElementById("joinNotice").innerHTML="<b>"+host+"</b> gave you one of their <b>3 spots</b>. "+(seatsLeft<=1?"It’s the <b>last one</b>.":"There are <b>"+seatsLeft+" spots</b> left after you.")+" The roll cannot develop until all four seats are filled — they need you, specifically.";
+  }
+  window.__joinRoll=rollId;
+  go("join");
+  return true;
+}
+async function acceptJoin(){
+  const me=(document.getElementById("joinName").value||"").trim();
+  if(!me){ toast("your name first"); return; }
+  const rollId=window.__joinRoll;
+  const btn=document.getElementById("joinBtn"); btn.disabled=true; btn.textContent="Taking your spot…";
+  try{
+    const r=await api("/api/rolls/"+rollId+"/join",{method:"POST",body:{name:me}});
+    setMember(rollId,{memberId:r.memberId,seat:r.seat,me});
+    history.replaceState(null,"",location.pathname);
+    openRoll(rollId);
+    toast("you’re in. their seat count just ticked up.");
+  }catch(e){
+    if(e.status===409){ toast("that roll just filled up"); go("new"); }
+    else toast("couldn’t take the spot — try again");
+    btn.disabled=false; btn.textContent="Take the spot";
+  }
+}
+
+/* ============================== roll + polling ========================== */
+function openRoll(rollId){
+  developShown=false; demo=false;
+  go("roll");
+  document.getElementById("hdrRight").textContent="ROLL Nº "+rollId;
+  poll(rollId);            // immediate
+  startPolling(rollId);
+}
+function startPolling(rollId){ stopPolling(); pollTimer=setInterval(()=>poll(rollId), 2500); }
+function stopPolling(){ if(pollTimer){ clearInterval(pollTimer); pollTimer=null; } }
+
+async function poll(rollId){
+  if(demo) return;
+  let st; try{ st=await api("/api/rolls/"+rollId); }catch(e){ return; }
+  currentRoll=st;
+  if(st.status==="developed"){ stopPolling(); if(!developShown){ developShown=true; runDevelop(rollId, st); } return; }
+  renderRoll(rollId, st);
+}
+
+function initials(n){ return (n||"?").slice(0,2).toUpperCase(); }
+function esc(s){ const d=document.createElement("div"); d.textContent=s==null?"":s; return d.innerHTML; }
+
+function renderRoll(rollId, st){
+  const mine=myMember(rollId)||{};
+  document.getElementById("rName").textContent="“"+st.name+"”";
+  document.getElementById("rMeta").textContent="ROLL Nº "+rollId+" · 4 SEATS · "+EXP+" EXPOSURES · DEVELOPS ONCE";
+  const open=st.capacity - st.seatsFilled;
+
+  const mem=document.getElementById("rMembers"); mem.innerHTML="";
+  for(let i=0;i<st.capacity;i++){
+    const m=st.members.find(x=>x.seat===i);
+    const div=document.createElement("div");
+    if(m){
+      const isMe = m.seat===mine.seat;
+      div.className="seat"+(isMe?" me":"");
+      div.innerHTML='<div class="avatar" style="background:'+PALETTE[i]+'">'+esc(initials(m.name))+'</div><div class="nm">'+esc(m.name)+(isMe?" (you)":"")+'</div><div class="role">'+(m.host?"host":"seat "+(i+1))+"</div>";
+    }else{
+      div.className="seat empty";
+      div.innerHTML='<div class="avatar">?</div><div class="nm">empty</div><div class="role">spot '+(i+1)+" of "+st.capacity+"</div>";
+    }
+    mem.appendChild(div);
+  }
+
+  const sp=document.getElementById("rSpots"); sp.innerHTML="";
+  if(open>0){
+    const box=document.createElement("div"); box.className="spots";
+    const row=document.createElement("div"); row.className="spot";
+    row.innerHTML='<div class="t">'+open+' seat'+(open>1?'s':'')+' still open<small>a roll can’t develop with an empty seat</small></div>';
+    const b=document.createElement("button"); b.className="btn small primary"; b.textContent=open>1?"Give a spot away":"Give the last spot away";
+    b.onclick=()=>shareSpot(rollId, open); row.appendChild(b); box.appendChild(row);
+    sp.appendChild(box);
+  }
+
+  const strip=document.getElementById("rStrip"); strip.innerHTML="";
+  for(let i=0;i<EXP;i++){
+    const f=document.createElement("div");
+    f.className="frame"+(i<st.frameCount?" shot":"");
+    strip.appendChild(f);
+  }
+  document.getElementById("rCount").textContent=st.frameCount;
+
+  const n=document.getElementById("rNotice");
+  if(open>0){
+    n.innerHTML="<b>"+open+" seat"+(open>1?"s":"")+" empty.</b> You can shoot, but the roll will sit undeveloped in the canister until all four seats fill. Chemistry needs four. This screen updates live as they join.";
+  }else{
+    n.innerHTML="<b>"+(EXP-st.frameCount)+" exposures left.</b> First come, first served across all four phones — when anyone shoots, everyone’s counter ticks. Nobody sees anything yet.";
+  }
+  document.getElementById("shootBtn").style.display = st.frameCount<EXP ? "inline-flex":"none";
+  document.getElementById("rKicker").textContent = open>0 ? "Waiting on "+open+" more" : "Shooting";
+}
+
+/* ================================ shooting ============================== */
+function shootFrame(ev){
+  const file=ev.target.files && ev.target.files[0]; ev.target.value="";
+  if(!file || demo){ return; }
+  const rollId=S.active; const mine=myMember(rollId);
+  if(!rollId||!mine){ toast("no active roll"); return; }
+  const img=new Image();
+  img.onload=async ()=>{
+    const c=document.createElement("canvas");
+    const s=Math.min(img.width,img.height), MAX=640;
+    c.width=c.height=Math.min(MAX,s);
+    const g=c.getContext("2d");
+    g.drawImage(img,(img.width-s)/2,(img.height-s)/2,s,s,0,0,c.width,c.height);
+    const dataUrl=c.toDataURL("image/jpeg",.72);
+    try{
+      const r=await api("/api/rolls/"+rollId+"/frames",{method:"POST",headers:{authorization:"Bearer "+mine.memberId},body:{photo:dataUrl}});
+      toast("frame "+r.count+" exposed. no takebacks.");
+      poll(rollId);
+    }catch(e){
+      if(e.status===409) toast("the roll just filled — that was the last frame");
+      else if(e.status===413) toast("that photo was too large");
+      else toast("couldn’t expose the frame — try again");
+      poll(rollId);
+    }
+  };
+  img.onerror=()=>toast("couldn’t read that image");
+  img.src=URL.createObjectURL(file);
+}
+
+/* =============================== develop ================================ */
+function runDevelop(rollId, st){
+  go("develop");
+  const msgs=["THE ROLL IS FULL · AGITATING THE TANK…","STOP BATH…","FIXER…","RINSING…","HANGING TO DRY…"];
+  let i=0; const el=document.getElementById("devMsg");
+  const t=setInterval(()=>{ i++; if(i>=msgs.length){ clearInterval(t); showGallery(rollId, st); return; } el.textContent=msgs[i]; }, 900);
+}
+function showGallery(rollId, st){
+  document.getElementById("gTitle").textContent="“"+st.name+"” has developed.";
+  document.getElementById("gSub").textContent=st.exposures+" frames, four people, zero previews. All of you are seeing this for the first time, right now.";
+  const grid=document.getElementById("gGrid"); grid.innerHTML="";
+  (st.frames||[]).forEach((f,i)=>{
+    const ph=document.createElement("div"); ph.className="photo";
+    ph.style.setProperty("--tilt",((i*137)%5-2)+"deg");
+    ph.style.setProperty("--d",(i*.12)+"s");
+    const img=document.createElement("img"); img.loading="lazy"; img.alt="frame "+(f.idx+1)+" by "+f.by;
+    img.src = demo ? f.demoSrc : (API+"/api/rolls/"+rollId+"/frames/"+f.idx+"/photo");
+    const cap=document.createElement("div"); cap.className="cap"; cap.textContent="Nº"+String(f.idx+1).padStart(2,"0")+" · "+f.by;
+    ph.appendChild(img); ph.appendChild(cap); grid.appendChild(ph);
+  });
+  document.getElementById("hdrRight").textContent="ROLL Nº "+rollId+" · DEVELOPED";
+  go("gallery");
+}
+
+/* ========================= local 30-second demo ======================== */
+let demo=false;
+const DEMO_NAMES=["you","ines","teo","priya"];
+const SCENES=[["#2b3a4a","#c9a86b"],["#3d2b1f","#e8b04b"],["#1f3326","#8fb96a"],["#402430","#ff8a50"],["#2e2e38","#dcd7c9"],["#33291c","#c96f4a"],["#24303a","#9fc4d8"],["#3a3222","#e0c37a"],["#20262b","#b8c4cc"]];
+function fakePhoto(seed){
+  const c=document.createElement("canvas"); c.width=c.height=640; const g=c.getContext("2d");
+  const sc=SCENES[seed%SCENES.length], bg=sc[0], fg=sc[1];
+  const grad=g.createLinearGradient(0,0,640,640); grad.addColorStop(0,bg); grad.addColorStop(1,"#0d0b09"); g.fillStyle=grad; g.fillRect(0,0,640,640);
+  g.globalAlpha=.85; g.fillStyle=fg;
+  g.beginPath(); g.arc(((seed*131)%520)+60,((seed*71)%420)+80,(seed%5)*14+26,0,7); g.fill();
+  g.globalAlpha=.25; g.fillRect(0,((seed*37)%500)+80,640,(seed%4)*20+30);
+  g.globalAlpha=.5; g.strokeStyle=fg; g.lineWidth=3; g.beginPath(); g.moveTo((seed*97)%400+60,640); g.lineTo((seed*53)%300+80,((seed*29)%300)+120); g.stroke();
+  g.globalAlpha=.08; for(let i=0;i<700;i++){ g.fillStyle=Math.random()>.5?"#fff":"#000"; g.fillRect(Math.random()*640,Math.random()*640,1.4,1.4); }
+  g.globalAlpha=1; const v=g.createRadialGradient(320,320,220,320,320,460); v.addColorStop(0,"rgba(0,0,0,0)"); v.addColorStop(1,"rgba(0,0,0,.55)"); g.fillStyle=v; g.fillRect(0,0,640,640);
+  return c.toDataURL("image/jpeg",.7);
+}
+function startDemo(){
+  demo=true; stopPolling(); developShown=false;
+  const st={ name:"tuesday, allegedly", capacity:4, exposures:EXP, status:"open",
+    members:DEMO_NAMES.map((n,i)=>({name:n,seat:i,host:i===0})), seatsFilled:4, frameCount:0, frames:[] };
+  currentRoll=st;
+  document.getElementById("hdrRight").textContent="DEMO ROLL";
+  renderRoll("DEMO", st);
+  document.getElementById("rKicker").textContent="Demo roll — watch how it feels";
+  document.getElementById("shootBtn").style.display="none";
+  go("roll");
+  let i=0;
+  const t=setInterval(()=>{
+    if(i>=EXP){ clearInterval(t);
+      st.status="developed";
+      st.frames=Array.from({length:EXP},(_,k)=>({idx:k, by:DEMO_NAMES[(k%3)+1], demoSrc:fakePhoto(k*7+3)}));
+      runDevelop("DEMO", st); return;
+    }
+    st.frameCount=i+1; renderRoll("DEMO", st); i++;
+  }, 140);
+}
+
+/* ================================= boot ================================= */
+(async function(){
+  if(await checkJoinParam()) return;
+  if(S.active && myMember(S.active)){ openRoll(S.active); return; }
+  go("landing");
+})();
+</script>
+</body>
+</html>
