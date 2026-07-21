@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>OU Battle Simulator — Gen 9 (vs Claude)</title>
+<style>
+  :root{
+    --bg:#0e1220; --bg2:#151b2e; --panel:#1b2338; --panel2:#232c46;
+    --line:#2b3556; --text:#e8ecf7; --muted:#95a0bf; --accent:#6ea8fe;
+    --good:#48d16a; --warn:#f4c542; --bad:#ec5a63; --tera:#c56cf0;
+    --radius:14px; --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 600px at 50% -10%,#1a2340 0%,var(--bg) 60%);
+    color:var(--text); font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; overscroll-behavior:none;
+  }
+  .app{max-width:1000px;margin:0 auto;padding:18px 16px 40px}
+  h1,h2,h3{margin:0}
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .logo{font-size:26px;font-weight:800;letter-spacing:-.5px}
+  .logo .g{color:var(--accent)}
+  .tag{color:var(--muted);font-size:13px}
+  .btn{
+    appearance:none;border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    padding:11px 18px;border-radius:11px;font-weight:600;cursor:pointer;transition:.12s;font-size:15px;
+  }
+  .btn:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .btn.primary{background:linear-gradient(180deg,#4f8cff,#3f78ea);border-color:#3f78ea;color:#fff}
+  .btn.primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .btn.ghost{background:transparent}
+  .hidden{display:none !important}
+
+  /* ---------- Menu ---------- */
+  .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.menu-grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+  .card h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px;font-weight:700}
+  .opt{
+    display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;
+    cursor:pointer;margin-bottom:10px;transition:.12s;background:var(--panel2)
+  }
+  .opt:hover{border-color:var(--accent)}
+  .opt.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(110,168,254,.25) inset}
+  .opt .av{font-size:30px;width:44px;text-align:center;flex:none}
+  .opt .body{flex:1;min-width:0}
+  .opt .nm{font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .opt .elo{font-size:12px;color:#0e1220;background:var(--warn);padding:1px 7px;border-radius:20px;font-weight:800}
+  .opt .ti{color:var(--muted);font-size:12.5px}
+  .opt .bl{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .teamline{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+  .chip{font-size:11px;background:#0f1626;border:1px solid var(--line);border-radius:7px;padding:2px 7px;color:var(--muted)}
+  .startrow{display:flex;justify-content:center;margin-top:18px}
+
+  /* ---------- Team preview ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(6,9,18,.72);display:flex;align-items:center;justify-content:center;z-index:40;padding:16px}
+  .preview{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:760px;width:100%;padding:22px;box-shadow:var(--shadow)}
+  .preview h2{font-size:20px;margin-bottom:4px}
+  .preview .sub{color:var(--muted);margin-bottom:16px;font-size:13.5px}
+  .prow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+  @media(max-width:640px){.prow{grid-template-columns:repeat(3,1fr)}}
+  .mon{
+    background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;cursor:default;transition:.12s
+  }
+  .mon.pick{cursor:pointer}
+  .mon.pick:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .mon.lead{border-color:var(--accent);box-shadow:0 0 0 2px rgba(110,168,254,.3) inset}
+  .mon .em{font-size:30px}
+  .mon .mn{font-size:12px;font-weight:700;margin-top:3px;line-height:1.15}
+  .mon .tt{display:flex;gap:3px;justify-content:center;margin-top:5px;flex-wrap:wrap}
+  .tbadge{font-size:9.5px;font-weight:800;color:#fff;padding:1px 6px;border-radius:6px;text-shadow:0 1px 1px rgba(0,0,0,.25)}
+  .preview .hint{color:var(--muted);font-size:13px;margin:6px 0 14px}
+
+  /* ---------- Battle ---------- */
+  .fieldwrap{background:linear-gradient(180deg,#20304f 0%,#1a2540 55%,#16324a 100%);
+    border:1px solid var(--line);border-radius:var(--radius);padding:14px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  .statusbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12.5px;color:var(--muted)}
+  .weatherpill{padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.28);border:1px solid var(--line);font-weight:600}
+  .side{display:flex;align-items:center;gap:12px;margin:6px 0}
+  .side.foe{flex-direction:row}
+  .side.me{flex-direction:row-reverse}
+  .tray{display:flex;gap:5px;flex:none}
+  .ball{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#ff6b6b 0 48%,#111 49% 55%,#e9edf5 56% 100%);border:1px solid #0008}
+  .ball.dead{filter:grayscale(1);opacity:.35}
+  .ball.active{box-shadow:0 0 0 2px var(--accent)}
+  .infobox{flex:1;max-width:320px}
+  .side.me .infobox{margin-left:auto}
+  .nameline{display:flex;align-items:center;gap:8px}
+  .side.me .nameline{flex-direction:row-reverse}
+  .pname{font-weight:800;font-size:16px}
+  .lvl{color:var(--muted);font-size:12px}
+  .types{display:flex;gap:4px}
+  .teraflag{font-size:10px;font-weight:800;color:#fff;background:var(--tera);padding:1px 7px;border-radius:6px;box-shadow:0 0 10px rgba(197,108,240,.6)}
+  .hpwrap{margin-top:4px}
+  .hpbar{height:9px;border-radius:6px;background:#0c1220;border:1px solid #0006;overflow:hidden}
+  .hpfill{height:100%;width:100%;background:var(--good);transition:width .55s cubic-bezier(.3,.8,.3,1),background .3s}
+  .hprow{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:2px}
+  .side.me .hprow{flex-direction:row-reverse}
+  .statuspill{font-size:10px;font-weight:800;color:#0e1220;padding:1px 6px;border-radius:5px}
+  .st-brn{background:#f0803c}.st-par{background:#f4d23b}.st-psn,.st-tox{background:#c274d8;color:#fff}
+  .st-slp{background:#9aa4bd}.st-frz{background:#7fd4e6}
+  .sprite{font-size:56px;flex:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));transition:transform .2s}
+  .sprite.hit{animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+  /* log */
+  .log{height:150px;overflow-y:auto;background:#0c111d;border:1px solid var(--line);border-radius:12px;
+    padding:10px 12px;margin-top:12px;font-size:13.5px;scroll-behavior:smooth}
+  .log .ln{margin:2px 0;opacity:0;animation:fade .25s forwards}
+  @keyframes fade{to{opacity:1}}
+  .log .move{color:#cfe0ff}.log .damage{color:#ffc0c4}.log .heal{color:#b7f0c6}
+  .log .faint{color:#ff8b91;font-weight:700}.log .status,.log .boost{color:#ffe08a}
+  .log .system,.log .turn{color:#8fa8dd;font-weight:700}.log .weather{color:#a7d8ff}
+  .log .tera{color:#e2a9ff;font-weight:700}.log .switch{color:#c8d2ee}
+  .log .text{color:var(--muted)}.log .miss{color:#ff9aa0}.log .hazard{color:#ffd18a}.log .ability{color:#a9f0d8}
+
+  /* controls */
+  .controls{margin-top:12px}
+  .movegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:520px){.movegrid{grid-template-columns:1fr}}
+  .movebtn{
+    display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 13px;border-radius:12px;
+    border:1px solid var(--line);cursor:pointer;color:#fff;position:relative;transition:.1s;min-height:56px;justify-content:center
+  }
+  .movebtn:hover:not(.dis){transform:translateY(-2px);filter:brightness(1.08)}
+  .movebtn.dis{opacity:.4;cursor:not-allowed}
+  .movebtn .mvname{font-weight:800;font-size:14.5px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .movebtn .mvmeta{font-size:11px;opacity:.95;display:flex;gap:8px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .movebtn .cat{position:absolute;top:8px;right:10px;font-size:10px;font-weight:800;opacity:.9}
+  .actionrow{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
+  .teratog{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:var(--muted);user-select:none}
+  .teratog .sw{width:44px;height:24px;border-radius:20px;background:#0c1220;border:1px solid var(--line);position:relative;cursor:pointer;transition:.15s}
+  .teratog .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:.15s}
+  .teratog.on .sw{background:linear-gradient(180deg,#d98bff,#b45ff0);border-color:#b45ff0}
+  .teratog.on .sw::after{left:22px;background:#fff}
+  .teratog.disabled{opacity:.35;pointer-events:none}
+  .switchgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:6px}
+  @media(max-width:520px){.switchgrid{grid-template-columns:1fr 1fr}}
+  .switchbtn{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;background:var(--panel2);cursor:pointer;transition:.1s;text-align:left}
+  .switchbtn:hover:not(.dis){border-color:var(--accent);transform:translateY(-1px)}
+  .switchbtn.dis{opacity:.35;cursor:not-allowed}
+  .switchbtn .em{font-size:24px}
+  .switchbtn .sn{font-weight:700;font-size:12.5px}
+  .switchbtn .shp{font-size:11px;color:var(--muted)}
+  .prompt{color:var(--muted);font-size:13px;margin:2px 0 8px;min-height:18px}
+  .banner{text-align:center;font-weight:800;font-size:15px;color:var(--accent);min-height:20px;margin-top:2px}
+
+  /* end screen */
+  .endcard{text-align:center;padding:34px 22px}
+  .endcard .big{font-size:34px;font-weight:900;letter-spacing:-1px;margin-bottom:6px}
+  .endcard .win{color:var(--good)}.endcard .lose{color:var(--bad)}
+  .endcard .sub{color:var(--muted);margin-bottom:20px}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:26px;line-height:1.6}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="logo"><span class="g">OU</span> Battle Simulator</div>
+    <div class="tag">Gen 9 singles · you vs a thinking AI</div>
+  </div>
+
+  <!-- MENU -->
+  <section id="menu">
+    <div class="menu-grid">
+      <div class="card">
+        <h2>Choose your opponent</h2>
+        <div id="personaList"></div>
+      </div>
+      <div class="card">
+        <h2>Choose your team</h2>
+        <div id="teamList"></div>
+      </div>
+    </div>
+    <div class="startrow">
+      <button id="toPreview" class="btn primary" disabled>Continue →</button>
+    </div>
+    <footer>
+      A faithful-enough Gen 9 OU engine: real damage math, hazards, weather, status, items,
+      abilities &amp; Terastallization. The opponent damage-calcs every option, predicts your
+      switches, and Teras on the right turn. Opponents are AI personas, not real people.
+    </footer>
+  </section>
+
+  <!-- BATTLE -->
+  <section id="battle" class="hidden">
+    <div class="fieldwrap">
+      <div class="statusbar">
+        <span class="weatherpill" id="weather">Clear skies</span>
+        <span id="turnCount">Turn 1</span>
+        <span class="weatherpill" id="hazards">No hazards</span>
+      </div>
+      <div class="side foe">
+        <div class="sprite" id="foeSprite">❔</div>
+        <div class="infobox">
+          <div class="nameline">
+            <span class="pname" id="foeName">—</span>
+            <span class="lvl">Lv100</span>
+            <span class="types" id="foeTypes"></span>
+          </div>
+          <div class="hpwrap">
+            <div class="hpbar"><div class="hpfill" id="foeHp"></div></div>
+            <div class="hprow"><span id="foeStatus"></span><span id="foeHpText">100%</span></div>
+          </div>
+        </div>
+        <div class="tray" id="foeTray"></div>
+      </div>
+      <div class="side me">
+        <div class="sprite" id="mySprite">❔</div>
+        <div class="infobox">
+          <div class="nameline">
+            <span class="pname" id="myName">—</span>
+            <span class="lvl">Lv100</span>
+            <span class="types" id="myTypes"></span>
+          </div>
+          <div class="hpwrap">
+            <div class="hpbar"><div class="hpfill" id="myHp"></div></div>
+            <div class="hprow"><span id="myStatus"></span><span id="myHpText">100%</span></div>
+          </div>
+        </div>
+        <div class="tray" id="myTray"></div>
+      </div>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <div class="controls">
+      <div class="banner" id="banner"></div>
+      <div class="prompt" id="prompt">What will you do?</div>
+      <div id="movePanel">
+        <div class="movegrid" id="moveGrid"></div>
+        <div class="actionrow">
+          <button class="btn" id="switchBtn">Switch Pokémon</button>
+          <div class="teratog" id="teraTog"><span>Terastallize</span><span class="sw"></span></div>
+        </div>
+      </div>
+      <div id="switchPanel" class="hidden">
+        <div class="switchgrid" id="switchGrid"></div>
+        <div class="actionrow"><button class="btn ghost" id="cancelSwitch">← Back</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- END -->
+  <section id="end" class="hidden">
+    <div class="card endcard">
+      <div class="big" id="endBig">—</div>
+      <div class="sub" id="endSub"></div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn primary" id="rematch">Rematch</button>
+        <button class="btn" id="newBattle">New Battle</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="previewOverlay" class="overlay hidden">
+  <div class="preview">
+    <h2 id="prevTitle">Team Preview</h2>
+    <div class="sub" id="prevSub"></div>
+    <div style="color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">Opponent</div>
+    <div class="prow" id="prevFoe"></div>
+    <div style="color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">Your team — pick your lead</div>
+    <div class="prow" id="prevMe"></div>
+    <div class="hint" id="prevHint">Click a Pokémon above to send it out first.</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn ghost" id="prevBack">← Back</button>
+      <button class="btn primary" id="prevStart" disabled>Battle!</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
