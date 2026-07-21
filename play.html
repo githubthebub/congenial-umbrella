@@ -1,0 +1,2247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>OU Battle Simulator — Gen 9 (vs Claude)</title>
+<style>
+  :root{
+    --bg:#0e1220; --bg2:#151b2e; --panel:#1b2338; --panel2:#232c46;
+    --line:#2b3556; --text:#e8ecf7; --muted:#95a0bf; --accent:#6ea8fe;
+    --good:#48d16a; --warn:#f4c542; --bad:#ec5a63; --tera:#c56cf0;
+    --radius:14px; --shadow:0 8px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(1200px 600px at 50% -10%,#1a2340 0%,var(--bg) 60%);
+    color:var(--text); font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; overscroll-behavior:none;
+  }
+  .app{max-width:1000px;margin:0 auto;padding:18px 16px 40px}
+  h1,h2,h3{margin:0}
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .logo{font-size:26px;font-weight:800;letter-spacing:-.5px}
+  .logo .g{color:var(--accent)}
+  .tag{color:var(--muted);font-size:13px}
+  .btn{
+    appearance:none;border:1px solid var(--line);background:var(--panel2);color:var(--text);
+    padding:11px 18px;border-radius:11px;font-weight:600;cursor:pointer;transition:.12s;font-size:15px;
+  }
+  .btn:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .btn.primary{background:linear-gradient(180deg,#4f8cff,#3f78ea);border-color:#3f78ea;color:#fff}
+  .btn.primary:disabled{opacity:.45;cursor:not-allowed;transform:none}
+  .btn.ghost{background:transparent}
+  .hidden{display:none !important}
+
+  /* ---------- Menu ---------- */
+  .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:760px){.menu-grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+  .card h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px;font-weight:700}
+  .opt{
+    display:flex;gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:12px;
+    cursor:pointer;margin-bottom:10px;transition:.12s;background:var(--panel2)
+  }
+  .opt:hover{border-color:var(--accent)}
+  .opt.sel{border-color:var(--accent);box-shadow:0 0 0 2px rgba(110,168,254,.25) inset}
+  .opt .av{font-size:30px;width:44px;text-align:center;flex:none}
+  .opt .body{flex:1;min-width:0}
+  .opt .nm{font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .opt .elo{font-size:12px;color:#0e1220;background:var(--warn);padding:1px 7px;border-radius:20px;font-weight:800}
+  .opt .ti{color:var(--muted);font-size:12.5px}
+  .opt .bl{color:var(--muted);font-size:12.5px;margin-top:4px}
+  .teamline{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+  .chip{font-size:11px;background:#0f1626;border:1px solid var(--line);border-radius:7px;padding:2px 7px;color:var(--muted)}
+  .startrow{display:flex;justify-content:center;margin-top:18px}
+
+  /* ---------- Team preview ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(6,9,18,.72);display:flex;align-items:center;justify-content:center;z-index:40;padding:16px}
+  .preview{background:var(--panel);border:1px solid var(--line);border-radius:18px;max-width:760px;width:100%;padding:22px;box-shadow:var(--shadow)}
+  .preview h2{font-size:20px;margin-bottom:4px}
+  .preview .sub{color:var(--muted);margin-bottom:16px;font-size:13.5px}
+  .prow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:14px}
+  @media(max-width:640px){.prow{grid-template-columns:repeat(3,1fr)}}
+  .mon{
+    background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;cursor:default;transition:.12s
+  }
+  .mon.pick{cursor:pointer}
+  .mon.pick:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .mon.lead{border-color:var(--accent);box-shadow:0 0 0 2px rgba(110,168,254,.3) inset}
+  .mon .em{font-size:30px}
+  .mon .mn{font-size:12px;font-weight:700;margin-top:3px;line-height:1.15}
+  .mon .tt{display:flex;gap:3px;justify-content:center;margin-top:5px;flex-wrap:wrap}
+  .tbadge{font-size:9.5px;font-weight:800;color:#fff;padding:1px 6px;border-radius:6px;text-shadow:0 1px 1px rgba(0,0,0,.25)}
+  .preview .hint{color:var(--muted);font-size:13px;margin:6px 0 14px}
+
+  /* ---------- Battle ---------- */
+  .fieldwrap{background:linear-gradient(180deg,#20304f 0%,#1a2540 55%,#16324a 100%);
+    border:1px solid var(--line);border-radius:var(--radius);padding:14px;position:relative;overflow:hidden;box-shadow:var(--shadow)}
+  .statusbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:12.5px;color:var(--muted)}
+  .weatherpill{padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.28);border:1px solid var(--line);font-weight:600}
+  .side{display:flex;align-items:center;gap:12px;margin:6px 0}
+  .side.foe{flex-direction:row}
+  .side.me{flex-direction:row-reverse}
+  .tray{display:flex;gap:5px;flex:none}
+  .ball{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#ff6b6b 0 48%,#111 49% 55%,#e9edf5 56% 100%);border:1px solid #0008}
+  .ball.dead{filter:grayscale(1);opacity:.35}
+  .ball.active{box-shadow:0 0 0 2px var(--accent)}
+  .infobox{flex:1;max-width:320px}
+  .side.me .infobox{margin-left:auto}
+  .nameline{display:flex;align-items:center;gap:8px}
+  .side.me .nameline{flex-direction:row-reverse}
+  .pname{font-weight:800;font-size:16px}
+  .lvl{color:var(--muted);font-size:12px}
+  .types{display:flex;gap:4px}
+  .teraflag{font-size:10px;font-weight:800;color:#fff;background:var(--tera);padding:1px 7px;border-radius:6px;box-shadow:0 0 10px rgba(197,108,240,.6)}
+  .hpwrap{margin-top:4px}
+  .hpbar{height:9px;border-radius:6px;background:#0c1220;border:1px solid #0006;overflow:hidden}
+  .hpfill{height:100%;width:100%;background:var(--good);transition:width .55s cubic-bezier(.3,.8,.3,1),background .3s}
+  .hprow{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:2px}
+  .side.me .hprow{flex-direction:row-reverse}
+  .statuspill{font-size:10px;font-weight:800;color:#0e1220;padding:1px 6px;border-radius:5px}
+  .st-brn{background:#f0803c}.st-par{background:#f4d23b}.st-psn,.st-tox{background:#c274d8;color:#fff}
+  .st-slp{background:#9aa4bd}.st-frz{background:#7fd4e6}
+  .sprite{font-size:56px;flex:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.4));transition:transform .2s}
+  .sprite.hit{animation:shake .3s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+  /* log */
+  .log{height:150px;overflow-y:auto;background:#0c111d;border:1px solid var(--line);border-radius:12px;
+    padding:10px 12px;margin-top:12px;font-size:13.5px;scroll-behavior:smooth}
+  .log .ln{margin:2px 0;opacity:0;animation:fade .25s forwards}
+  @keyframes fade{to{opacity:1}}
+  .log .move{color:#cfe0ff}.log .damage{color:#ffc0c4}.log .heal{color:#b7f0c6}
+  .log .faint{color:#ff8b91;font-weight:700}.log .status,.log .boost{color:#ffe08a}
+  .log .system,.log .turn{color:#8fa8dd;font-weight:700}.log .weather{color:#a7d8ff}
+  .log .tera{color:#e2a9ff;font-weight:700}.log .switch{color:#c8d2ee}
+  .log .text{color:var(--muted)}.log .miss{color:#ff9aa0}.log .hazard{color:#ffd18a}.log .ability{color:#a9f0d8}
+
+  /* controls */
+  .controls{margin-top:12px}
+  .movegrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media(max-width:520px){.movegrid{grid-template-columns:1fr}}
+  .movebtn{
+    display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 13px;border-radius:12px;
+    border:1px solid var(--line);cursor:pointer;color:#fff;position:relative;transition:.1s;min-height:56px;justify-content:center
+  }
+  .movebtn:hover:not(.dis){transform:translateY(-2px);filter:brightness(1.08)}
+  .movebtn.dis{opacity:.4;cursor:not-allowed}
+  .movebtn .mvname{font-weight:800;font-size:14.5px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .movebtn .mvmeta{font-size:11px;opacity:.95;display:flex;gap:8px;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+  .movebtn .cat{position:absolute;top:8px;right:10px;font-size:10px;font-weight:800;opacity:.9}
+  .actionrow{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;align-items:center}
+  .teratog{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:13px;color:var(--muted);user-select:none}
+  .teratog .sw{width:44px;height:24px;border-radius:20px;background:#0c1220;border:1px solid var(--line);position:relative;cursor:pointer;transition:.15s}
+  .teratog .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:.15s}
+  .teratog.on .sw{background:linear-gradient(180deg,#d98bff,#b45ff0);border-color:#b45ff0}
+  .teratog.on .sw::after{left:22px;background:#fff}
+  .teratog.disabled{opacity:.35;pointer-events:none}
+  .switchgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-top:6px}
+  @media(max-width:520px){.switchgrid{grid-template-columns:1fr 1fr}}
+  .switchbtn{display:flex;align-items:center;gap:9px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;background:var(--panel2);cursor:pointer;transition:.1s;text-align:left}
+  .switchbtn:hover:not(.dis){border-color:var(--accent);transform:translateY(-1px)}
+  .switchbtn.dis{opacity:.35;cursor:not-allowed}
+  .switchbtn .em{font-size:24px}
+  .switchbtn .sn{font-weight:700;font-size:12.5px}
+  .switchbtn .shp{font-size:11px;color:var(--muted)}
+  .prompt{color:var(--muted);font-size:13px;margin:2px 0 8px;min-height:18px}
+  .banner{text-align:center;font-weight:800;font-size:15px;color:var(--accent);min-height:20px;margin-top:2px}
+
+  /* end screen */
+  .endcard{text-align:center;padding:34px 22px}
+  .endcard .big{font-size:34px;font-weight:900;letter-spacing:-1px;margin-bottom:6px}
+  .endcard .win{color:var(--good)}.endcard .lose{color:var(--bad)}
+  .endcard .sub{color:var(--muted);margin-bottom:20px}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:26px;line-height:1.6}
+  a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="logo"><span class="g">OU</span> Battle Simulator</div>
+    <div class="tag">Gen 9 singles · you vs a thinking AI</div>
+  </div>
+
+  <!-- MENU -->
+  <section id="menu">
+    <div class="menu-grid">
+      <div class="card">
+        <h2>Choose your opponent</h2>
+        <div id="personaList"></div>
+      </div>
+      <div class="card">
+        <h2>Choose your team</h2>
+        <div id="teamList"></div>
+      </div>
+    </div>
+    <div class="startrow">
+      <button id="toPreview" class="btn primary" disabled>Continue →</button>
+    </div>
+    <footer>
+      A faithful-enough Gen 9 OU engine: real damage math, hazards, weather, status, items,
+      abilities &amp; Terastallization. The opponent damage-calcs every option, predicts your
+      switches, and Teras on the right turn. Opponents are AI personas, not real people.
+    </footer>
+  </section>
+
+  <!-- BATTLE -->
+  <section id="battle" class="hidden">
+    <div class="fieldwrap">
+      <div class="statusbar">
+        <span class="weatherpill" id="weather">Clear skies</span>
+        <span id="turnCount">Turn 1</span>
+        <span class="weatherpill" id="hazards">No hazards</span>
+      </div>
+      <div class="side foe">
+        <div class="sprite" id="foeSprite">❔</div>
+        <div class="infobox">
+          <div class="nameline">
+            <span class="pname" id="foeName">—</span>
+            <span class="lvl">Lv100</span>
+            <span class="types" id="foeTypes"></span>
+          </div>
+          <div class="hpwrap">
+            <div class="hpbar"><div class="hpfill" id="foeHp"></div></div>
+            <div class="hprow"><span id="foeStatus"></span><span id="foeHpText">100%</span></div>
+          </div>
+        </div>
+        <div class="tray" id="foeTray"></div>
+      </div>
+      <div class="side me">
+        <div class="sprite" id="mySprite">❔</div>
+        <div class="infobox">
+          <div class="nameline">
+            <span class="pname" id="myName">—</span>
+            <span class="lvl">Lv100</span>
+            <span class="types" id="myTypes"></span>
+          </div>
+          <div class="hpwrap">
+            <div class="hpbar"><div class="hpfill" id="myHp"></div></div>
+            <div class="hprow"><span id="myStatus"></span><span id="myHpText">100%</span></div>
+          </div>
+        </div>
+        <div class="tray" id="myTray"></div>
+      </div>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <div class="controls">
+      <div class="banner" id="banner"></div>
+      <div class="prompt" id="prompt">What will you do?</div>
+      <div id="movePanel">
+        <div class="movegrid" id="moveGrid"></div>
+        <div class="actionrow">
+          <button class="btn" id="switchBtn">Switch Pokémon</button>
+          <div class="teratog" id="teraTog"><span>Terastallize</span><span class="sw"></span></div>
+        </div>
+      </div>
+      <div id="switchPanel" class="hidden">
+        <div class="switchgrid" id="switchGrid"></div>
+        <div class="actionrow"><button class="btn ghost" id="cancelSwitch">← Back</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- END -->
+  <section id="end" class="hidden">
+    <div class="card endcard">
+      <div class="big" id="endBig">—</div>
+      <div class="sub" id="endSub"></div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn primary" id="rematch">Rematch</button>
+        <button class="btn" id="newBattle">New Battle</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div id="previewOverlay" class="overlay hidden">
+  <div class="preview">
+    <h2 id="prevTitle">Team Preview</h2>
+    <div class="sub" id="prevSub"></div>
+    <div style="color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">Opponent</div>
+    <div class="prow" id="prevFoe"></div>
+    <div style="color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px">Your team — pick your lead</div>
+    <div class="prow" id="prevMe"></div>
+    <div class="hint" id="prevHint">Click a Pokémon above to send it out first.</div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn ghost" id="prevBack">← Back</button>
+      <button class="btn primary" id="prevStart" disabled>Battle!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+ * data.js — Pokédex, moves, type chart, competitive OU teams, and AI personas
+ * for a Gen 9 (Scarlet/Violet) OU singles battle simulator.
+ *
+ * Base stats and typings are the real Gen 9 values. Movesets are competitively
+ * plausible OU builds. Everything attaches to the global POKE namespace so the
+ * files load as plain <script> tags (works from file://) and under Node for
+ * the headless test harness.
+ * ==========================================================================*/
+(function () {
+  const G = (typeof window !== 'undefined') ? window : globalThis;
+  const POKE = G.POKE = G.POKE || {};
+
+  /* ---- Types ------------------------------------------------------------ */
+  const TYPES = ['Normal','Fire','Water','Electric','Grass','Ice','Fighting',
+    'Poison','Ground','Flying','Psychic','Bug','Rock','Ghost','Dragon','Dark',
+    'Steel','Fairy'];
+
+  // Only non-1x matchups are listed; everything else defaults to 1.
+  const CHART = {
+    Normal:   {Rock:0.5, Ghost:0, Steel:0.5},
+    Fire:     {Fire:0.5, Water:0.5, Grass:2, Ice:2, Bug:2, Rock:0.5, Dragon:0.5, Steel:2},
+    Water:    {Fire:2, Water:0.5, Grass:0.5, Ground:2, Rock:2, Dragon:0.5},
+    Electric: {Water:2, Electric:0.5, Grass:0.5, Ground:0, Flying:2, Dragon:0.5},
+    Grass:    {Fire:0.5, Water:2, Grass:0.5, Poison:0.5, Ground:2, Flying:0.5, Bug:0.5, Rock:2, Dragon:0.5, Steel:0.5},
+    Ice:      {Fire:0.5, Water:0.5, Grass:2, Ice:0.5, Ground:2, Flying:2, Dragon:2, Steel:0.5},
+    Fighting: {Normal:2, Ice:2, Poison:0.5, Flying:0.5, Psychic:0.5, Bug:0.5, Rock:2, Ghost:0, Dark:2, Steel:2, Fairy:0.5},
+    Poison:   {Grass:2, Poison:0.5, Ground:0.5, Rock:0.5, Ghost:0.5, Steel:0, Fairy:2},
+    Ground:   {Fire:2, Electric:2, Grass:0.5, Poison:2, Flying:0, Bug:0.5, Rock:2, Steel:2},
+    Flying:   {Electric:0.5, Grass:2, Fighting:2, Bug:2, Rock:0.5, Steel:0.5},
+    Psychic:  {Fighting:2, Poison:2, Psychic:0.5, Dark:0, Steel:0.5},
+    Bug:      {Fire:0.5, Grass:2, Fighting:0.5, Poison:0.5, Flying:0.5, Psychic:2, Ghost:0.5, Dark:2, Steel:0.5, Fairy:0.5},
+    Rock:     {Fire:2, Ice:2, Fighting:0.5, Ground:0.5, Flying:2, Bug:2, Steel:0.5},
+    Ghost:    {Normal:0, Psychic:2, Ghost:2, Dark:0.5},
+    Dragon:   {Dragon:2, Steel:0.5, Fairy:0},
+    Dark:     {Fighting:0.5, Psychic:2, Ghost:2, Dark:0.5, Fairy:0.5},
+    Steel:    {Fire:0.5, Water:0.5, Electric:0.5, Ice:2, Rock:2, Steel:0.5, Fairy:2},
+    Fairy:    {Fire:0.5, Fighting:2, Poison:0.5, Dragon:2, Dark:2, Steel:0.5},
+  };
+
+  function typeMult(atkType, defType) {
+    const row = CHART[atkType];
+    if (!row) return 1;
+    return (defType in row) ? row[defType] : 1;
+  }
+  // Effectiveness of a move type vs a list of defender types.
+  function effectiveness(atkType, defTypes) {
+    let m = 1;
+    for (const t of defTypes) m *= typeMult(atkType, t);
+    return m;
+  }
+
+  /* ---- Natures ---------------------------------------------------------- */
+  // [boosted, lowered] stat keys; neutral natures omit both.
+  const NATURES = {
+    Adamant: ['atk', 'spa'], Modest: ['spa', 'atk'], Jolly: ['spe', 'spa'],
+    Timid: ['spe', 'atk'], Bold: ['def', 'atk'], Impish: ['def', 'spa'],
+    Calm: ['spd', 'atk'], Careful: ['spd', 'spa'], Naive: ['spe', 'spd'],
+    Hasty: ['spe', 'def'], Quiet: ['spa', 'spe'], Relaxed: ['def', 'spe'],
+    Sassy: ['spd', 'spe'], Brave: ['atk', 'spe'], Lonely: ['atk', 'def'],
+    Serious: [null, null],
+  };
+
+  /* ---- Pokédex (Gen 9 base stats) --------------------------------------- */
+  // stats: hp/atk/def/spa/spd/spe. weightkg used by a couple of moves.
+  const DEX = {
+    'Great Tusk':      {types:['Ground','Fighting'], stats:{hp:115,atk:131,def:131,spa:53,spd:53,spe:87}, weightkg:320},
+    'Kingambit':       {types:['Dark','Steel'],      stats:{hp:100,atk:135,def:120,spa:60,spd:85,spe:50}, weightkg:120},
+    'Gholdengo':       {types:['Steel','Ghost'],     stats:{hp:87,atk:60,def:95,spa:133,spd:91,spe:84},   weightkg:30},
+    'Dragapult':       {types:['Dragon','Ghost'],    stats:{hp:88,atk:120,def:75,spa:100,spd:75,spe:142}, weightkg:50},
+    'Slowking-Galar':  {types:['Poison','Psychic'],  stats:{hp:95,atk:65,def:80,spa:110,spd:110,spe:30},  weightkg:79.5},
+    'Corviknight':     {types:['Flying','Steel'],    stats:{hp:98,atk:87,def:105,spa:53,spd:85,spe:67},   weightkg:75},
+    'Glimmora':        {types:['Rock','Poison'],     stats:{hp:83,atk:55,def:90,spa:130,spd:81,spe:86},   weightkg:45},
+    'Iron Valiant':    {types:['Fairy','Fighting'],  stats:{hp:74,atk:130,def:90,spa:120,spd:60,spe:116}, weightkg:35},
+    'Roaring Moon':    {types:['Dragon','Dark'],     stats:{hp:105,atk:139,def:71,spa:55,spd:101,spe:119},weightkg:380},
+    'Iron Moth':       {types:['Fire','Poison'],     stats:{hp:80,atk:70,def:60,spa:140,spd:110,spe:110}, weightkg:36},
+    'Pelipper':        {types:['Water','Flying'],    stats:{hp:60,atk:50,def:100,spa:95,spd:70,spe:65},   weightkg:28},
+    'Barraskewda':     {types:['Water'],             stats:{hp:61,atk:123,def:60,spa:60,spd:50,spe:136},  weightkg:30},
+    'Raging Bolt':     {types:['Electric','Dragon'], stats:{hp:125,atk:73,def:91,spa:137,spd:89,spe:75},  weightkg:480},
+    'Ogerpon-Wellspring':{types:['Grass','Water'],   stats:{hp:80,atk:120,def:84,spa:60,spd:96,spe:110},  weightkg:39.8},
+    'Zapdos':          {types:['Electric','Flying'], stats:{hp:90,atk:90,def:85,spa:125,spd:90,spe:100},  weightkg:52.6},
+    'Torkoal':         {types:['Fire'],              stats:{hp:70,atk:85,def:140,spa:85,spd:70,spe:20},   weightkg:80.4},
+    'Hippowdon':       {types:['Ground'],            stats:{hp:108,atk:112,def:118,spa:68,spd:72,spe:47}, weightkg:300},
+    'Excadrill':       {types:['Ground','Steel'],    stats:{hp:110,atk:135,def:60,spa:50,spd:65,spe:88},  weightkg:40.4},
+  };
+
+  /* ---- Moves ------------------------------------------------------------ *
+   * category: Physical | Special | Status
+   * Optional keys handled by the engine:
+   *   priority, acc(true=never miss), recoil, drain, heal, highCrit, contact,
+   *   sound, punch, slicing, bite, pulse, multihit:[min,max]|n, selfBoost{},
+   *   boostsTarget{}, boostTarget:'self'|'foe', secondary:{chance,status,boosts,target},
+   *   status, hazard:'sr'|'spikes'|'tspikes', switchOut, forceSwitch,
+   *   recharge, chargeMove(sun-skip), sunPower, ivycudgel(type from mask),
+   *   eruption(scale by hp), condition:'sucker'|'thunderclap', volatile:'protect',
+   *   selfDrop{}, teraVaries, hitsDef(psyshock)
+   * --------------------------------------------------------------------- */
+  const MOVES = {
+    // --- Physical ---
+    'Headlong Rush':  {type:'Ground', category:'Physical', power:120, acc:100, pp:5, contact:true, selfDrop:{def:-1,spd:-1}},
+    'Close Combat':   {type:'Fighting',category:'Physical', power:120, acc:100, pp:8, contact:true, selfDrop:{def:-1,spd:-1}},
+    'Knock Off':      {type:'Dark',    category:'Physical', power:65,  acc:100, pp:20, contact:true, knockoff:true},
+    'Rapid Spin':     {type:'Normal',  category:'Physical', power:50,  acc:100, pp:40, contact:true, spin:true, selfBoost:{spe:1}},
+    'Ice Spinner':    {type:'Ice',     category:'Physical', power:80,  acc:100, pp:15, contact:true},
+    'Kowtow Cleave':  {type:'Dark',    category:'Physical', power:85,  acc:true, pp:10, contact:true, slicing:true},
+    'Iron Head':      {type:'Steel',   category:'Physical', power:80,  acc:100, pp:15, contact:true, secondary:{chance:30, flinch:true}},
+    'Sucker Punch':   {type:'Dark',    category:'Physical', power:70,  acc:100, pp:5, priority:1, contact:true, condition:'sucker'},
+    'U-turn':         {type:'Bug',     category:'Physical', power:70,  acc:100, pp:20, contact:true, switchOut:true},
+    'Flip Turn':      {type:'Water',   category:'Physical', power:60,  acc:100, pp:20, contact:true, switchOut:true},
+    'Aqua Jet':       {type:'Water',   category:'Physical', power:40,  acc:100, pp:20, priority:1, contact:true},
+    'Brave Bird':     {type:'Flying',  category:'Physical', power:120, acc:100, pp:15, contact:true, recoil:1/3},
+    'Body Press':     {type:'Fighting',category:'Physical', power:80,  acc:100, pp:10, contact:true, useDefAsAtk:true},
+    'Liquidation':    {type:'Water',   category:'Physical', power:85,  acc:100, pp:10, contact:true, secondary:{chance:20, boosts:{def:-1}, target:'foe'}},
+    'Ivy Cudgel':     {type:'Grass',   category:'Physical', power:100, acc:100, pp:10, highCrit:true, ivycudgel:true},
+    'Horn Leech':     {type:'Grass',   category:'Physical', power:75,  acc:100, pp:10, contact:true, drain:0.5},
+    'Crunch':         {type:'Dark',    category:'Physical', power:80,  acc:100, pp:15, contact:true, bite:true, secondary:{chance:20, boosts:{def:-1}, target:'foe'}},
+    'Earthquake':     {type:'Ground',  category:'Physical', power:100, acc:100, pp:10},
+    'Dragon Claw':    {type:'Dragon',  category:'Physical', power:80,  acc:100, pp:15, contact:true},
+    'Rock Slide':     {type:'Rock',    category:'Physical', power:75,  acc:90,  pp:10, secondary:{chance:30, flinch:true}},
+
+    // --- Special ---
+    'Make It Rain':   {type:'Steel',   category:'Special', power:120, acc:100, pp:5, selfDrop:{spa:-1}},
+    'Shadow Ball':    {type:'Ghost',   category:'Special', power:80,  acc:100, pp:15, secondary:{chance:20, boosts:{spd:-1}, target:'foe'}},
+    'Focus Blast':    {type:'Fighting',category:'Special', power:120, acc:70,  pp:5, secondary:{chance:10, boosts:{spd:-1}, target:'foe'}},
+    'Thunderbolt':    {type:'Electric',category:'Special', power:90,  acc:100, pp:15, secondary:{chance:10, status:'par'}},
+    'Draco Meteor':   {type:'Dragon',  category:'Special', power:130, acc:90,  pp:5, selfDrop:{spa:-2}},
+    'Flamethrower':   {type:'Fire',    category:'Special', power:90,  acc:100, pp:15, secondary:{chance:10, status:'brn'}},
+    'Hurricane':      {type:'Flying',  category:'Special', power:110, acc:70,  pp:10, rainPerfect:true, secondary:{chance:30, confuse:true}},
+    'Surf':           {type:'Water',   category:'Special', power:90,  acc:100, pp:15},
+    'Moonblast':      {type:'Fairy',   category:'Special', power:95,  acc:100, pp:15, secondary:{chance:30, boosts:{spa:-1}, target:'foe'}},
+    'Psyshock':       {type:'Psychic', category:'Special', power:80,  acc:100, pp:10, hitsDef:true},
+    'Sludge Bomb':    {type:'Poison',  category:'Special', power:90,  acc:100, pp:10, secondary:{chance:30, status:'psn'}},
+    'Sludge Wave':    {type:'Poison',  category:'Special', power:95,  acc:100, pp:10, secondary:{chance:10, status:'psn'}},
+    'Ice Beam':       {type:'Ice',     category:'Special', power:90,  acc:100, pp:10, secondary:{chance:10, status:'frz'}},
+    'Energy Ball':    {type:'Grass',   category:'Special', power:90,  acc:100, pp:10, secondary:{chance:10, boosts:{spd:-1}, target:'foe'}},
+    'Dazzling Gleam': {type:'Fairy',   category:'Special', power:80,  acc:100, pp:10},
+    'Fiery Dance':    {type:'Fire',    category:'Special', power:80,  acc:100, pp:10, secondary:{chance:50, boosts:{spa:1}, target:'self'}},
+    'Thunderclap':    {type:'Electric',category:'Special', power:70,  acc:100, pp:5, priority:1, condition:'sucker'},
+    'Power Gem':      {type:'Rock',    category:'Special', power:80,  acc:100, pp:20},
+    'Earth Power':    {type:'Ground',  category:'Special', power:90,  acc:100, pp:10, secondary:{chance:10, boosts:{spd:-1}, target:'foe'}},
+    'Eruption':       {type:'Fire',    category:'Special', power:150, acc:100, pp:5, eruption:true},
+    'Solar Beam':     {type:'Grass',   category:'Special', power:120, acc:100, pp:10, charge:'sun'},
+    'Volt Switch':    {type:'Electric',category:'Special', power:70,  acc:100, pp:20, switchOut:true},
+
+    // --- Status ---
+    'Swords Dance':   {type:'Normal', category:'Status', pp:20, selfBoost:{atk:2}},
+    'Calm Mind':      {type:'Psychic',category:'Status', pp:20, selfBoost:{spa:1,spd:1}},
+    'Dragon Dance':   {type:'Dragon', category:'Status', pp:20, selfBoost:{atk:1,spe:1}},
+    'Roost':          {type:'Flying', category:'Status', pp:5, heal:0.5, roost:true},
+    'Slack Off':      {type:'Normal', category:'Status', pp:5, heal:0.5},
+    'Stealth Rock':   {type:'Rock',   category:'Status', pp:20, hazard:'sr'},
+    'Thunder Wave':   {type:'Electric',category:'Status', pp:20, acc:90, status:'par', statusTarget:'foe'},
+    'Whirlwind':      {type:'Normal', category:'Status', pp:20, acc:true, priority:-6, forceSwitch:true},
+    'Protect':        {type:'Normal', category:'Status', pp:10, priority:4, volatile:'protect'},
+  };
+
+  /* ---- Competitive OU teams --------------------------------------------- *
+   * Each set: {species,item,ability,nature,evs,moves,tera}. IVs assumed 31
+   * except atk 0 for pure special attackers (engine handles this from role).
+   * --------------------------------------------------------------------- */
+  const E = (o) => Object.assign({hp:0,atk:0,def:0,spa:0,spd:0,spe:0}, o);
+
+  const TEAMS = {
+    balance: {
+      name: 'Standard Balance',
+      desc: 'A well-rounded OU squad: hazards, a spinner, pivots, and Kingambit as a late-game cleaner.',
+      sets: [
+        {species:'Great Tusk', item:'Heavy-Duty Boots', ability:'Protosynthesis', nature:'Jolly',
+          evs:E({atk:252,def:4,spe:252}), moves:['Headlong Rush','Close Combat','Knock Off','Rapid Spin'], tera:'Steel'},
+        {species:'Kingambit', item:'Leftovers', ability:'Supreme Overlord', nature:'Adamant',
+          evs:E({hp:112,atk:252,spe:144}), moves:['Kowtow Cleave','Iron Head','Sucker Punch','Swords Dance'], tera:'Fairy'},
+        {species:'Gholdengo', item:'Air Balloon', ability:'Good as Gold', nature:'Timid',
+          evs:E({hp:80,spa:252,spe:176}), moves:['Make It Rain','Shadow Ball','Focus Blast','Thunderbolt'], tera:'Flying'},
+        {species:'Dragapult', item:'Heavy-Duty Boots', ability:'Infiltrator', nature:'Timid',
+          evs:E({spa:252,def:4,spe:252}), moves:['Draco Meteor','Shadow Ball','Flamethrower','U-turn'], tera:'Ghost'},
+        {species:'Slowking-Galar', item:'Heavy-Duty Boots', ability:'Regenerator', nature:'Calm',
+          evs:E({hp:252,def:16,spd:240}), moves:['Sludge Bomb','Psyshock','Flamethrower','Thunder Wave'], tera:'Water'},
+        {species:'Corviknight', item:'Rocky Helmet', ability:'Pressure', nature:'Impish',
+          evs:E({hp:252,def:168,spd:88}), moves:['Brave Bird','Body Press','Roost','U-turn'], tera:'Dragon'},
+      ],
+    },
+    offense: {
+      name: 'Hyper Offense',
+      desc: 'Glimmora sets the tone with hazards and a Focus Sash, then four fast breakers apply relentless pressure.',
+      sets: [
+        {species:'Glimmora', item:'Focus Sash', ability:'Toxic Debris', nature:'Timid',
+          evs:E({spa:252,def:4,spe:252}), moves:['Stealth Rock','Power Gem','Earth Power','Sludge Wave'], tera:'Grass'},
+        {species:'Iron Valiant', item:'Booster Energy', ability:'Quark Drive', nature:'Timid',
+          evs:E({spa:252,def:4,spe:252}), moves:['Moonblast','Focus Blast','Psyshock','Thunderbolt'], tera:'Electric'},
+        {species:'Roaring Moon', item:'Booster Energy', ability:'Protosynthesis', nature:'Jolly',
+          evs:E({atk:252,def:4,spe:252}), moves:['Dragon Dance','Knock Off','Earthquake','Dragon Claw'], tera:'Dark'},
+        {species:'Iron Moth', item:'Booster Energy', ability:'Quark Drive', nature:'Timid',
+          evs:E({spa:252,def:4,spe:252}), moves:['Fiery Dance','Sludge Wave','Energy Ball','Dazzling Gleam'], tera:'Grass'},
+        {species:'Kingambit', item:'Air Balloon', ability:'Supreme Overlord', nature:'Adamant',
+          evs:E({hp:112,atk:252,spe:144}), moves:['Kowtow Cleave','Iron Head','Sucker Punch','Swords Dance'], tera:'Fairy'},
+        {species:'Great Tusk', item:'Booster Energy', ability:'Protosynthesis', nature:'Jolly',
+          evs:E({atk:252,def:4,spe:252}), moves:['Headlong Rush','Close Combat','Ice Spinner','Rapid Spin'], tera:'Steel'},
+      ],
+    },
+    rain: {
+      name: 'Rain Offense',
+      desc: 'Pelipper turns on the rain so Barraskewda and Raging Bolt hit like trucks with perfect-accuracy Hurricanes backing them.',
+      sets: [
+        {species:'Pelipper', item:'Heavy-Duty Boots', ability:'Drizzle', nature:'Bold',
+          evs:E({hp:252,def:252,spd:4}), moves:['Hurricane','Surf','U-turn','Roost'], tera:'Ground'},
+        {species:'Barraskewda', item:'Choice Band', ability:'Swift Swim', nature:'Adamant',
+          evs:E({atk:252,def:4,spe:252}), moves:['Liquidation','Flip Turn','Close Combat','Aqua Jet'], tera:'Water'},
+        {species:'Raging Bolt', item:'Booster Energy', ability:'Protosynthesis', nature:'Modest',
+          evs:E({hp:64,spa:252,spe:192}), moves:['Thunderclap','Thunderbolt','Draco Meteor','Calm Mind'], tera:'Electric'},
+        {species:'Ogerpon-Wellspring', item:'Wellspring Mask', ability:'Water Absorb', nature:'Jolly',
+          evs:E({atk:252,def:4,spe:252}), moves:['Ivy Cudgel','Horn Leech','Knock Off','Swords Dance'], tera:'Water'},
+        {species:'Zapdos', item:'Heavy-Duty Boots', ability:'Static', nature:'Timid',
+          evs:E({hp:48,spa:208,spe:252}), moves:['Hurricane','Thunderbolt','Volt Switch','Roost'], tera:'Steel'},
+        {species:'Gholdengo', item:'Choice Scarf', ability:'Good as Gold', nature:'Timid',
+          evs:E({spa:252,def:4,spe:252}), moves:['Make It Rain','Shadow Ball','Thunderbolt','Focus Blast'], tera:'Flying'},
+      ],
+    },
+    sun: {
+      name: 'Sun Offense',
+      desc: 'Torkoal blasts Eruptions while the Protosynthesis Paradox trio (Roaring Moon, Raging Bolt, Iron Moth) snowballs in the sunlight.',
+      sets: [
+        {species:'Torkoal', item:'Heat Rock', ability:'Drought', nature:'Quiet',
+          evs:E({hp:252,spa:252,def:4}), moves:['Eruption','Solar Beam','Earth Power','Body Press'], tera:'Fire'},
+        {species:'Roaring Moon', item:'Booster Energy', ability:'Protosynthesis', nature:'Jolly',
+          evs:E({atk:252,def:4,spe:252}), moves:['Dragon Dance','Knock Off','Earthquake','Dragon Claw'], tera:'Dark'},
+        {species:'Raging Bolt', item:'Booster Energy', ability:'Protosynthesis', nature:'Modest',
+          evs:E({hp:64,spa:252,spe:192}), moves:['Thunderclap','Thunderbolt','Draco Meteor','Calm Mind'], tera:'Electric'},
+        {species:'Iron Moth', item:'Booster Energy', ability:'Quark Drive', nature:'Timid',
+          evs:E({spa:252,def:4,spe:252}), moves:['Fiery Dance','Sludge Wave','Energy Ball','Dazzling Gleam'], tera:'Grass'},
+        {species:'Great Tusk', item:'Heavy-Duty Boots', ability:'Protosynthesis', nature:'Jolly',
+          evs:E({atk:252,def:4,spe:252}), moves:['Headlong Rush','Close Combat','Ice Spinner','Rapid Spin'], tera:'Steel'},
+        {species:'Gholdengo', item:'Choice Specs', ability:'Good as Gold', nature:'Timid',
+          evs:E({spa:252,def:4,spe:252}), moves:['Make It Rain','Shadow Ball','Focus Blast','Thunderbolt'], tera:'Flying'},
+      ],
+    },
+    sand: {
+      name: 'Sand Balance',
+      desc: 'Hippowdon anchors the sand and hazards; Excadrill becomes a Sand Rush terror while Kingambit and Dragapult clean up.',
+      sets: [
+        {species:'Hippowdon', item:'Leftovers', ability:'Sand Stream', nature:'Impish',
+          evs:E({hp:252,def:184,spd:72}), moves:['Earthquake','Stealth Rock','Slack Off','Whirlwind'], tera:'Grass'},
+        {species:'Excadrill', item:'Leftovers', ability:'Sand Rush', nature:'Adamant',
+          evs:E({hp:4,atk:252,spe:252}), moves:['Earthquake','Iron Head','Rock Slide','Rapid Spin'], tera:'Ground'},
+        {species:'Great Tusk', item:'Booster Energy', ability:'Protosynthesis', nature:'Jolly',
+          evs:E({atk:252,def:4,spe:252}), moves:['Headlong Rush','Close Combat','Ice Spinner','Rapid Spin'], tera:'Steel'},
+        {species:'Gholdengo', item:'Air Balloon', ability:'Good as Gold', nature:'Timid',
+          evs:E({hp:80,spa:252,spe:176}), moves:['Make It Rain','Shadow Ball','Focus Blast','Thunderbolt'], tera:'Flying'},
+        {species:'Dragapult', item:'Heavy-Duty Boots', ability:'Infiltrator', nature:'Timid',
+          evs:E({spa:252,def:4,spe:252}), moves:['Draco Meteor','Shadow Ball','Flamethrower','U-turn'], tera:'Ghost'},
+        {species:'Kingambit', item:'Leftovers', ability:'Supreme Overlord', nature:'Adamant',
+          evs:E({hp:112,atk:252,spe:144}), moves:['Kowtow Cleave','Iron Head','Sucker Punch','Swords Dance'], tera:'Fairy'},
+      ],
+    },
+  };
+
+  /* ---- Opponent personas ------------------------------------------------ *
+   * These are AI personalities, not real people. Each maps to an AI config
+   * (see ai.js) and a preferred team. "Claude" is the flagship deep-search
+   * opponent the player is challenging.
+   * --------------------------------------------------------------------- */
+  const PERSONAS = [
+    {id:'rookie', name:'Youngster Kai', title:'Casual Ladder Player', elo:1100, avatar:'🧢',
+      team:'balance', ai:{depth:1, greedy:0.9, predict:0.1, switchiness:0.2, riskTaking:0.5, tera:'late'},
+      blurb:'Just here for fun. Clicks the move that does the most damage and hopes for the best.'},
+    {id:'grinder', name:'Ladder Grinder Max', title:'1500 Ladder Regular', elo:1500, avatar:'⚙️',
+      team:'sand', ai:{depth:1, greedy:0.6, predict:0.35, switchiness:0.45, riskTaking:0.5, tera:'value'},
+      blurb:'Solid fundamentals — plays the matchup, keeps hazards up, and rarely misclicks.'},
+    {id:'wall', name:'The Architect', title:'Balance Specialist', elo:1650, avatar:'🏛️',
+      team:'balance', ai:{depth:2, greedy:0.4, predict:0.55, switchiness:0.7, riskTaking:0.3, tera:'value'},
+      blurb:'Patient and positional. Pivots, preserves win conditions, and punishes greed.'},
+    {id:'hazard', name:'Hazard Lord Vex', title:'Hyper Offense Menace', elo:1750, avatar:'🌪️',
+      team:'offense', ai:{depth:2, greedy:0.65, predict:0.6, switchiness:0.5, riskTaking:0.75, tera:'aggro'},
+      blurb:'Stacks hazards, keeps momentum, and forces you to make the right read every single turn.'},
+    {id:'rainlord', name:'Tempest', title:'Weather Abuser', elo:1820, avatar:'🌧️',
+      team:'rain', ai:{depth:2, greedy:0.6, predict:0.6, switchiness:0.55, riskTaking:0.7, tera:'value'},
+      blurb:'Turns on the rain and drowns you in perfectly-accurate Hurricanes and Swift Swim sweeps.'},
+    {id:'finalist', name:'World Finalist AI', title:'Tournament Grandmaster', elo:1950, avatar:'👑',
+      team:'sun', ai:{depth:3, greedy:0.45, predict:0.8, switchiness:0.65, riskTaking:0.6, tera:'value'},
+      blurb:'Reads you like a book. Deep lookahead, ruthless sequencing, and immaculate Tera timing.'},
+    {id:'claude', name:'Claude', title:'The One You Came For', elo:2000, avatar:'🤖',
+      team:'balance', ai:{depth:3, greedy:0.4, predict:0.85, switchiness:0.7, riskTaking:0.55, tera:'value'},
+      blurb:'Deep expectimax search with opponent modeling. Predicts your switches, values long-term position, and Terastallizes at the exact right moment. This is who you challenged.'},
+  ];
+
+  POKE.data = {
+    TYPES, CHART, typeMult, effectiveness, NATURES, DEX, MOVES, TEAMS, PERSONAS,
+  };
+  if (typeof module !== 'undefined' && module.exports) module.exports = POKE;
+})();
+
+</script>
+<script>
+/* ============================================================================
+ * engine.js — Gen 9 OU singles battle engine.
+ *
+ * Faithful-enough implementation of the mechanics that matter for OU singles:
+ * the real damage formula, stat stages, priority/speed ordering, status,
+ * weather, entry hazards, common items & abilities, Terastallization, and
+ * mid-turn faint/pivot replacements (via a resumable generator).
+ * ==========================================================================*/
+(function () {
+  const G = (typeof window !== 'undefined') ? window : globalThis;
+  const POKE = G.POKE = G.POKE || {};
+  const D = POKE.data;
+
+  /* ---- Seedable RNG (mulberry32) ---------------------------------------- */
+  function makeRng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const boostMul = (s) => s >= 0 ? (2 + s) / 2 : 2 / (2 - s);
+  const accMul = (s) => s >= 0 ? (3 + s) / 3 : 3 / (3 - s);
+
+  /* ---- Stat calculation ------------------------------------------------- */
+  function calcStat(base, ev, iv, level, nat) {
+    return Math.floor((Math.floor((2 * base + iv + Math.floor(ev / 4)) * level / 100) + 5) * nat);
+  }
+  function calcHP(base, ev, iv, level) {
+    return Math.floor((2 * base + iv + Math.floor(ev / 4)) * level / 100) + level + 10;
+  }
+
+  function makePokemon(set) {
+    const species = D.DEX[set.species];
+    if (!species) throw new Error('Unknown species: ' + set.species);
+    const level = 100;
+    const nat = D.NATURES[set.nature] || [null, null];
+    const boostKey = nat[0], dropKey = nat[1];
+    const natMul = (k) => k === boostKey ? 1.1 : (k === dropKey ? 0.9 : 1.0);
+
+    // Physical attacker? If no physical damaging move, drop Atk IV to 0.
+    const moveObjs = set.moves.map((m) => Object.assign({ id: m }, D.MOVES[m]));
+    const hasPhysical = moveObjs.some((m) => m.category === 'Physical');
+    const atkIV = hasPhysical ? 31 : 0;
+
+    const b = species.stats, ev = set.evs;
+    const stats = {
+      hp: calcHP(b.hp, ev.hp, 31, level),
+      atk: calcStat(b.atk, ev.atk, atkIV, level, natMul('atk')),
+      def: calcStat(b.def, ev.def, 31, level, natMul('def')),
+      spa: calcStat(b.spa, ev.spa, 31, level, natMul('spa')),
+      spd: calcStat(b.spd, ev.spd, 31, level, natMul('spd')),
+      spe: calcStat(b.spe, ev.spe, 31, level, natMul('spe')),
+    };
+
+    return {
+      set, species: set.species, types: species.types.slice(), baseTypes: species.stats ? species.types.slice() : [],
+      level, stats, maxhp: stats.hp, hp: stats.hp,
+      boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, acc: 0, eva: 0 },
+      status: '', sleepTurns: 0, toxicN: 0,
+      item: set.item, itemActive: !!set.item, ability: set.ability,
+      moves: moveObjs.map((m) => ({ id: m.id, pp: m.pp, maxpp: m.pp, disabled: false })),
+      fainted: false,
+      volatiles: {},          // protect, leechseed, confusion, flinch, charge, sub
+      teraType: set.tera, teraActive: false,
+      boostedStat: null,      // Protosynthesis / Quark Drive / Booster Energy
+      choiceLock: null,
+      hasSwitched: false,
+    };
+  }
+
+  /* ---- Battle ----------------------------------------------------------- */
+  function Battle(team1, team2, opts) {
+    opts = opts || {};
+    this.rng = makeRng(opts.seed != null ? opts.seed : 12345);
+    this.sides = [team1, team2].map((team, i) => ({
+      idx: i, name: (opts.names && opts.names[i]) || (i === 0 ? 'Player' : 'Opponent'),
+      team: team.map(makePokemon), active: 0, teraUsed: false,
+      hazards: { sr: 0, spikes: 0, tspikes: 0, web: 0 },
+      lastMove: null,
+    }));
+    this.field = { weather: '', weatherTurns: 0 };
+    this.turn = 0;
+    this.winner = null; // null | 0 | 1 | 'tie'
+    this.log = [];
+    this._onLog = opts.log || null;
+    this.started = false;
+  }
+
+  Battle.prototype.emit = function (text, type) {
+    const e = { text, type: type || 'text', turn: this.turn };
+    this.log.push(e);
+    if (this._onLog) this._onLog(e);
+  };
+
+  Battle.prototype.active = function (s) { return this.sides[s].team[this.sides[s].active]; };
+  Battle.prototype.foeSide = function (s) { return s === 0 ? 1 : 0; };
+  Battle.prototype.move = function (id) { return D.MOVES[id]; };
+
+  /* ---- Typing / effectiveness ------------------------------------------- */
+  Battle.prototype.currentTypes = function (mon) {
+    if (mon.teraActive) return [mon.teraType];
+    return mon.types;
+  };
+  Battle.prototype.isGrounded = function (mon) {
+    if (mon.item === 'Air Balloon' && mon.itemActive) return false;
+    if (mon.ability === 'Levitate') return false;
+    return !this.currentTypes(mon).includes('Flying');
+  };
+
+  /* ---- Start / leads ---------------------------------------------------- */
+  Battle.prototype.setLead = function (side, idx) { this.sides[side].active = idx; };
+
+  Battle.prototype.start = function () {
+    this.started = true;
+    this.turn = 1;
+    this.emit('Battle start! ' + this.sides[0].name + ' vs ' + this.sides[1].name + '.', 'system');
+    // Switch-in effects for both leads (faster first, cosmetic).
+    const order = this.speedOrder(0, 1);
+    for (const s of order) this.onSwitchIn(s, this.sides[s].active, true);
+  };
+
+  /* ---- Switch-in effects (abilities, hazards) --------------------------- */
+  Battle.prototype.onSwitchIn = function (side, idx, isLead) {
+    const s = this.sides[side];
+    s.active = idx;
+    const mon = s.team[idx];
+    mon.hasSwitched = true;
+    // Hazards (Heavy-Duty Boots negate).
+    if (!(mon.item === 'Heavy-Duty Boots' && mon.itemActive)) this.applyHazards(side);
+    if (mon.fainted) return;
+    // Weather-setting abilities.
+    const w = { 'Drought': 'sun', 'Drizzle': 'rain', 'Sand Stream': 'sand', 'Snow Warning': 'snow' }[mon.ability];
+    if (w && this.field.weather !== w) {
+      const rockItem = { sun: 'Heat Rock', rain: 'Damp Rock', sand: 'Smooth Rock', snow: 'Icy Rock' }[w];
+      this.field.weather = w; this.field.weatherTurns = (mon.item === rockItem) ? 8 : 5;
+      this.emit(this.weatherStartMsg(w), 'weather');
+    }
+    // Intimidate.
+    if (mon.ability === 'Intimidate') {
+      const foe = this.active(this.foeSide(side));
+      if (foe && !foe.fainted) this.applyBoost(this.foeSide(side), { atk: -1 }, 'Intimidate');
+    }
+    // Dauntless Shield.
+    if (mon.ability === 'Dauntless Shield') this.applyBoost(side, { def: 1 }, 'Dauntless Shield');
+    // Protosynthesis / Quark Drive / Booster Energy.
+    this.checkParadox(side);
+  };
+
+  Battle.prototype.checkParadox = function (side) {
+    const mon = this.active(side);
+    if (!mon || mon.fainted) return;
+    const proto = mon.ability === 'Protosynthesis', quark = mon.ability === 'Quark Drive';
+    if (!proto && !quark) return;
+    const envOn = (proto && this.field.weather === 'sun') || (quark && this.field.terrain === 'electric');
+    const booster = mon.item === 'Booster Energy' && mon.itemActive;
+    if ((envOn || booster) && !mon.boostedStat) {
+      // Highest stat among atk/def/spa/spd/spe (after nature, no boosts).
+      let best = 'atk', bestv = -1;
+      for (const k of ['atk', 'def', 'spa', 'spd', 'spe']) if (mon.stats[k] > bestv) { bestv = mon.stats[k]; best = k; }
+      mon.boostedStat = best;
+      if (booster && !envOn) { mon.itemActive = false; mon.item = null; }
+      this.emit(mon.species + "'s " + mon.ability + ' boosted its ' + best.toUpperCase() + '!', 'ability');
+    } else if (!envOn && !booster && mon.boostedStat && !mon._boosterHeld) {
+      // Weather faded and no booster held: Proto boost drops.
+      if (proto) mon.boostedStat = null;
+    }
+  };
+
+  Battle.prototype.applyHazards = function (side) {
+    const s = this.sides[side], mon = s.team[s.active], h = s.hazards;
+    if (mon.fainted) return;
+    if (h.sr) {
+      const eff = D.effectiveness('Rock', this.currentTypes(mon));
+      const dmg = Math.floor(mon.maxhp * 0.125 * eff);
+      if (dmg > 0) { this.damage(side, dmg, 'Pointed stones dug into ' + mon.species + '!'); }
+    }
+    if (mon.fainted) return;
+    const grounded = this.isGrounded(mon);
+    if (grounded && h.spikes) {
+      const frac = [0, 1 / 8, 1 / 6, 1 / 4][h.spikes];
+      this.damage(side, Math.floor(mon.maxhp * frac), mon.species + ' is hurt by Spikes!');
+    }
+    if (mon.fainted) return;
+    if (grounded && h.tspikes) {
+      if (this.currentTypes(mon).includes('Poison')) {
+        h.tspikes = 0; this.emit(mon.species + ' absorbed the Toxic Spikes!', 'system');
+      } else if (!this.isImmuneToStatus(mon, h.tspikes >= 2 ? 'tox' : 'psn')) {
+        this.setStatus(side, h.tspikes >= 2 ? 'tox' : 'psn', 'hazard');
+      }
+    }
+    if (mon.fainted) return;
+    if (grounded && h.web && mon.boosts.spe > -6) {
+      this.applyBoost(side, { spe: -1 }, 'Sticky Web');
+    }
+  };
+
+  /* ---- Damage application ----------------------------------------------- */
+  Battle.prototype.damage = function (side, amount, msg, opts) {
+    opts = opts || {};
+    const mon = this.active(side);
+    if (!mon || mon.fainted || amount <= 0) return 0;
+    // Substitute soak.
+    if (mon.volatiles.sub != null && !opts.direct && !opts.bypassSub) {
+      const before = mon.volatiles.sub;
+      mon.volatiles.sub -= amount;
+      if (mon.volatiles.sub <= 0) { delete mon.volatiles.sub; this.emit(mon.species + "'s substitute faded!", 'system'); }
+      return Math.min(before, amount);
+    }
+    amount = Math.min(amount, mon.hp);
+    mon.hp -= amount;
+    if (msg) this.emit(msg, 'damage');
+    if (mon.hp <= 0) { mon.hp = 0; this.faint(side); }
+    return amount;
+  };
+
+  Battle.prototype.heal = function (side, amount, msg) {
+    const mon = this.active(side);
+    if (!mon || mon.fainted) return 0;
+    const before = mon.hp;
+    mon.hp = Math.min(mon.maxhp, mon.hp + Math.floor(amount));
+    if (mon.hp > before && msg) this.emit(msg, 'heal');
+    return mon.hp - before;
+  };
+
+  Battle.prototype.faint = function (side) {
+    const mon = this.active(side);
+    mon.fainted = true; mon.hp = 0;
+    this.emit(mon.species + ' fainted!', 'faint');
+  };
+
+  /* ---- Status ----------------------------------------------------------- */
+  Battle.prototype.isImmuneToStatus = function (mon, status) {
+    const types = this.currentTypes(mon);
+    if (mon.status) return true;
+    if (mon.ability === 'Good as Gold' && false) return true; // GaG blocks status *moves*, handled elsewhere
+    if (mon.ability === 'Purifying Salt') return true;
+    if ((status === 'psn' || status === 'tox') && (types.includes('Poison') || types.includes('Steel')) && mon.ability !== 'Corrosion') return true;
+    if (status === 'brn' && types.includes('Fire')) return true;
+    if (status === 'par' && types.includes('Electric')) return true;
+    if (status === 'frz' && types.includes('Ice')) return true;
+    if (status === 'slp' && mon.ability === 'Insomnia') return true;
+    if ((status === 'brn') && (mon.ability === 'Thermal Exchange' || mon.ability === 'Water Veil')) return true;
+    return false;
+  };
+
+  Battle.prototype.setStatus = function (side, status, src) {
+    const mon = this.active(side);
+    if (!mon || mon.fainted) return false;
+    if (this.isImmuneToStatus(mon, status)) return false;
+    mon.status = status;
+    if (status === 'slp') mon.sleepTurns = 1 + Math.floor(this.rng() * 3); // 1-3 turns
+    if (status === 'tox') mon.toxicN = 1;
+    const label = { brn: 'was burned', par: 'was paralyzed', psn: 'was poisoned', tox: 'was badly poisoned', slp: 'fell asleep', frz: 'was frozen solid' }[status];
+    this.emit(mon.species + ' ' + label + '!', 'status');
+    return true;
+  };
+
+  /* ---- Boosts ----------------------------------------------------------- */
+  Battle.prototype.applyBoost = function (side, boosts, src) {
+    const mon = this.active(side);
+    if (!mon || mon.fainted) return;
+    for (const k in boosts) {
+      let d = boosts[k];
+      if (d < 0 && (mon.ability === 'Clear Body' || mon.ability === 'White Smoke' || (mon.ability === 'Hyper Cutter' && k === 'atk'))) {
+        this.emit(mon.species + "'s " + mon.ability + ' prevents stat loss!', 'ability'); continue;
+      }
+      const before = mon.boosts[k];
+      mon.boosts[k] = clamp(before + d, -6, 6);
+      const real = mon.boosts[k] - before;
+      if (real === 0) continue;
+      const dir = real > 0 ? 'rose' : 'fell';
+      const mag = Math.abs(real) >= 2 ? ' sharply' : '';
+      this.emit(mon.species + "'s " + k.toUpperCase() + ' ' + dir + mag + '!', 'boost');
+    }
+  };
+
+  /* ---- Effective stats for damage --------------------------------------- */
+  Battle.prototype.effStat = function (mon, key, opts) {
+    opts = opts || {};
+    let stat = mon.stats[key];
+    let stage = mon.boosts[key];
+    if (opts.ignoreNeg && stage < 0) stage = 0;
+    if (opts.ignorePos && stage > 0) stage = 0;
+    stat = Math.floor(stat * boostMul(stage));
+    // Item / ability multipliers.
+    if (key === 'atk') {
+      if (mon.item === 'Choice Band' && mon.itemActive) stat = Math.floor(stat * 1.5);
+      if (mon.ability === 'Guts' && mon.status) stat = Math.floor(stat * 1.5);
+      if (mon.ability === 'Supreme Overlord') stat = Math.floor(stat * (1 + 0.1 * (mon._fallen || 0)));
+    }
+    if (key === 'spa') {
+      if (mon.item === 'Choice Specs' && mon.itemActive) stat = Math.floor(stat * 1.5);
+      if (mon.ability === 'Supreme Overlord') stat = Math.floor(stat * (1 + 0.1 * (mon._fallen || 0)));
+    }
+    if (key === 'spd' && this.field.weather === 'sand' && this.currentTypes(mon).includes('Rock')) stat = Math.floor(stat * 1.5);
+    if (key === 'def' && this.field.weather === 'snow' && this.currentTypes(mon).includes('Ice')) stat = Math.floor(stat * 1.5);
+    if (mon.boostedStat === key) stat = Math.floor(stat * 1.3);
+    return stat;
+  };
+
+  Battle.prototype.effSpeed = function (mon) {
+    let spe = Math.floor(mon.stats.spe * boostMul(mon.boosts.spe));
+    if (mon.item === 'Choice Scarf' && mon.itemActive) spe = Math.floor(spe * 1.5);
+    if (mon.status === 'par' && mon.ability !== 'Quick Feet') spe = Math.floor(spe * 0.5);
+    if (mon.ability === 'Swift Swim' && this.field.weather === 'rain') spe = Math.floor(spe * 2);
+    if (mon.ability === 'Sand Rush' && this.field.weather === 'sand') spe = Math.floor(spe * 2);
+    if (mon.ability === 'Chlorophyll' && this.field.weather === 'sun') spe = Math.floor(spe * 2);
+    if (mon.boostedStat === 'spe') spe = Math.floor(spe * 1.5);
+    return spe;
+  };
+
+  /* ---- Damage calculation ----------------------------------------------- */
+  // Returns {damage, eff, crit, hits} without applying it. opts.roll in [0..1],
+  // opts.crit forces crit, opts.avg uses 0.925.
+  Battle.prototype.calcDamage = function (atkSide, move, opts) {
+    opts = opts || {};
+    const attacker = this.active(atkSide);
+    const defender = this.active(this.foeSide(atkSide));
+    const m = typeof move === 'string' ? Object.assign({ id: move }, D.MOVES[move]) : move;
+    if (!m || m.category === 'Status') return { damage: 0, eff: 1, crit: false };
+
+    let moveType = m.type;
+    if (m.ivycudgel && attacker.set.species.startsWith('Ogerpon-Wellspring')) moveType = 'Water';
+    if (m.teraVaries && attacker.teraActive) moveType = attacker.teraType;
+
+    const defTypes = this.currentTypes(defender);
+    let eff = D.effectiveness(moveType, defTypes);
+    // Immunity via ability.
+    if (eff > 0) {
+      if (moveType === 'Ground' && !this.isGrounded(defender)) eff = 0;
+      if (moveType === 'Electric' && (defender.ability === 'Volt Absorb' || defender.ability === 'Lightning Rod' || defender.ability === 'Motor Drive')) eff = 0;
+      if (moveType === 'Water' && (defender.ability === 'Water Absorb' || defender.ability === 'Storm Drain' || defender.ability === 'Dry Skin')) eff = 0;
+      if (moveType === 'Fire' && (defender.ability === 'Flash Fire' || defender.ability === 'Well-Baked Body')) eff = 0;
+      if (moveType === 'Grass' && defender.ability === 'Sap Sipper') eff = 0;
+    }
+    if (eff === 0) return { damage: 0, eff: 0, crit: false };
+
+    // Power.
+    let power = m.power;
+    if (m.eruption) power = Math.max(1, Math.floor(150 * attacker.hp / attacker.maxhp));
+    if (m.knockoff && defender.item && defender.itemActive && !defender.set.species.startsWith('Ogerpon')) power = Math.floor(power * 1.5);
+    if (m.ivycudgel && attacker.item === 'Wellspring Mask') power = Math.floor(power * 1.2);
+    if (m.id === 'Ivy Cudgel' && attacker.item === 'Wellspring Mask') { /* handled */ }
+    if (m.id === 'Facade' && attacker.status) power *= 2;
+
+    // Offensive / defensive stats.
+    const crit = opts.crit != null ? opts.crit : (this.rng() < (m.highCrit ? 1 / 8 : 1 / 24));
+    const atkKey = m.useDefAsAtk ? 'def' : (m.category === 'Physical' ? 'atk' : 'spa');
+    const defKey = (m.category === 'Physical' || m.hitsDef) ? 'def' : 'spd';
+    let A = this.effStat(attacker, atkKey, { ignoreNeg: crit });
+    let D_ = this.effStat(defender, defKey, { ignorePos: crit });
+    // Vessel of Ruin lowers foe SpA; Tablets/Sword/Beads analogous — implement VoR + Sword of Ruin.
+    if (m.category === 'Special' && this.hasRuin('Vessel of Ruin', atkSide)) A = Math.floor(A * 0.75);
+    if (m.category === 'Physical' && this.hasRuin('Tablets of Ruin', atkSide)) A = Math.floor(A * 0.75);
+    if (defKey === 'def' && this.hasRuin('Sword of Ruin', this.foeSide(atkSide))) D_ = Math.floor(D_ * 0.75);
+    if (defKey === 'spd' && this.hasRuin('Beads of Ruin', this.foeSide(atkSide))) D_ = Math.floor(D_ * 0.75);
+
+    let dmg = Math.floor(Math.floor(Math.floor((2 * attacker.level / 5 + 2) * power * A / D_) / 50) + 2);
+
+    // Multiplier chain.
+    // Weather.
+    if (this.field.weather === 'rain') { if (moveType === 'Water') dmg = Math.floor(dmg * 1.5); if (moveType === 'Fire') dmg = Math.floor(dmg * 0.5); }
+    if (this.field.weather === 'sun') { if (moveType === 'Fire') dmg = Math.floor(dmg * 1.5); if (moveType === 'Water') dmg = Math.floor(dmg * 0.5); }
+    // Crit.
+    if (crit) dmg = Math.floor(dmg * 1.5);
+    // Random factor.
+    const roll = opts.avg ? 0.925 : (opts.roll != null ? (0.85 + 0.15 * opts.roll) : (0.85 + (Math.floor(this.rng() * 16)) / 100));
+    dmg = Math.floor(dmg * roll);
+    // STAB.
+    const stab = this.stabMultiplier(attacker, moveType);
+    if (stab !== 1) dmg = Math.floor(dmg * stab);
+    // Type effectiveness.
+    dmg = Math.floor(dmg * eff);
+    // Burn.
+    if (m.category === 'Physical' && attacker.status === 'brn' && attacker.ability !== 'Guts') dmg = Math.floor(dmg * 0.5);
+    // Multiscale / defensive.
+    if (defender.hp === defender.maxhp && (defender.ability === 'Multiscale' || defender.ability === 'Shadow Shield')) dmg = Math.floor(dmg * 0.5);
+    if (eff > 1 && defender.item === 'Weakness Policy') { /* skip WP */ }
+    // Life Orb.
+    if (attacker.item === 'Life Orb' && attacker.itemActive) dmg = Math.floor(dmg * 1.3);
+    // Assault Vest already in stat. Wellspring mask handled in power.
+    if (dmg < 1) dmg = 1;
+    return { damage: dmg, eff, crit, type: moveType };
+  };
+
+  Battle.prototype.stabMultiplier = function (mon, moveType) {
+    const isOriginal = mon.types.includes(moveType);
+    const adaptability = mon.ability === 'Adaptability';
+    if (mon.teraActive) {
+      const isTera = mon.teraType === moveType;
+      if (isTera && isOriginal) return adaptability ? 2.25 : 2.0;
+      if (isTera || isOriginal) return adaptability ? 2.0 : 1.5;
+      return 1;
+    }
+    if (isOriginal) return adaptability ? 2.0 : 1.5;
+    return 1;
+  };
+
+  Battle.prototype.hasRuin = function (ability, exceptSide) {
+    for (let i = 0; i < 2; i++) {
+      if (i === exceptSide) continue;
+      const mon = this.active(i);
+      if (mon && !mon.fainted && mon.ability === ability) return true;
+    }
+    return false;
+  };
+
+  /* ---- Accuracy --------------------------------------------------------- */
+  Battle.prototype.accuracyCheck = function (atkSide, m) {
+    if (m.acc === true || m.acc == null) return true;
+    const attacker = this.active(atkSide), defender = this.active(this.foeSide(atkSide));
+    if (m.rainPerfect && this.field.weather === 'rain') return true;
+    if (m.id === 'Thunder' && this.field.weather === 'rain') return true;
+    let acc = m.acc;
+    const stage = clamp(attacker.boosts.acc - defender.boosts.eva, -6, 6);
+    acc = acc * accMul(stage);
+    return this.rng() * 100 < acc;
+  };
+
+  /* ---- Speed order ------------------------------------------------------ */
+  Battle.prototype.speedOrder = function (a, b) {
+    const sa = this.effSpeed(this.active(a)), sb = this.effSpeed(this.active(b));
+    if (sa !== sb) return sa > sb ? [a, b] : [b, a];
+    return this.rng() < 0.5 ? [a, b] : [b, a];
+  };
+
+  /* ---- Requests (what each side must choose) ---------------------------- */
+  Battle.prototype.requestFor = function (side) {
+    const mon = this.active(side);
+    if (mon.fainted) return this.switchRequest(side, 'replace');
+    const moves = mon.moves.map((mv) => {
+      const md = D.MOVES[mv.id];
+      let disabled = mv.pp <= 0 || mv.disabled;
+      if (mon.choiceLock && mv.id !== mon.choiceLock) disabled = true;
+      return { id: mv.id, pp: mv.pp, maxpp: mv.maxpp, type: md.type, category: md.category, power: md.power || 0, acc: md.acc, disabled };
+    });
+    const allDisabled = moves.every((m) => m.disabled);
+    if (allDisabled) moves.forEach((m) => { if (m.pp > 0) m.disabled = false; }); // Struggle-ish fallback
+    return {
+      kind: 'move', side, active: mon,
+      moves,
+      canTera: !this.sides[side].teraUsed && !mon.teraActive,
+      switches: this.legalSwitches(side),
+      trapped: this.isTrapped(side),
+    };
+  };
+
+  Battle.prototype.legalSwitches = function (side) {
+    const s = this.sides[side], out = [];
+    for (let i = 0; i < s.team.length; i++) if (i !== s.active && !s.team[i].fainted) out.push(i);
+    return out;
+  };
+  Battle.prototype.switchRequest = function (side, reason) {
+    return { kind: reason || 'replace', side, switches: this.legalSwitches(side) };
+  };
+  Battle.prototype.isTrapped = function (side) {
+    const foe = this.active(this.foeSide(side));
+    const mon = this.active(side);
+    if (mon.item === 'Heavy-Duty Boots') { /* not relevant */ }
+    // Nothing in this roster traps; hook left for completeness.
+    return false;
+  };
+
+  /* ---- Turn resolution (generator) -------------------------------------- *
+   * Yields switch requests {kind:'replace'|'pivot', side, switches} and is
+   * resumed with the chosen bench index. Returns when the turn (incl. end-of-
+   * turn residuals and any faint replacements) is complete.
+   * --------------------------------------------------------------------- */
+  Battle.prototype.resolveTurn = function* (action0, action1) {
+    const actions = [action0, action1];
+    this.emit('— Turn ' + this.turn + ' —', 'turn');
+
+    // 1) Switches happen first (in speed order among switchers is irrelevant).
+    for (let s = 0; s < 2; s++) {
+      const a = actions[s];
+      if (a && a.type === 'switch') {
+        this.doSwitch(s, a.target);
+      }
+    }
+
+    // Determine move order among sides that chose to move.
+    const movers = [0, 1].filter((s) => actions[s] && actions[s].type === 'move' && !this.active(s).fainted);
+    movers.sort((x, y) => {
+      const mx = D.MOVES[this.moveIdOf(actions[x])], my = D.MOVES[this.moveIdOf(actions[y])];
+      const px = mx.priority || 0, py = my.priority || 0;
+      if (px !== py) return py - px;
+      const sx = this.effSpeed(this.active(x)), sy = this.effSpeed(this.active(y));
+      if (sx !== sy) return sy - sx;
+      return this.rng() < 0.5 ? -1 : 1;
+    });
+
+    // 2) Execute moves in order.
+    for (const s of movers) {
+      const mon = this.active(s);
+      if (mon.fainted) continue;
+      // Apply Tera if requested (before the move).
+      const a = actions[s];
+      if (a.tera && !this.sides[s].teraUsed && !mon.teraActive) this.doTera(s);
+      const req = yield* this.performMove(s, a, actions);
+      // performMove may request a pivot replacement.
+      if (this.winner !== null) return;
+    }
+
+    // 3) End-of-turn residuals.
+    yield* this.endOfTurn();
+    if (this.winner !== null) return;
+
+    // 4) Any active fainted mons need replacements (from residual damage).
+    for (const s of this.speedOrder(0, 1)) {
+      if (this.active(s).fainted) {
+        const picked = yield this.switchRequest(s, 'replace');
+        this.doSwitch(s, picked, true);
+        if (this.winner !== null) return;
+      }
+    }
+
+    this.turn++;
+  };
+
+  Battle.prototype.moveIdOf = function (a) { return a.move; };
+
+  Battle.prototype.doTera = function (side) {
+    const mon = this.active(side);
+    mon.teraActive = true;
+    this.sides[side].teraUsed = true;
+    this.emit(mon.species + ' Terastallized into the ' + mon.teraType + ' type!', 'tera');
+    this.checkParadox(side);
+  };
+
+  /* ---- Switch ----------------------------------------------------------- */
+  Battle.prototype.doSwitch = function (side, target, silent) {
+    const s = this.sides[side];
+    const outMon = s.team[s.active];
+    if (target == null || target === s.active || !s.team[target] || s.team[target].fainted) {
+      // No valid switch; keep current if fainted this is a problem, but guarded upstream.
+      target = this.legalSwitches(side)[0];
+      if (target == null) return;
+    }
+    if (!outMon.fainted) {
+      // Regenerator heal.
+      if (outMon.ability === 'Regenerator') outMon.hp = Math.min(outMon.maxhp, outMon.hp + Math.floor(outMon.maxhp / 3));
+      // Reset volatiles and choice lock on switch out.
+      outMon.boosts = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, acc: 0, eva: 0 };
+      outMon.volatiles = {};
+      outMon.choiceLock = null;
+      if (outMon.status === 'tox') outMon.toxicN = 1;
+      this.emit(this.sides[side].name + ' withdrew ' + outMon.species + '.', 'switch');
+    }
+    s.active = target;
+    const inMon = s.team[target];
+    inMon.boosts = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0, acc: 0, eva: 0 };
+    inMon.volatiles = {};
+    inMon.choiceLock = null;
+    this.emit(this.sides[side].name + ' sent out ' + inMon.species + '!', 'switch');
+    this.onSwitchIn(side, target, false);
+  };
+
+  /* ---- Move execution --------------------------------------------------- */
+  Battle.prototype.performMove = function* (side, action, actions) {
+    const mon = this.active(side);
+    const foeSide = this.foeSide(side);
+    const mv = mon.moves.find((x) => x.id === action.move) || mon.moves[0];
+    const m = Object.assign({ id: mv.id }, D.MOVES[mv.id]);
+
+    // Pre-move status checks.
+    if (!this.canMove(side, m)) return;
+
+    // Spend PP; set choice lock.
+    if (mv.pp > 0) mv.pp--;
+    if ((mon.item === 'Choice Band' || mon.item === 'Choice Specs' || mon.item === 'Choice Scarf') && mon.itemActive) mon.choiceLock = mv.id;
+
+    this.sides[side].lastMove = mv.id;
+    this.emit(mon.species + ' used ' + mv.id + '!', 'move');
+
+    // Status-move blockers.
+    const foe = this.active(foeSide);
+    if (m.category === 'Status' && (m.statusTarget === 'foe' || m.forceSwitch)) {
+      if (foe.ability === 'Good as Gold') { this.emit(foe.species + "'s Good as Gold blocks it!", 'ability'); return; }
+      if (foe.ability === 'Magic Bounce' && (m.status || m.forceSwitch)) { this.emit('It was bounced back by Magic Bounce!', 'ability'); if (m.status) this.setStatus(side, m.status); return; }
+    }
+
+    // Charge moves (Solar Beam skips charge in sun).
+    if (m.charge === 'sun' && this.field.weather !== 'sun' && !mon.volatiles.charging) {
+      mon.volatiles.charging = m.id;
+      this.emit(mon.species + ' absorbed light!', 'move');
+      return;
+    }
+    if (mon.volatiles.charging) delete mon.volatiles.charging;
+
+    // Protect (self).
+    if (m.volatile === 'protect') {
+      // simple: always succeeds (no consecutive fail modeling).
+      mon.volatiles.protect = true;
+      this.emit(mon.species + ' protected itself!', 'move');
+      return;
+    }
+
+    const foeProtected = foe.volatiles && foe.volatiles.protect;
+
+    // Sucker/Thunderclap condition: foe must be using an attacking move and not yet moved.
+    if (m.condition === 'sucker') {
+      const foeAct = actions[foeSide];
+      const foeMoveOk = foeAct && foeAct.type === 'move' && D.MOVES[foeAct.move] && D.MOVES[foeAct.move].category !== 'Status';
+      const foeAlreadyMoved = this._movedThisTurn && this._movedThisTurn[foeSide];
+      if (!foeMoveOk || foeAlreadyMoved) { this.emit('But it failed!', 'text'); this._markMoved(side); return; }
+    }
+    this._markMoved(side);
+
+    // Status moves (non-damaging).
+    if (m.category === 'Status') {
+      if (foeProtected && (m.statusTarget === 'foe' || m.forceSwitch)) { this.emit('But ' + foe.species + ' protected itself!', 'text'); return; }
+      yield* this.applyStatusMove(side, m);
+      this.afterMoveItem(side);
+      return;
+    }
+
+    // Damaging move.
+    if (foeProtected) { this.emit(foe.species + ' protected itself!', 'text'); this.afterMoveItem(side); return; }
+    if (!this.accuracyCheck(side, m)) { this.emit(mon.species + "'s attack missed!", 'miss'); this.afterMoveItem(side); return; }
+
+    const hitsN = m.multihit ? (Array.isArray(m.multihit) ? this.rollMultihit(m.multihit) : m.multihit) : 1;
+    let totalDamage = 0, lastEff = 1, anyHit = false;
+    for (let h = 0; h < hitsN; h++) {
+      if (foe.fainted) break;
+      const res = this.calcDamage(side, m);
+      lastEff = res.eff;
+      if (res.eff === 0) { this.emit("It doesn't affect " + foe.species + '...', 'text'); this.afterMoveItem(side); return; }
+      anyHit = true;
+      let dmg = res.damage;
+      // Focus Sash / Sturdy: survive an OHKO from full HP with 1 HP.
+      const willKO = dmg >= foe.hp && foe.volatiles.sub == null;
+      if (willKO && foe.hp === foe.maxhp && ((foe.item === 'Focus Sash' && foe.itemActive) || foe.ability === 'Sturdy')) {
+        dmg = foe.hp - 1;
+        if (foe.item === 'Focus Sash') { foe.itemActive = false; foe.item = null; }
+        this._pendingEndure = foe.species;
+      }
+      const dealt = this.damage(foeSide, dmg);
+      totalDamage += dealt;
+      if (res.crit && h === 0) this.emit('A critical hit!', 'text');
+    }
+    if (anyHit) {
+      if (lastEff > 1) this.emit("It's super effective!", 'text');
+      else if (lastEff < 1 && lastEff > 0) this.emit("It's not very effective...", 'text');
+      if (this._pendingEndure) { this.emit(this._pendingEndure + ' hung on!', 'text'); this._pendingEndure = null; }
+    }
+
+    // Post-damage: drain, recoil, contact effects, secondaries, knock off, switch out.
+    if (anyHit) {
+      const md = m;
+      if (md.drain && totalDamage > 0) this.heal(side, Math.floor(totalDamage * md.drain), mon.species + ' drained HP!');
+      if (md.recoil && totalDamage > 0 && mon.ability !== 'Rock Head') this.damage(side, Math.max(1, Math.floor(totalDamage * md.recoil)), mon.species + ' is hit by recoil!', { direct: true });
+      if (mon.item === 'Life Orb' && mon.itemActive && mon.ability !== 'Magic Guard') this.damage(side, Math.max(1, Math.floor(mon.maxhp / 10)), mon.species + ' lost HP to Life Orb!', { direct: true });
+      // Contact: Rocky Helmet / Rough Skin / Static.
+      if (md.contact && !foe.fainted) {
+        if (foe.item === 'Rocky Helmet' && foe.itemActive) this.damage(side, Math.floor(mon.maxhp / 6), mon.species + ' was hurt by Rocky Helmet!', { direct: true });
+        if (foe.ability === 'Rough Skin' || foe.ability === 'Iron Barbs') this.damage(side, Math.floor(mon.maxhp / 8), mon.species + ' was hurt by ' + foe.ability + '!', { direct: true });
+        if (foe.ability === 'Static' && this.rng() < 0.3) this.setStatus(side, 'par');
+        if (foe.ability === 'Flame Body' && this.rng() < 0.3) this.setStatus(side, 'brn');
+      }
+      // Knock Off removes item.
+      if (md.knockoff && foe.item && foe.itemActive && !foe.set.species.startsWith('Ogerpon') && foe.ability !== 'Sticky Hold') {
+        this.emit(mon.species + ' knocked off ' + foe.species + "'s " + foe.item + '!', 'text');
+        foe.item = null; foe.itemActive = false;
+      }
+      // Secondary effect (if foe survived).
+      if (!foe.fainted && md.secondary && this.rng() * 100 < md.secondary.chance) {
+        const sec = md.secondary;
+        if (sec.status) this.setStatus(foeSide, sec.status);
+        if (sec.flinch) foe.volatiles.flinch = true;
+        if (sec.confuse) this.addConfusion(foeSide);
+        if (sec.boosts) this.applyBoost(sec.target === 'self' ? side : foeSide, sec.boosts);
+      }
+      // Self stat drops (Close Combat etc.).
+      if (md.selfDrop) this.applyBoost(side, md.selfDrop);
+      if (md.selfBoost) this.applyBoost(side, md.selfBoost);
+      // Rapid Spin clears own hazards.
+      if (md.spin) this.clearHazards(side);
+      // Defending ability boosts (Weakness Policy skipped).
+      // Fainted foe: Kingambit Supreme Overlord counter, Moxie etc.
+      if (foe.fainted) this.onFoeFainted(side);
+    }
+
+    this.afterMoveItem(side);
+
+    // Switch-out moves (U-turn/Volt Switch/Flip Turn): user picks replacement.
+    if (m.switchOut && !mon.fainted && this.legalSwitches(side).length > 0 && this.winner === null) {
+      const picked = yield { kind: 'pivot', side, switches: this.legalSwitches(side) };
+      this.doSwitch(side, picked);
+    }
+    // Force switch on foe (Whirlwind handled in status move).
+  };
+
+  Battle.prototype.rollMultihit = function (range) {
+    // Standard 2-5 distribution approximated; for [2,2] etc just min..max uniform-ish.
+    const [lo, hi] = range;
+    if (lo === hi) return lo;
+    if (lo === 2 && hi === 5) { const r = this.rng(); return r < 0.35 ? 2 : r < 0.70 ? 3 : r < 0.85 ? 4 : 5; }
+    return lo + Math.floor(this.rng() * (hi - lo + 1));
+  };
+
+  Battle.prototype._markMoved = function (side) {
+    if (!this._movedThisTurn) this._movedThisTurn = [false, false];
+    this._movedThisTurn[side] = true;
+  };
+
+  Battle.prototype.onFoeFainted = function (side) {
+    // Attacker-side effects when it KOs.
+    const mon = this.active(side);
+    if (mon.ability === 'Moxie' || mon.ability === 'Chilling Neigh') this.applyBoost(side, { atk: 1 });
+    if (mon.ability === 'Grim Neigh') this.applyBoost(side, { spa: 1 });
+    if (mon.ability === 'Beast Boost') {
+      let best = 'atk', bv = -1; for (const k of ['atk', 'def', 'spa', 'spd', 'spe']) if (mon.stats[k] > bv) { bv = mon.stats[k]; best = k; }
+      this.applyBoost(side, { [best]: 1 });
+    }
+    // Supreme Overlord counter on the side that lost a mon is handled at faint.
+  };
+
+  Battle.prototype.canMove = function (side, m) {
+    const mon = this.active(side);
+    // Flinch.
+    if (mon.volatiles.flinch) { delete mon.volatiles.flinch; this.emit(mon.species + ' flinched!', 'text'); return false; }
+    // Freeze.
+    if (mon.status === 'frz') {
+      if (this.rng() < 0.2 || m.type === 'Fire') { mon.status = ''; this.emit(mon.species + ' thawed out!', 'status'); }
+      else { this.emit(mon.species + ' is frozen solid!', 'status'); return false; }
+    }
+    // Sleep.
+    if (mon.status === 'slp') {
+      mon.sleepTurns--;
+      if (mon.sleepTurns <= 0) { mon.status = ''; this.emit(mon.species + ' woke up!', 'status'); }
+      else { this.emit(mon.species + ' is fast asleep.', 'status'); return false; }
+    }
+    // Paralysis.
+    if (mon.status === 'par' && this.rng() < 0.25) { this.emit(mon.species + ' is paralyzed! It can\'t move!', 'status'); return false; }
+    // Confusion.
+    if (mon.volatiles.confusion != null) {
+      mon.volatiles.confusion--;
+      if (mon.volatiles.confusion <= 0) { delete mon.volatiles.confusion; this.emit(mon.species + ' snapped out of confusion!', 'status'); }
+      else {
+        this.emit(mon.species + ' is confused!', 'status');
+        if (this.rng() < 1 / 3) {
+          const self = Math.floor(Math.floor(Math.floor((2 * mon.level / 5 + 2) * 40 * this.effStat(mon, 'atk') / this.effStat(mon, 'def')) / 50) + 2);
+          this.damage(side, self, mon.species + ' hurt itself in confusion!', { direct: true });
+          return false;
+        }
+      }
+    }
+    return true;
+  };
+
+  Battle.prototype.addConfusion = function (side) {
+    const mon = this.active(side);
+    if (mon.volatiles.confusion == null && mon.ability !== 'Own Tempo') mon.volatiles.confusion = 2 + Math.floor(this.rng() * 3);
+  };
+
+  /* ---- Status moves ----------------------------------------------------- */
+  Battle.prototype.applyStatusMove = function* (side, m) {
+    const foeSide = this.foeSide(side);
+    if (m.hazard) {
+      const h = this.sides[foeSide].hazards;
+      if (m.hazard === 'sr') { if (!h.sr) { h.sr = 1; this.emit('Pointed stones float around the foe\'s team!', 'hazard'); } else this.emit('But it failed!', 'text'); }
+      if (m.hazard === 'spikes') { if (h.spikes < 3) { h.spikes++; this.emit('Spikes were scattered!', 'hazard'); } else this.emit('But it failed!', 'text'); }
+      if (m.hazard === 'tspikes') { if (h.tspikes < 2) { h.tspikes++; this.emit('Toxic Spikes were scattered!', 'hazard'); } else this.emit('But it failed!', 'text'); }
+      return;
+    }
+    if (m.status && (m.statusTarget === 'foe' || (!m.selfBoost && !m.heal))) {
+      this.setStatus(foeSide, m.status);
+      return;
+    }
+    if (m.heal) {
+      this.heal(side, Math.floor(this.active(side).maxhp * m.heal), this.active(side).species + ' restored HP!');
+      return;
+    }
+    if (m.selfBoost) { this.applyBoost(side, m.selfBoost); return; }
+    if (m.forceSwitch) {
+      const targets = this.legalSwitches(foeSide);
+      if (targets.length === 0) { this.emit('But it failed!', 'text'); return; }
+      const pick = targets[Math.floor(this.rng() * targets.length)];
+      this.emit(this.active(foeSide).species + ' was dragged out!', 'text');
+      this.doSwitch(foeSide, pick, true);
+      return;
+    }
+    this.emit('But nothing happened.', 'text');
+  };
+
+  Battle.prototype.afterMoveItem = function (side) {
+    const mon = this.active(side);
+    if (mon.fainted) return;
+    // Sitrus berry.
+    if (mon.item === 'Sitrus Berry' && mon.itemActive && mon.hp <= mon.maxhp / 2) {
+      mon.itemActive = false; mon.item = null;
+      this.heal(side, Math.floor(mon.maxhp / 4), mon.species + ' ate its Sitrus Berry!');
+    }
+  };
+
+  Battle.prototype.clearHazards = function (side) {
+    const h = this.sides[side].hazards;
+    if (h.sr || h.spikes || h.tspikes || h.web) {
+      h.sr = h.spikes = h.tspikes = h.web = 0;
+      this.emit(this.active(side).species + ' blew away the hazards!', 'text');
+    }
+  };
+
+  /* ---- End of turn ------------------------------------------------------ */
+  Battle.prototype.endOfTurn = function* () {
+    // Clear protect + flinch + moved markers.
+    for (let s = 0; s < 2; s++) { const mon = this.active(s); if (mon.volatiles.protect) delete mon.volatiles.protect; }
+    this._movedThisTurn = [false, false];
+
+    const order = this.speedOrder(0, 1);
+    // Weather chip.
+    if (this.field.weather === 'sand') {
+      for (const s of order) {
+        const mon = this.active(s);
+        if (mon.fainted || mon.ability === 'Magic Guard' || mon.ability === 'Sand Force' || mon.ability === 'Sand Rush' || mon.ability === 'Sand Veil') continue;
+        const t = this.currentTypes(mon);
+        if (t.includes('Rock') || t.includes('Ground') || t.includes('Steel')) continue;
+        this.damage(s, Math.floor(mon.maxhp / 16), mon.species + ' is buffeted by the sandstorm!');
+      }
+    }
+    // Leftovers / Black Sludge.
+    for (const s of order) {
+      const mon = this.active(s);
+      if (mon.fainted) continue;
+      if (mon.item === 'Leftovers' && mon.itemActive) this.heal(s, Math.floor(mon.maxhp / 16), mon.species + ' restored a little HP with Leftovers!');
+    }
+    // Status damage.
+    for (const s of order) {
+      const mon = this.active(s);
+      if (mon.fainted || mon.ability === 'Magic Guard') continue;
+      if (mon.status === 'brn') this.damage(s, Math.max(1, Math.floor(mon.maxhp / 16)), mon.species + ' is hurt by its burn!');
+      else if (mon.status === 'psn' && mon.ability !== 'Poison Heal') this.damage(s, Math.max(1, Math.floor(mon.maxhp / 8)), mon.species + ' is hurt by poison!');
+      else if (mon.status === 'psn' && mon.ability === 'Poison Heal') this.heal(s, Math.floor(mon.maxhp / 8), mon.species + ' is healed by Poison Heal!');
+      else if (mon.status === 'tox') {
+        this.damage(s, Math.max(1, Math.floor(mon.maxhp * mon.toxicN / 16)), mon.species + ' is hurt by poison!');
+        mon.toxicN++;
+      }
+    }
+    // Leech seed (not in roster but supported).
+    for (const s of order) {
+      const mon = this.active(s);
+      if (mon.fainted || !mon.volatiles.leechseed) continue;
+      const foeS = this.foeSide(s);
+      const drained = this.damage(s, Math.floor(mon.maxhp / 8), mon.species + "'s health is sapped by Leech Seed!");
+      if (drained > 0) this.heal(foeS, drained, null);
+    }
+    // Weather countdown.
+    if (this.field.weather) {
+      this.field.weatherTurns--;
+      if (this.field.weatherTurns <= 0) {
+        this.emit(this.weatherEndMsg(this.field.weather), 'weather');
+        this.field.weather = '';
+        for (let s = 0; s < 2; s++) this.checkParadox(s);
+      }
+    }
+    // Win check.
+    this.checkWin();
+  };
+
+  /* ---- Faint bookkeeping (Supreme Overlord counter) --------------------- */
+  Battle.prototype.checkWin = function () {
+    if (this._ended) return;
+    const dead = [0, 1].map((s) => this.sides[s].team.every((m) => m.fainted));
+    if (dead[0] && dead[1]) this.winner = 'tie';
+    else if (dead[0]) this.winner = 1;
+    else if (dead[1]) this.winner = 0;
+    if (this.winner !== null && this.winner !== undefined) {
+      this._ended = true;
+      const w = this.winner === 'tie' ? 'It\'s a tie!' : this.sides[this.winner].name + ' wins!';
+      this.emit(w, 'system');
+    }
+  };
+
+  // Recompute Supreme Overlord "fallen" counts on demand.
+  Battle.prototype.updateFallen = function () {
+    for (let s = 0; s < 2; s++) {
+      const fallen = this.sides[s].team.filter((m) => m.fainted).length;
+      for (const m of this.sides[s].team) if (m.ability === 'Supreme Overlord') m._fallen = fallen;
+    }
+  };
+
+  /* ---- Weather messages ------------------------------------------------- */
+  Battle.prototype.weatherStartMsg = function (w) {
+    return { sun: 'The sunlight turned harsh!', rain: 'It started to rain!', sand: 'A sandstorm kicked up!', snow: 'It started to snow!' }[w];
+  };
+  Battle.prototype.weatherEndMsg = function (w) {
+    return { sun: 'The harsh sunlight faded.', rain: 'The rain stopped.', sand: 'The sandstorm subsided.', snow: 'The snow stopped.' }[w];
+  };
+
+  // Override faint to keep Supreme Overlord counts fresh.
+  const _faint = Battle.prototype.faint;
+  Battle.prototype.faint = function (side) { _faint.call(this, side); this.updateFallen(); this.checkWin(); };
+
+  POKE.engine = { Battle, makePokemon, makeRng, calcStat, calcHP, boostMul };
+  if (typeof module !== 'undefined' && module.exports) module.exports = POKE;
+})();
+
+</script>
+<script>
+/* ============================================================================
+ * ai.js — Battle AI / decision engine.
+ *
+ * Not a neural net — a competitive-heuristic engine that plays like a strong
+ * ladder player: it damage-calcs every option, models what YOU are likely to
+ * do (prediction), values long-term position (switching, hazards, setup), and
+ * times Terastallization around KO math. Personas tune the weights so each
+ * opponent "feels" different. This is the code making decisions when you
+ * battle Claude.
+ * ==========================================================================*/
+(function () {
+  const G = (typeof window !== 'undefined') ? window : globalThis;
+  const POKE = G.POKE = G.POKE || {};
+  const D = POKE.data;
+  const MOVES = D.MOVES;
+
+  const DEFAULT = { depth: 2, greedy: 0.5, predict: 0.6, switchiness: 0.5, riskTaking: 0.5, tera: 'value' };
+
+  /* ---- Read-only helpers ------------------------------------------------ */
+  function activeOf(b, s) { return b.active(s); }
+  function foeOf(s) { return s === 0 ? 1 : 0; }
+
+  // Temporarily treat bench mon `idx` as active for side `s` while running fn.
+  function withActive(b, s, idx, fn) {
+    const side = b.sides[s], old = side.active;
+    side.active = idx;
+    try { return fn(); } finally { side.active = old; }
+  }
+
+  // Best damaging move for the active mon of `atkSide` vs the active foe.
+  function bestMove(b, atkSide) {
+    const atk = b.active(atkSide), def = b.active(foeOf(atkSide));
+    let best = { damage: 0, frac: 0, kos: false, id: null, priority: 0, eff: 1 };
+    if (!atk || atk.fainted || !def) return best;
+    for (const mv of atk.moves) {
+      const md = MOVES[mv.id];
+      if (!md || md.category === 'Status' || mv.pp <= 0) continue;
+      if (atk.choiceLock && mv.id !== atk.choiceLock) continue;
+      let res;
+      try { res = b.calcDamage(atkSide, mv.id, { avg: true, crit: false }); } catch (e) { continue; }
+      const kos = res.damage >= def.hp;
+      // Prefer a guaranteed KO; otherwise prefer raw damage.
+      const better = (kos && !best.kos) || (kos === best.kos && res.damage > best.damage);
+      if (better) best = { damage: res.damage, frac: Math.min(1, def.hp > 0 ? res.damage / def.hp : 0), kos, id: mv.id, priority: md.priority || 0, eff: res.eff };
+    }
+    return best;
+  }
+
+  function effSpeed(b, s) { return b.effSpeed(b.active(s)); }
+
+  // Which side acts first given each side's chosen move id (priority then speed).
+  function movesFirst(b, sA, moveA, sB, moveB) {
+    const pa = (MOVES[moveA] && MOVES[moveA].priority) || 0;
+    const pb = (MOVES[moveB] && MOVES[moveB].priority) || 0;
+    if (pa !== pb) return pa > pb ? sA : sB;
+    const va = effSpeed(b, sA), vb = effSpeed(b, sB);
+    return va >= vb ? sA : sB;
+  }
+
+  // Expected entry-hazard damage fraction for bench mon `idx` switching into side `s`.
+  function hazardCost(b, s, idx) {
+    const mon = b.sides[s].team[idx];
+    if (mon.item === 'Heavy-Duty Boots' && mon.itemActive) return 0;
+    const h = b.sides[s].hazards;
+    const types = mon.teraActive ? [mon.teraType] : mon.types;
+    let frac = 0;
+    if (h.sr) frac += 0.125 * D.effectiveness('Rock', types);
+    const grounded = !(types.includes('Flying') || mon.ability === 'Levitate' || (mon.item === 'Air Balloon' && mon.itemActive));
+    if (grounded && h.spikes) frac += [0, 1 / 8, 1 / 6, 1 / 4][h.spikes];
+    return frac;
+  }
+
+  function hpFrac(mon) { return mon.hp / mon.maxhp; }
+  function aliveCount(b, s) { return b.sides[s].team.filter((m) => !m.fainted).length; }
+  function boostSum(mon) { return mon.boosts.atk + mon.boosts.spa + mon.boosts.spe + Math.max(0, mon.boosts.def) + Math.max(0, mon.boosts.spd); }
+
+  /* ---- Matchup score: how good is `mySide` active vs the current foe? ---- */
+  function matchup(b, mySide) {
+    const foeSide = foeOf(mySide);
+    const me = b.active(mySide), foe = b.active(foeSide);
+    if (!me || me.fainted) return -999;
+    const mine = bestMove(b, mySide);
+    const theirs = bestMove(b, foeSide);
+    const iFaster = movesFirst(b, mySide, mine.id, foeSide, theirs.id) === mySide;
+    let sc = 0;
+    // Offense: can I KO / how hard do I hit.
+    if (mine.kos) sc += iFaster ? 70 : 45;
+    else sc += mine.frac * 45;
+    // Defense: how hard do they hit me.
+    if (theirs.kos) sc -= iFaster ? 40 : 75;
+    else sc -= theirs.frac * 45;
+    // Speed control matters.
+    sc += iFaster ? 8 : -4;
+    // HP cushion.
+    sc += (hpFrac(me) - hpFrac(foe)) * 12;
+    return sc;
+  }
+
+  // Best switch option for `mySide` vs the current foe: {idx, score}.
+  function bestSwitch(b, mySide) {
+    const switches = b.legalSwitches(mySide);
+    let best = { idx: null, score: -Infinity };
+    for (const idx of switches) {
+      const raw = withActive(b, mySide, idx, () => matchup(b, mySide));
+      const cost = hazardCost(b, mySide, idx) * 40;
+      const score = raw - cost;
+      if (score > best.score) best = { idx, score, raw };
+    }
+    return best;
+  }
+
+  /* ---- Opponent model: what is the foe likely to do this turn? ---------- */
+  function predictFoe(b, foeSide) {
+    const mySide = foeOf(foeSide);
+    const foe = b.active(foeSide), me = b.active(mySide);
+    const myBest = bestMove(b, mySide);       // my threat on the foe
+    const foeBest = bestMove(b, foeSide);      // foe's threat on me
+    const iFaster = movesFirst(b, mySide, myBest.id, foeSide, foeBest.id) === mySide;
+    // Only predict a switch when the foe is in a genuinely hopeless spot: about
+    // to be KO'd, moving second, and holding a switch that clearly rescues it.
+    // (Over-predicting switches makes the AI chase tempo that isn't there.)
+    if (myBest.kos && iFaster && foeBest.frac < 0.55) {
+      const sw = bestSwitch(b, foeSide);
+      if (sw.idx != null && sw.score > matchup(b, foeSide) + 25) return { kind: 'switch', target: sw.idx };
+    }
+    // If the foe can't meaningfully damage me but has setup, it may set up — approximate as attack.
+    return { kind: 'attack', move: foeBest.id };
+  }
+
+  /* ---- Tera decision ---------------------------------------------------- */
+  function shouldTera(b, mySide, moveId, cfg) {
+    const s = b.sides[mySide];
+    if (s.teraUsed) return false;
+    const me = b.active(mySide), foeSide = foeOf(mySide), foe = b.active(foeSide);
+    if (!me.teraType) return false;
+
+    const baseMine = bestMove(b, mySide);
+    const baseTheirs = bestMove(b, foeSide);
+    // Simulate tera on: temporarily flip typing.
+    me.teraActive = true;
+    const teraMine = bestMove(b, mySide);
+    const teraTheirs = bestMove(b, foeSide);
+    me.teraActive = false;
+
+    // Offensive win: tera turns a non-KO into a KO.
+    const offense = teraMine.kos && !baseMine.kos;
+    // Defensive win: tera turns a foe KO into a non-KO, or big damage drop.
+    const defense = (baseTheirs.kos && !teraTheirs.kos) || (baseTheirs.frac - teraTheirs.frac > 0.3);
+    if (cfg.tera === 'aggro') return offense || (baseMine.frac < teraMine.frac - 0.15);
+    if (cfg.tera === 'late') return (offense && aliveCount(b, foeSide) <= 2) || defense;
+    // 'value': tera when it clearly swings the KO math either way.
+    return offense || defense;
+  }
+
+  /* ---- Score a single move choice --------------------------------------- */
+  function scoreMove(b, mySide, mv, cfg, facts) {
+    const md = MOVES[mv.id];
+    const me = b.active(mySide), foeSide = foeOf(mySide), foe = b.active(foeSide);
+    const { myBest, foeBest, iFaster, foePred } = facts;
+    let score = 0;
+
+    if (md.category !== 'Status') {
+      let res;
+      try { res = b.calcDamage(mySide, mv.id, { avg: true, crit: false }); } catch (e) { res = { damage: 0, eff: 1 }; }
+      const kos = res.damage >= foe.hp;
+      const frac = foe.hp > 0 ? Math.min(1, res.damage / foe.hp) : 0;
+      if (kos) score += (iFaster || (md.priority || 0) > 0) ? 105 : 60;
+      else score += frac * 62;
+      score += res.eff > 1 ? 6 : (res.eff < 1 ? -4 : 0);
+      // Priority is gold when I'm slower and the foe is in KO range.
+      if ((md.priority || 0) > 0 && !iFaster && frac > 0.35) score += 18;
+      // Secondary upside.
+      if (md.secondary) {
+        const c = md.secondary.chance / 100;
+        if (md.secondary.status) score += c * 10;
+        if (md.secondary.flinch && iFaster) score += c * 14;
+        if (md.secondary.boosts && md.secondary.target === 'self') score += c * 8;
+        if (md.secondary.boosts && md.secondary.target === 'foe') score += c * 6;
+      }
+      // Pivot moves: value momentum via the best incoming matchup.
+      if (md.switchOut) {
+        const sw = bestSwitch(b, mySide);
+        score += 6 + (sw.idx != null ? Math.max(0, sw.raw) * 0.18 : 0);
+        if (foePred.kind === 'switch') score += 8 * cfg.predict; // grab momentum on a predicted switch
+      }
+      // Self-lowering moves are slightly costly (Draco/CC/Overheat).
+      if (md.selfDrop) score -= 5;
+      // Conditional priority (Sucker Punch / Thunderclap) fails if the foe does
+      // not attack. Value comes from the priority bonus above; here we only
+      // punish it when we expect the foe to switch or status (it would whiff).
+      if (md.condition === 'sucker' && foePred.kind !== 'attack') score -= 60 * cfg.predict;
+      // Choice-locking into a resisted move is bad.
+      if ((me.item === 'Choice Band' || me.item === 'Choice Specs' || me.item === 'Choice Scarf') && me.itemActive && res.eff === 0) score -= 40;
+    } else {
+      score += scoreStatusMove(b, mySide, mv, cfg, facts);
+    }
+    // Greedy personas weight raw damage; patient ones weight position.
+    if (md.category !== 'Status') score *= (0.75 + cfg.greedy * 0.6);
+    return score;
+  }
+
+  function scoreStatusMove(b, mySide, mv, cfg, facts) {
+    const md = MOVES[mv.id];
+    const me = b.active(mySide), foeSide = foeOf(mySide), foe = b.active(foeSide);
+    const { myBest, foeBest, iFaster, foePred } = facts;
+    const safe = !foeBest.kos && (iFaster || foeBest.frac < 0.35);
+    const predSwitch = foePred.kind === 'switch';
+
+    // Setup (offensive boosts). Only set up when it is actually safe — never on
+    // a mere prediction, which is how greedy opponents punish you.
+    if (md.selfBoost && (md.selfBoost.atk || md.selfBoost.spa || md.selfBoost.spe)) {
+      if (!safe) return -20;
+      const saturation = Math.min(1, boostSum(me) / 4);
+      let v = 52 * (1 - saturation) + (predSwitch ? 8 : 0);
+      if (aliveCount(b, mySide) >= 2 && hpFrac(me) > 0.6) v += 6;
+      return v * (1 + cfg.riskTaking * 0.3);
+    }
+    // Defensive boosts (Iron Defense / Calm Mind's def side).
+    if (md.selfBoost && (md.selfBoost.def || md.selfBoost.spd) && !md.selfBoost.atk && !md.selfBoost.spa) {
+      return safe ? 30 : -10;
+    }
+    // Recovery.
+    if (md.heal) {
+      if (foeBest.kos && !iFaster) return -15;
+      return (1 - hpFrac(me)) * 68 + (safe ? 6 : -8);
+    }
+    // Hazards.
+    if (md.hazard) {
+      const h = b.sides[foeSide].hazards;
+      const already = (md.hazard === 'sr' && h.sr) || (md.hazard === 'spikes' && h.spikes >= 3) || (md.hazard === 'tspikes' && h.tspikes >= 2);
+      if (already) return -50;
+      const foeTeam = aliveCount(b, foeSide);
+      let v = (md.hazard === 'sr' ? 48 : 34) * (foeTeam >= 3 ? 1 : 0.5);
+      if (predSwitch) v += 6 * cfg.predict;
+      if (!safe) v -= 25;
+      return v;
+    }
+    // Status infliction (Thunder Wave / Will-O-Wisp).
+    if (md.status && md.statusTarget === 'foe') {
+      if (foe.status) return -30;
+      if (b.isImmuneToStatus(foe, md.status)) return -40;
+      let v = 30;
+      if (md.status === 'par' && !iFaster) v += 18;      // slow a faster threat
+      if (md.status === 'brn' && foeBest.id && MOVES[foeBest.id] && MOVES[foeBest.id].category === 'Physical') v += 16;
+      if (!safe) v -= 12;
+      return v;
+    }
+    // Phazing (Whirlwind / Roar).
+    if (md.forceSwitch) {
+      if (boostSum(foe) >= 2) return 55;
+      const anyHazard = Object.values(b.sides[foeSide].hazards).some((x) => x > 0);
+      return anyHazard ? 20 : 4;
+    }
+    // Protect.
+    if (md.volatile === 'protect') {
+      let v = 6;
+      if (me.status === 'tox' || me.status === 'brn') v -= 6;
+      if (me.item === 'Leftovers') v += 4;
+      return v;
+    }
+    return 5;
+  }
+
+  /* ---- Score a switch --------------------------------------------------- */
+  function scoreSwitch(b, mySide, idx, cfg, facts) {
+    const { myBest, foeBest, iFaster } = facts;
+    const raw = withActive(b, mySide, idx, () => matchup(b, mySide));
+    const cost = hazardCost(b, mySide, idx) * 42;
+    // Giving the foe a free hit on entry.
+    const entryHit = foeBest.frac * 26;
+    let score = raw - cost - entryHit;
+    // Bias: only really want to switch when the current matchup is losing.
+    const staying = matchup(b, mySide);
+    const losing = foeBest.kos && !myBest.kos;
+    if (losing) score += 22;                       // dodge the KO
+    if (!losing && staying > 20) score -= 30;      // don't switch out of a good spot
+    score *= (0.6 + cfg.switchiness * 0.8);
+    return score;
+  }
+
+  /* ---- Top-level: choose an action -------------------------------------- */
+  function chooseAction(b, side, cfg) {
+    cfg = Object.assign({}, DEFAULT, cfg || {});
+    try {
+      const req = b.requestFor(side);
+      if (req.kind !== 'move') return { type: 'switch', target: chooseSwitch(b, side, cfg, req.kind) };
+
+      const foeSide = foeOf(side);
+      const myBest = bestMove(b, side);
+      const foeBest = bestMove(b, foeSide);
+      const iFaster = movesFirst(b, side, myBest.id, foeSide, foeBest.id) === side;
+      const foePred = cfg.predict > 0.05 ? predictFoe(b, foeSide) : { kind: 'attack', move: foeBest.id };
+      const facts = { myBest, foeBest, iFaster, foePred };
+
+      const candidates = [];
+      for (const mv of req.moves) {
+        if (mv.disabled || mv.pp <= 0) continue;
+        candidates.push({ kind: 'move', mv, score: scoreMove(b, side, mv, cfg, facts) });
+      }
+      if (!req.trapped) {
+        for (const idx of req.switches) {
+          candidates.push({ kind: 'switch', idx, score: scoreSwitch(b, side, idx, cfg, facts) });
+        }
+      }
+      if (!candidates.length) {
+        // Fallback: first usable move or first switch.
+        if (req.moves.length) return { type: 'move', move: req.moves[0].id };
+        return { type: 'switch', target: req.switches[0] };
+      }
+      candidates.sort((x, y) => y.score - x.score);
+      const pick = candidates[0];
+
+      if (pick.kind === 'switch') return { type: 'switch', target: pick.idx };
+      const tera = req.canTera && shouldTera(b, side, pick.mv.id, cfg);
+      return { type: 'move', move: pick.mv.id, tera };
+    } catch (e) {
+      // Never crash the game loop — fall back to a safe move.
+      const req = b.requestFor(side);
+      if (req.kind === 'move') {
+        const usable = req.moves.filter((m) => !m.disabled && m.pp > 0);
+        if (usable.length) return { type: 'move', move: usable[0].id };
+      }
+      const sw = b.legalSwitches(side);
+      return sw.length ? { type: 'switch', target: sw[0] } : { type: 'move', move: req.moves[0].id };
+    }
+  }
+
+  /* ---- Choose a switch target (forced replacement or pivot) ------------- */
+  function chooseSwitch(b, side, cfg, reason) {
+    cfg = Object.assign({}, DEFAULT, cfg || {});
+    try {
+      const switches = b.legalSwitches(side);
+      if (!switches.length) return null;
+      let best = { idx: switches[0], score: -Infinity };
+      for (const idx of switches) {
+        const raw = withActive(b, side, idx, () => matchup(b, side));
+        const cost = hazardCost(b, side, idx) * 42;
+        const score = raw - cost;
+        if (score > best.score) best = { idx, score };
+      }
+      return best.idx;
+    } catch (e) {
+      const sw = b.legalSwitches(side);
+      return sw.length ? sw[0] : null;
+    }
+  }
+
+  /* ---- Lead selection at team preview ----------------------------------- */
+  function chooseLead(b, side, cfg) {
+    const team = b.sides[side].team;
+    let best = 0, bestScore = -Infinity;
+    for (let i = 0; i < team.length; i++) {
+      const set = team[i].set;
+      let s = 0;
+      // Prefer hazard setters and fast, safe pivots as leads.
+      if (set.moves.includes('Stealth Rock')) s += 30;
+      if (set.moves.some((m) => MOVES[m] && MOVES[m].switchOut)) s += 12;
+      s += team[i].stats.spe * 0.05;
+      if (set.ability === 'Drizzle' || set.ability === 'Drought' || set.ability === 'Sand Stream') s += 20;
+      if (s > bestScore) { bestScore = s; best = i; }
+    }
+    return best;
+  }
+
+  POKE.ai = { chooseAction, chooseSwitch, chooseLead, bestMove, matchup, predictFoe, DEFAULT };
+  if (typeof module !== 'undefined' && module.exports) module.exports = POKE;
+})();
+
+</script>
+<script>
+/* ============================================================================
+ * ui.js — Showdown-style front-end and game loop.
+ * Drives the engine's resumable turn generator, animates HP/log playback, and
+ * collects the player's input. The opponent's moves come from ai.js.
+ * ==========================================================================*/
+(function () {
+  const D = window.POKE.data;
+  const { Battle } = window.POKE.engine;
+  const AI = window.POKE.ai;
+  const { TEAMS, PERSONAS, MOVES, DEX } = D;
+
+  const TYPE_COLORS = {
+    Normal:'#9099a1', Fire:'#ff6b3d', Water:'#4d90d5', Electric:'#f3c22b', Grass:'#63bb5b',
+    Ice:'#74cec0', Fighting:'#ce4069', Poison:'#ab6ac8', Ground:'#d97746', Flying:'#8fa8dd',
+    Psychic:'#f97176', Bug:'#90c12c', Rock:'#c7b78b', Ghost:'#5269ac', Dragon:'#0a6dc4',
+    Dark:'#5a5366', Steel:'#5a8ea1', Fairy:'#ec8fe6',
+  };
+  const EMOJI = {
+    'Great Tusk':'🦣','Kingambit':'🗡️','Gholdengo':'🪙','Dragapult':'🐉','Slowking-Galar':'👑',
+    'Corviknight':'🦅','Glimmora':'💎','Iron Valiant':'⚔️','Roaring Moon':'🌙','Iron Moth':'🦟',
+    'Pelipper':'🦤','Barraskewda':'🐟','Raging Bolt':'⚡','Ogerpon-Wellspring':'🍃','Zapdos':'🌩️',
+    'Torkoal':'🐢','Hippowdon':'🦛','Excadrill':'⛏️',
+  };
+  const emoji = (sp) => EMOJI[sp] || '❔';
+  const $ = (id) => document.getElementById(id);
+  const delay = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  function typeBadge(t) {
+    const s = document.createElement('span');
+    s.className = 'tbadge'; s.textContent = t; s.style.background = TYPE_COLORS[t] || '#666';
+    return s;
+  }
+  function typesEl(types) {
+    const wrap = document.createElement('span'); wrap.className = 'types';
+    types.forEach((t) => wrap.appendChild(typeBadge(t)));
+    return wrap;
+  }
+
+  /* ---- Session state ---------------------------------------------------- */
+  let selPersona = null, selTeamKey = null, playerLead = 0;
+  let battle = null, persona = null, playerTeamKey = null;
+  let played = 0, lastHp = [1, 1];
+  let inputMode = null;          // 'choose' | 'chooseSwitch' | 'forceSwitch'
+  let resolveAction = null, resolveSwitch = null, teraArmed = false;
+
+  /* ---- Snapshot for animation ------------------------------------------- */
+  function snapshot() {
+    return {
+      weather: battle.field.weather, turn: battle.turn,
+      sides: [0, 1].map((s) => {
+        const side = battle.sides[s], a = side.team[side.active];
+        return {
+          active: side.active, species: a.species, hp: a.hp, max: a.maxhp,
+          status: a.status, teraActive: a.teraActive, types: battle.currentTypes(a),
+          hazards: Object.assign({}, side.hazards),
+          alive: side.team.map((m) => !m.fainted),
+        };
+      }),
+    };
+  }
+
+  /* ======================================================================
+   *  MENU
+   * ==================================================================== */
+  function renderMenu() {
+    const pl = $('personaList'); pl.innerHTML = '';
+    PERSONAS.forEach((p) => {
+      const div = document.createElement('div');
+      div.className = 'opt' + (selPersona === p.id ? ' sel' : '');
+      div.innerHTML =
+        `<div class="av">${p.avatar}</div>
+         <div class="body">
+           <div class="nm">${p.name} <span class="elo">${p.elo}</span></div>
+           <div class="ti">${p.title}</div>
+           <div class="bl">${p.blurb}</div>
+         </div>`;
+      div.onclick = () => { selPersona = p.id; renderMenu(); refreshStart(); };
+      pl.appendChild(div);
+    });
+
+    const tl = $('teamList'); tl.innerHTML = '';
+    Object.keys(TEAMS).forEach((key) => {
+      const t = TEAMS[key];
+      const div = document.createElement('div');
+      div.className = 'opt' + (selTeamKey === key ? ' sel' : '');
+      const chips = t.sets.map((s) => `<span class="chip">${emoji(s.species)} ${s.species.replace('-', ' ')}</span>`).join('');
+      div.innerHTML =
+        `<div class="body">
+           <div class="nm">${t.name}</div>
+           <div class="bl">${t.desc}</div>
+           <div class="teamline">${chips}</div>
+         </div>`;
+      div.onclick = () => { selTeamKey = key; renderMenu(); refreshStart(); };
+      tl.appendChild(div);
+    });
+  }
+  function refreshStart() { $('toPreview').disabled = !(selPersona && selTeamKey); }
+
+  /* ======================================================================
+   *  TEAM PREVIEW
+   * ==================================================================== */
+  function openPreview() {
+    persona = PERSONAS.find((p) => p.id === selPersona);
+    playerTeamKey = selTeamKey;
+    playerLead = 0;
+    $('prevTitle').textContent = `You vs ${persona.name}`;
+    $('prevSub').textContent = `${persona.title} · ${persona.elo} · ${TEAMS[persona.team].name} team`;
+    renderPreviewRow($('prevFoe'), TEAMS[persona.team].sets, false);
+    renderPreviewRow($('prevMe'), TEAMS[playerTeamKey].sets, true);
+    $('prevStart').disabled = false;
+    $('previewOverlay').classList.remove('hidden');
+  }
+  function renderPreviewRow(container, sets, pickable) {
+    container.innerHTML = '';
+    sets.forEach((s, i) => {
+      const m = document.createElement('div');
+      m.className = 'mon' + (pickable ? ' pick' : '') + (pickable && i === playerLead ? ' lead' : '');
+      const tt = D.DEX[s.species].types.map((t) => `<span class="tbadge" style="background:${TYPE_COLORS[t]}">${t}</span>`).join('');
+      m.innerHTML = `<div class="em">${emoji(s.species)}</div><div class="mn">${s.species.replace('-', ' ')}</div><div class="tt">${tt}</div>`;
+      if (pickable) m.onclick = () => { playerLead = i; renderPreviewRow(container, sets, true); };
+      container.appendChild(m);
+    });
+  }
+
+  /* ======================================================================
+   *  BATTLE SETUP
+   * ==================================================================== */
+  function startBattle() {
+    $('previewOverlay').classList.add('hidden');
+    $('menu').classList.add('hidden');
+    $('end').classList.add('hidden');
+    $('battle').classList.remove('hidden');
+    $('log').innerHTML = '';
+
+    battle = new Battle(TEAMS[playerTeamKey].sets, TEAMS[persona.team].sets, {
+      seed: (Date.now() & 0x7fffffff) ^ 0x51ed,
+      names: ['You', persona.name],
+      log: (e) => { e.snap = snapshot(); },
+    });
+    battle.setLead(0, playerLead);
+    battle.setLead(1, AI.chooseLead(battle, 1, persona.ai));
+    played = 0;
+    battle.start();
+    lastHp = [1, 1];
+    renderFieldFromSnap(battle.log.length ? battle.log[battle.log.length - 1].snap : snapshot());
+    turnLoop();
+  }
+
+  /* ======================================================================
+   *  RENDERING
+   * ==================================================================== */
+  function hpColor(frac) { return frac > 0.5 ? 'var(--good)' : frac > 0.2 ? 'var(--warn)' : 'var(--bad)'; }
+
+  function renderFieldFromSnap(snap) {
+    $('turnCount').textContent = 'Turn ' + Math.max(1, snap.turn);
+    const wname = { sun: '☀️ Harsh Sun', rain: '🌧️ Rain', sand: '🏜️ Sandstorm', snow: '❄️ Snow' }[snap.weather] || 'Clear skies';
+    $('weather').textContent = wname;
+    // Hazards summary.
+    $('hazards').innerHTML = 'You: ' + hazIcons(snap.sides[0].hazards) + ' · Foe: ' + hazIcons(snap.sides[1].hazards);
+
+    setSide('foe', snap.sides[1], 1);
+    setSide('my', snap.sides[0], 0);
+  }
+  function hazIcons(h) {
+    const parts = [];
+    if (h.sr) parts.push('🪨');
+    if (h.spikes) parts.push('✦' + (h.spikes > 1 ? h.spikes : ''));
+    if (h.tspikes) parts.push('☠' + (h.tspikes > 1 ? h.tspikes : ''));
+    if (h.web) parts.push('🕸');
+    return parts.length ? parts.join('') : '—';
+  }
+  function setSide(pre, s, sideIdx) {
+    $(pre + 'Name').textContent = s.species.replace('-', ' ');
+    $(pre + 'Sprite').textContent = emoji(s.species);
+    const tEl = $(pre + 'Types'); tEl.innerHTML = '';
+    s.types.forEach((t) => tEl.appendChild(typeBadge(t)));
+    if (s.teraActive) { const f = document.createElement('span'); f.className = 'teraflag'; f.textContent = 'TERA'; tEl.appendChild(f); }
+    const frac = Math.max(0, s.hp / s.max);
+    const fill = $(pre + 'Hp');
+    fill.style.width = (frac * 100) + '%';
+    fill.style.background = hpColor(frac);
+    $(pre + 'HpText').textContent = pre === 'foe' ? Math.ceil(frac * 100) + '%' : (s.hp + '/' + s.max);
+    const st = $(pre + 'Status');
+    if (s.status) { st.className = 'statuspill st-' + s.status; st.textContent = s.status.toUpperCase(); }
+    else { st.className = ''; st.textContent = ''; }
+    // Tray.
+    const tray = $(pre + 'Tray'); tray.innerHTML = '';
+    s.alive.forEach((alive, i) => {
+      const b = document.createElement('div');
+      b.className = 'ball' + (alive ? '' : ' dead') + (i === s.active ? ' active' : '');
+      tray.appendChild(b);
+    });
+  }
+
+  /* ---- Log playback ----------------------------------------------------- */
+  async function playNew() {
+    const logEl = $('log');
+    while (played < battle.log.length) {
+      const e = battle.log[played++];
+      const line = document.createElement('div');
+      line.className = 'ln ' + (e.type || 'text');
+      line.textContent = e.text;
+      logEl.appendChild(line);
+      logEl.scrollTop = logEl.scrollHeight;
+      if (e.snap) {
+        renderFieldFromSnap(e.snap);
+        // Shake the sprite that just lost HP.
+        for (let s = 0; s < 2; s++) {
+          const f = e.snap.sides[s].hp / e.snap.sides[s].max;
+          if (f < lastHp[s] - 0.001) {
+            const el = $((s === 1 ? 'foe' : 'my') + 'Sprite');
+            el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit');
+          }
+          lastHp[s] = f;
+        }
+      }
+      const d = e.type === 'faint' ? 620 : (e.type === 'turn' || e.type === 'move' || e.type === 'tera') ? 430 : e.type === 'text' ? 300 : 360;
+      await delay(d);
+    }
+  }
+
+  /* ======================================================================
+   *  CONTROLS
+   * ==================================================================== */
+  function renderControls(req) {
+    inputMode = 'choose';
+    $('movePanel').classList.remove('hidden');
+    $('switchPanel').classList.add('hidden');
+    teraArmed = false;
+    updateTeraTog(req.canTera);
+
+    const grid = $('moveGrid'); grid.innerHTML = '';
+    req.moves.forEach((m) => {
+      const md = MOVES[m.id];
+      const btn = document.createElement('div');
+      btn.className = 'movebtn' + (m.disabled ? ' dis' : '');
+      btn.style.background = TYPE_COLORS[md.type] || '#555';
+      const cat = md.category === 'Physical' ? '● Phys' : md.category === 'Special' ? '◆ Spec' : '○ Status';
+      const bp = md.power ? md.power : '—';
+      btn.innerHTML =
+        `<span class="cat">${cat}</span>
+         <span class="mvname">${m.id}</span>
+         <span class="mvmeta"><span>${md.type}</span><span>BP ${bp}</span><span>PP ${m.pp}/${m.maxpp}</span></span>`;
+      if (!m.disabled) btn.onclick = () => submitMove(m.id);
+      grid.appendChild(btn);
+    });
+
+    $('switchBtn').disabled = req.trapped || req.switches.length === 0;
+    $('switchBtn').classList.toggle('dis', req.trapped || req.switches.length === 0);
+  }
+
+  function updateTeraTog(can) {
+    const tg = $('teraTog');
+    tg.classList.toggle('disabled', !can);
+    tg.classList.toggle('on', teraArmed && can);
+  }
+
+  function submitMove(id) {
+    if (!resolveAction) return;
+    const r = resolveAction; resolveAction = null;
+    lockControls();
+    r({ type: 'move', move: id, tera: teraArmed });
+  }
+
+  function openSwitchPanel(mode) {
+    inputMode = mode; // 'chooseSwitch' | 'forceSwitch'
+    $('movePanel').classList.add('hidden');
+    $('switchPanel').classList.remove('hidden');
+    $('cancelSwitch').classList.toggle('hidden', mode === 'forceSwitch');
+    const grid = $('switchGrid'); grid.innerHTML = '';
+    const side = battle.sides[0];
+    side.team.forEach((mon, i) => {
+      const disabled = mon.fainted || i === side.active;
+      const btn = document.createElement('div');
+      btn.className = 'switchbtn' + (disabled ? ' dis' : '');
+      const frac = mon.hp / mon.maxhp;
+      const st = mon.status ? ` · ${mon.status.toUpperCase()}` : '';
+      btn.innerHTML =
+        `<span class="em">${emoji(mon.species)}</span>
+         <span><span class="sn">${mon.species.replace('-', ' ')}</span><br>
+         <span class="shp">${mon.fainted ? 'Fainted' : Math.ceil(frac * 100) + '% HP' + st}</span></span>`;
+      if (!disabled) btn.onclick = () => pickSwitch(i);
+      grid.appendChild(btn);
+    });
+  }
+
+  function pickSwitch(i) {
+    if (inputMode === 'forceSwitch') {
+      if (!resolveSwitch) return;
+      const r = resolveSwitch; resolveSwitch = null; lockControls(); r(i);
+    } else {
+      if (!resolveAction) return;
+      const r = resolveAction; resolveAction = null; lockControls();
+      r({ type: 'switch', target: i });
+    }
+  }
+
+  function lockControls() {
+    $('movePanel').classList.add('hidden');
+    $('switchPanel').classList.add('hidden');
+  }
+  function setPrompt(t) { $('prompt').textContent = t; }
+  function setBanner(t) { $('banner').textContent = t || ''; }
+
+  function playerActionPromise() { return new Promise((r) => { resolveAction = r; }); }
+  function playerSwitchPromise() { return new Promise((r) => { resolveSwitch = r; }); }
+
+  /* ======================================================================
+   *  TURN LOOP
+   * ==================================================================== */
+  async function turnLoop() {
+    await playNew();
+    while (battle.winner === null) {
+      const req = battle.requestFor(0);
+      if (req.kind !== 'move') { // safety: forced replacement at top of loop
+        setPrompt('Choose your next Pokémon.');
+        openSwitchPanel('forceSwitch');
+        const idx = await playerSwitchPromise();
+        battle.doSwitch(0, idx, true);
+        await playNew();
+        continue;
+      }
+      setBanner('');
+      setPrompt('What will you do?');
+      renderControls(req);
+      const action = await playerActionPromise();
+
+      // Opponent decides from the same pre-turn state.
+      const aiAction = AI.chooseAction(battle, 1, persona.ai);
+      setBanner(persona.name + ' is thinking…');
+      await delay(280);
+      setBanner('');
+
+      await resolveFullTurn(action, aiAction);
+    }
+    endGame();
+  }
+
+  async function resolveFullTurn(a0, a1) {
+    const gen = battle.resolveTurn(a0, a1);
+    let res = gen.next();
+    let guard = 0;
+    while (!res.done && guard++ < 40) {
+      await playNew();
+      const q = res.value; // {kind, side, switches}
+      let idx;
+      if (q.side === 0) {
+        if (!q.switches || q.switches.length === 0) { res = gen.next(null); continue; }
+        setPrompt(q.kind === 'pivot' ? 'Choose a Pokémon to switch in.' : 'Your Pokémon fainted — choose the next one.');
+        openSwitchPanel('forceSwitch');
+        idx = await playerSwitchPromise();
+      } else {
+        idx = AI.chooseSwitch(battle, 1, persona.ai, q.kind);
+      }
+      res = gen.next(idx);
+    }
+    await playNew();
+  }
+
+  /* ======================================================================
+   *  END
+   * ==================================================================== */
+  function endGame() {
+    lockControls();
+    setPrompt(''); setBanner('');
+    $('battle').classList.add('hidden');
+    $('end').classList.remove('hidden');
+    const won = battle.winner === 0;
+    const tie = battle.winner === 'tie';
+    const big = $('endBig');
+    big.textContent = tie ? "It's a draw." : won ? 'Victory!' : 'Defeat.';
+    big.className = 'big ' + (tie ? '' : won ? 'win' : 'lose');
+    $('endSub').textContent = tie
+      ? 'Both teams fell together.'
+      : won ? `You outplayed ${persona.name} (${persona.elo}). Well predicted.`
+            : `${persona.name} (${persona.elo}) read you this time. Rematch?`;
+  }
+
+  /* ======================================================================
+   *  WIRING
+   * ==================================================================== */
+  function wire() {
+    $('toPreview').onclick = openPreview;
+    $('prevBack').onclick = () => $('previewOverlay').classList.add('hidden');
+    $('prevStart').onclick = startBattle;
+    $('switchBtn').onclick = () => { if (inputMode === 'choose') { setPrompt('Choose a Pokémon to switch in.'); openSwitchPanel('chooseSwitch'); } };
+    $('cancelSwitch').onclick = () => { setPrompt('What will you do?'); const req = battle.requestFor(0); renderControls(req); };
+    $('teraTog').onclick = () => {
+      const req = battle.requestFor(0);
+      if (!req.canTera) return;
+      teraArmed = !teraArmed; updateTeraTog(true);
+    };
+    $('rematch').onclick = () => { $('end').classList.add('hidden'); startBattle(); };
+    $('newBattle').onclick = () => { $('end').classList.add('hidden'); $('menu').classList.remove('hidden'); };
+    renderMenu();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
+  else wire();
+})();
+
+</script>
+</body>
+</html>

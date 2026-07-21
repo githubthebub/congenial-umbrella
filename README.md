@@ -11,9 +11,12 @@ you asked to test yourself against. Around it is a ladder of AI "trainer"
 personas from a casual 1100 up to a 1950 tournament grandmaster, each with a
 different playstyle and team.
 
-> **Just open [`index.html`](./index.html) in any browser.** No build step, no
-> server, no account, no external assets — it runs entirely offline from a
-> single folder (great for GitHub Pages or an artifact link too).
+> **Fastest way to play: open [`play.html`](./play.html) — the entire game in a
+> single file.** Download it and double-click; it runs in any browser with no
+> build, no server, and no account, fully offline. (The multi-file
+> [`index.html`](./index.html) is the same game from readable source files, and
+> `play.html` is just those inlined into one file — regenerate it any time with
+> `node build.js`.)
 
 ---
 
