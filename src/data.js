@@ -277,6 +277,17 @@ export const BOSSES = [
 // Sprite URLs (PokéAPI community CDN — free, hosted on GitHub). onerror in the
 // UI cascades to the next fallback so a missing sprite never breaks the scene.
 // ---------------------------------------------------------------------------
+// Emoji "tokens" — a zero-byte, offline fallback for environments that can't
+// reach the sprite CDN (e.g. a strict-CSP embed). Keyed by Pokédex number.
+export const EMOJI_BY_DEX = {
+  3: '🌿', 6: '🔥', 9: '🐢', 59: '🐕', 65: '🥄', 68: '💪', 94: '👻', 121: '⭐',
+  130: '🐍', 131: '🐋', 134: '💧', 135: '⚡', 136: '🦊', 143: '😴', 149: '🐉',
+  212: '🦞', 214: '🪲', 248: '🦖', 282: '💃', 286: '🍄', 350: '🐟', 373: '✈️',
+  376: '🤖', 445: '🦈', 448: '🐺', 461: '🐾', 468: '🕊️', 473: '🦣', 530: '⛏️',
+  534: '🏋️', 598: '🌰', 609: '🕯️', 635: '🐲', 637: '🦋', 658: '🐸', 681: '⚔️',
+  700: '🎀', 748: '☂️', 778: '🎭', 815: '⚽', 823: '🦅', 887: '🚀',
+};
+
 const SP = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
 export function spriteFront(dex, anim) {
   return anim ? `${SP}/versions/generation-v/black-white/animated/${dex}.gif` : `${SP}/other/official-artwork/${dex}.png`;

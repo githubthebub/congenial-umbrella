@@ -104,7 +104,8 @@ function renderHome() {
     el('p', { class: 'hero-sub', text: 'A free browser Pokémon battler. No download. No account. No server to pay for. Send a link — and you’re dueling. On any phone, anywhere.' }),
     el('div', { class: 'cta-row' }, [
       bigCta('⚔️', 'Quick Battle', 'Play right now vs the AI', () => flowQuickBattle(), 'primary'),
-      bigCta('🔗', 'Link Up', 'Share a link, duel a friend', () => flowLinkCreate(), 'link'),
+      bigCta('🔗', 'Link Up', 'Share a link, duel a friend online', () => flowLinkCreate(), 'link'),
+      bigCta('👥', 'Pass & Play', 'Two players, one device', () => flowPassPlay(), 'pass'),
       bigCta('🐲', 'Co-op Raid', 'Team up vs a giant boss', () => flowRaidSetup(), 'raid'),
     ]),
     el('div', { class: 'hero-foot' }, [
@@ -290,6 +291,72 @@ async function flowQuickBattle() {
   await localLoop(st, scene, { you: 0, foe: 1, foeBrain: (s, fRef, yRef) => chooseAction(s, fRef, yRef, 'normal') });
 }
 
+// --- PASS & PLAY (two humans, one device) ------------------------------------
+function curtain(msg, sub) {
+  return new Promise(resolve => {
+    const box = el('div', { class: 'curtain', onclick: () => { c.remove(); resolve(); } }, [
+      el('div', { class: 'curtain-inner' }, [
+        el('div', { class: 'curtain-icon', text: '📱→' }),
+        el('h2', { text: msg }),
+        el('p', { class: 'muted', text: sub || 'Tap when you’re ready.' }),
+        el('div', { class: 'curtain-cta', text: 'Tap to continue' }),
+      ]),
+    ]);
+    const c = el('div', { class: 'curtain-back' }, [box]);
+    document.body.append(c);
+    requestAnimationFrame(() => c.classList.add('on'));
+  });
+}
+
+async function flowPassPlay() {
+  const t1 = await pickTeam({ title: 'Player 1 — pick your team', cta: 'Ready' });
+  await curtain('Pass to Player 2', 'Player 1 is done. Hand over the device.');
+  const t2 = await pickTeam({ title: 'Player 2 — pick your team', cta: 'Ready' });
+  const root = battleScreen();
+  $('.battle-tag').textContent = 'Pass & Play';
+  const st = newBattle({ sides: [{ name: 'Player 1', party: t1.map(id => makeMon(id)), active: [0] }, { name: 'Player 2', party: t2.map(id => makeMon(id)), active: [0] }], seed: (Math.random() * 1e9) | 0 });
+  const scene = new BattleScene(root, { youSide: 0, layout: '1v1', speed: SPEED });
+  currentScene = scene;
+  scene.build({ slots: activesSnapshot(st) });
+  const p0 = { side: 0, slot: 0 }, p1 = { side: 1, slot: 0 };
+  await curtain('Player 1’s turn', 'Player 2, look away!');
+  while (!st.ended) {
+    const a0 = await scene.promptAction(p0, { view: monView(active(st, p0)), target: p1, canSwitch: true, bench: benchOf(st, 0), allowForfeit: false });
+    await curtain('Player 2’s turn', 'Player 1, look away!');
+    const a1 = await scene.promptAction(p1, { view: monView(active(st, p1)), target: p0, canSwitch: true, bench: benchOf(st, 1), allowForfeit: false });
+    const r = resolveTurn(st, [a0, a1]);
+    await scene.play(r.events);
+    if (st.ended) break;
+    // forced switches, each behind a privacy curtain
+    for (const side of [0, 1]) {
+      const ref = { side, slot: 0 };
+      if (active(st, ref).fainted && sideAliveCount(st.sides[side]) > 0) {
+        await curtain(`Player ${side + 1}, choose a replacement`);
+        const to = await scene.showSwitch(benchOf(st, side), ref, { forced: true });
+        await scene.play(forcedSwitch(st, ref, to));
+      }
+    }
+    if (!st.ended) await curtain('Player 1’s turn', 'Player 2, look away!');
+  }
+  // result: winner side maps to Player 1/2
+  const won = st.winner === 0;
+  endPassPlay(scene, st, won);
+}
+function endPassPlay(scene, st, p1won) {
+  sfx.win();
+  document.body.classList.remove('in-battle');
+  const card = el('div', { class: 'result-card glass win' }, [
+    el('div', { class: 'result-emoji', text: '🏆' }),
+    el('h1', { class: 'result-h', text: `Player ${p1won ? '1' : '2'} wins!` }),
+    el('div', { class: 'result-sub', text: 'Good game.' }),
+    el('div', { class: 'result-actions' }, [
+      el('button', { class: 'primary-btn', text: 'Rematch', onclick: () => flowPassPlay() }),
+      el('button', { class: 'ghost-btn', text: 'Home', onclick: () => renderHome() }),
+    ]),
+  ]);
+  show(el('div', {}, [topbar(), el('div', { class: 'result-wrap' }, [card])]));
+}
+
 // generic local loop: side `you` is human via scene, side `foe` via foeBrain
 async function localLoop(st, scene, { you, foe, foeBrain }) {
   const youRef = { side: you, slot: 0 }, foeRef = { side: foe, slot: 0 };
@@ -361,6 +428,7 @@ function rewardPill(icon, text) { return el('div', { class: 'reward-pill' }, [el
 
 // --- LINK BATTLE: create (host) ---------------------------------------------
 async function flowLinkCreate() {
+  if (globalThis.LINKMON_OFFLINE) return offlineLinkExplain();
   const code = makeRoomCode();
   const link = roomLink(code, 'link');
   const session = new LinkSession('host', code);
@@ -396,6 +464,17 @@ async function flowLinkCreate() {
 
   try { await session.connect(); }
   catch (e) { clearInterval(tipTimer); onlineUnavailable(); }
+}
+
+function offlineLinkExplain() {
+  const box = el('div', {}, [
+    el('h2', { class: 'modal-title', text: 'Online play needs the hosted site' }),
+    el('p', { class: 'modal-lead', text: 'This embedded preview can’t open peer-to-peer connections (its sandbox blocks WebRTC). Deploy LINKMON free on GitHub Pages and “Link Up” works between any two browsers. Right here, you can still play:' }),
+    el('button', { class: 'primary-btn', text: '👥 Pass & Play (2 players, this device)', onclick: () => { m.close(); flowPassPlay(); } }),
+    el('button', { class: 'ghost-btn', text: '⚔️ Quick Battle vs AI', onclick: () => { m.close(); flowQuickBattle(); } }),
+    el('button', { class: 'ghost-btn', text: 'Back', onclick: () => m.close() }),
+  ]);
+  const m = modal(box);
 }
 
 function onlineUnavailable() {

@@ -3,3 +3,4 @@ package-lock.json
 test/shot-*.png
 *.log
 .DS_Store
+/dist/

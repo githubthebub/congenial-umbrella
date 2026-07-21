@@ -1,0 +1,2518 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LINKMON — offline</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+<style>
+/* ============================================================================
+   LINKMON — design system. Dark, premium, juicy, mobile-first.
+   No external fonts or assets: everything is CSS so the whole app is tiny.
+   ========================================================================== */
+:root{
+  --bg:#070a14; --bg2:#0b1020; --bg3:#111a33;
+  --glass:rgba(255,255,255,.045); --glass2:rgba(255,255,255,.085);
+  --line:rgba(255,255,255,.10); --line2:rgba(255,255,255,.16);
+  --ink:#eaf0ff; --ink-dim:#9fa8c8; --ink-faint:#5f688c;
+  --volt:#ffd23f; --spark:#7b6cff; --aqua:#35e0e6;
+  --good:#46e08a; --warn:#ffcb45; --bad:#ff5d6c;
+  --radius:18px; --radius-sm:12px;
+  --shadow:0 18px 50px -12px rgba(0,0,0,.6);
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,system-ui,sans-serif;
+  --vh:1vh;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--font); color:var(--ink); background:var(--bg);
+  overflow-x:hidden; line-height:1.5; letter-spacing:-.01em;
+  background:
+    radial-gradient(1200px 600px at 70% -10%, rgba(123,108,255,.16), transparent 60%),
+    radial-gradient(900px 500px at 10% 10%, rgba(53,224,230,.10), transparent 55%),
+    radial-gradient(700px 700px at 50% 120%, rgba(255,210,63,.08), transparent 60%),
+    var(--bg);
+  min-height:100dvh;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+img{max-width:100%}
+::selection{background:var(--spark);color:#fff}
+
+#app{max-width:960px;margin:0 auto;min-height:100dvh;position:relative}
+.screen{padding:14px 16px 40px;animation:screenIn .3s ease both}
+.screen.entering{opacity:0;transform:translateY(8px)}
+.screen.leaving{position:absolute;inset:0;opacity:0;transition:opacity .2s}
+@keyframes screenIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.muted{color:var(--ink-dim)} .small{font-size:.85rem} .fine{color:var(--ink-faint);font-size:.76rem;line-height:1.5}
+
+/* --- topbar --- */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 4px 14px}
+.brand-btn{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.15rem;letter-spacing:.02em}
+.brand-glyph{filter:drop-shadow(0 0 8px var(--volt))}
+.brand-word{background:linear-gradient(90deg,var(--volt),var(--aqua));-webkit-background-clip:text;background-clip:text;color:transparent}
+.top-actions{display:flex;gap:6px}
+.icon-btn{width:40px;height:40px;border-radius:12px;background:var(--glass);border:1px solid var(--line);font-size:1.05rem;display:grid;place-items:center;transition:.15s}
+.icon-btn:hover{background:var(--glass2);transform:translateY(-1px)}
+.icon-btn.small{width:36px;height:36px;font-size:.95rem}
+
+/* --- home hero --- */
+.hero{position:relative;padding:26px 6px;text-align:center}
+.hero-glow{position:absolute;inset:-40px 0 auto;height:260px;background:radial-gradient(closest-side,rgba(123,108,255,.35),transparent);filter:blur(30px);z-index:-1;animation:pulse 6s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.6}}
+.hero-title{font-size:clamp(2.1rem,8vw,3.6rem);font-weight:850;line-height:1.02;letter-spacing:-.03em;margin-bottom:14px}
+.hero-title span{display:block}
+.ht-a{color:var(--ink)}
+.ht-b{background:linear-gradient(90deg,var(--volt),var(--aqua),var(--spark));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-sub{max-width:540px;margin:0 auto 26px;color:var(--ink-dim);font-size:1.02rem}
+.cta-row{display:flex;flex-direction:column;gap:12px;max-width:520px;margin:0 auto}
+.big-cta{display:flex;align-items:center;gap:14px;text-align:left;padding:16px 18px;border-radius:var(--radius);
+  background:var(--glass);border:1px solid var(--line);transition:.18s;position:relative;overflow:hidden}
+.big-cta::before{content:"";position:absolute;inset:0;opacity:0;transition:.18s;
+  background:linear-gradient(90deg,rgba(255,255,255,.06),transparent)}
+.big-cta:hover{transform:translateY(-2px);border-color:var(--line2);box-shadow:var(--shadow)}
+.big-cta:hover::before{opacity:1}
+.big-cta:active{transform:scale(.99)}
+.bc-icon{font-size:1.7rem;width:52px;height:52px;display:grid;place-items:center;border-radius:14px;background:var(--glass2);flex:none}
+.bc-text{flex:1;display:flex;flex-direction:column}
+.bc-title{font-weight:750;font-size:1.12rem}
+.bc-sub{color:var(--ink-dim);font-size:.86rem}
+.bc-arrow{font-size:1.3rem;color:var(--ink-faint);transition:.18s}
+.big-cta:hover .bc-arrow{transform:translateX(4px);color:var(--ink)}
+.big-cta.primary{border-color:rgba(255,210,63,.4);background:linear-gradient(120deg,rgba(255,210,63,.14),var(--glass))}
+.big-cta.primary .bc-icon{background:rgba(255,210,63,.2)}
+.big-cta.link{border-color:rgba(53,224,230,.35)}
+.big-cta.raid{border-color:rgba(255,93,108,.32)}
+.big-cta.pass{border-color:rgba(123,108,255,.35)}
+.hero-foot{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-top:26px}
+.chip{font-size:.8rem;padding:6px 12px;border-radius:999px;background:var(--glass);border:1px solid var(--line);color:var(--ink-dim)}
+.chip.ghost{background:transparent}
+.linky{color:var(--aqua);font-weight:600;font-size:.85rem;text-decoration:underline;text-underline-offset:3px}
+
+/* --- glass / cards --- */
+.glass{background:var(--glass);border:1px solid var(--line);backdrop-filter:blur(12px);border-radius:var(--radius)}
+.primary-btn{background:linear-gradient(120deg,var(--volt),#ffb52e);color:#241a00;font-weight:800;padding:13px 20px;border-radius:14px;transition:.15s;font-size:1rem}
+.primary-btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px -8px rgba(255,210,63,.5)}
+.primary-btn:active{transform:scale(.98)}
+.primary-btn.wide{width:100%}
+.primary-btn[disabled]{opacity:.4;pointer-events:none;filter:grayscale(.5)}
+.ghost-btn{background:var(--glass);border:1px solid var(--line);padding:12px 18px;border-radius:14px;font-weight:600;transition:.15s;color:var(--ink)}
+.ghost-btn:hover{background:var(--glass2);transform:translateY(-1px)}
+.ghost-btn.danger{border-color:rgba(255,93,108,.4);color:var(--bad)}
+
+/* --- toasts --- */
+#toasts{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:600;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{background:rgba(12,16,32,.92);border:1px solid var(--line2);padding:11px 18px;border-radius:12px;font-size:.9rem;font-weight:600;
+  box-shadow:var(--shadow);opacity:0;transform:translateY(-10px);transition:.28s;backdrop-filter:blur(10px);max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:none}
+
+/* --- modal --- */
+.modal-back{position:fixed;inset:0;z-index:500;background:rgba(4,6,14,.66);backdrop-filter:blur(6px);display:grid;place-items:center;padding:18px;opacity:0;transition:.25s}
+.modal-back.on{opacity:1}
+.modal{max-width:520px;width:100%;padding:24px;max-height:90dvh;overflow:auto;transform:translateY(14px) scale(.98);transition:.25s;box-shadow:var(--shadow)}
+.modal-back.on .modal{transform:none}
+.modal-title{font-size:1.4rem;font-weight:800;margin-bottom:10px}
+.modal-lead{color:var(--ink-dim);margin-bottom:16px}
+.modal .primary-btn,.modal .ghost-btn{width:100%;margin-top:8px}
+.text-input{width:100%;padding:13px 16px;border-radius:12px;background:var(--bg2);border:1px solid var(--line2);color:var(--ink);font-size:1rem;margin-bottom:8px}
+.text-input:focus{outline:none;border-color:var(--volt)}
+.why-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:16px}
+.why-cell{background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.why-h{font-weight:750;margin-bottom:3px}
+.why-b{color:var(--ink-dim);font-size:.88rem}
+.welcome-crest{font-size:2.6rem;text-align:center;color:var(--volt);filter:drop-shadow(0 0 16px var(--volt));margin-bottom:6px}
+
+/* --- trainer card --- */
+.tc-card{background:linear-gradient(135deg,rgba(123,108,255,.25),rgba(53,224,230,.12));border:1px solid var(--line2);border-radius:16px;padding:18px;margin-bottom:18px;box-shadow:var(--shadow)}
+.tc-top{display:flex;justify-content:space-between;align-items:flex-start}
+.tc-label{font-size:.68rem;letter-spacing:.2em;color:var(--ink-dim)}
+.tc-name{font-size:1.5rem;font-weight:850}
+.tc-id{color:var(--ink-dim);font-size:.82rem;font-variant-numeric:tabular-nums}
+.tc-title{background:var(--volt);color:#241a00;font-weight:800;padding:5px 12px;border-radius:999px;font-size:.82rem}
+.tc-stats{display:flex;gap:6px;margin-top:16px}
+.tc-stat{flex:1;text-align:center;background:rgba(0,0,0,.22);border-radius:10px;padding:9px 4px}
+.tcs-v{font-size:1.25rem;font-weight:800;font-variant-numeric:tabular-nums}
+.tcs-k{font-size:.68rem;color:var(--ink-dim);text-transform:uppercase;letter-spacing:.08em}
+.tc-founder{margin-top:14px;text-align:center;color:var(--volt);font-weight:700;font-size:.9rem;letter-spacing:.02em}
+.box-h{margin:6px 0 10px;font-size:1rem}
+.box-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px;margin-bottom:16px}
+.box-mon{background:var(--glass);border:1px solid var(--line);border-radius:12px;padding:8px 4px;text-align:center;font-size:.72rem;color:var(--ink-dim)}
+.box-mon img{width:52px;height:52px;image-rendering:pixelated}
+.mon-icon{width:52px;height:52px;object-fit:contain;image-rendering:pixelated}
+.tc-actions{display:flex;gap:8px}
+.tc-actions .ghost-btn,.tc-actions .primary-btn{flex:1;margin:0}
+
+/* --- team select --- */
+.pick-wrap{display:flex;flex-direction:column;gap:12px}
+.pick-head h2{font-size:1.4rem;font-weight:800}
+.preset-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.preset-row::-webkit-scrollbar{display:none}
+.preset-chip{flex:none;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:var(--glass);border:1px solid var(--line);font-weight:600;font-size:.85rem;white-space:nowrap;transition:.15s}
+.preset-chip:hover{background:var(--glass2);border-color:var(--line2)}
+.preset-chip.rnd{border-color:rgba(255,210,63,.4)}
+.chosen-row{display:flex;gap:10px;justify-content:center}
+.chosen-mon{flex:1;max-width:120px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  background:var(--glass);border:1px dashed var(--line2);border-radius:14px;font-size:.72rem;color:var(--ink-dim);transition:.15s}
+.chosen-mon.empty{font-size:1.6rem;color:var(--ink-faint)}
+.chosen-mon:not(.empty){border-style:solid;border-color:var(--volt)}
+.chosen-mon img{width:56px;height:56px}
+.pick-scroll{overflow:visible}
+.pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:10px}
+.pick-card{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:8px 6px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;transition:.14s;position:relative}
+.pick-card:hover{transform:translateY(-3px);border-color:var(--line2);background:var(--glass2)}
+.pick-card.picked{border-color:var(--volt);background:linear-gradient(160deg,rgba(255,210,63,.16),var(--glass))}
+.pick-card.picked::after{content:"✓";position:absolute;top:6px;right:8px;color:var(--volt);font-weight:800}
+.pick-sprite{width:72px;height:72px;object-fit:contain;image-rendering:auto}
+.pick-name{font-weight:700;font-size:.82rem;text-align:center}
+.pick-types{display:flex;gap:3px;flex-wrap:wrap;justify-content:center}
+.type-badge{font-size:.58rem;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:5px;color:#0c0f1a;text-shadow:0 1px 0 rgba(255,255,255,.25)}
+
+/* --- lobby --- */
+.lobby{max-width:480px;margin:8px auto;text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+.lobby-h{font-size:1.6rem;font-weight:800}
+.challenge-badge{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font-size:2rem;background:linear-gradient(135deg,var(--spark),var(--aqua));box-shadow:0 0 40px -6px var(--spark);animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-8px)}}
+.code-card{padding:20px;width:100%;display:flex;flex-direction:column;gap:12px;align-items:center}
+.code-label{font-size:.7rem;letter-spacing:.24em;color:var(--ink-dim)}
+.code-big{font-size:2.6rem;font-weight:850;letter-spacing:.3em;padding-left:.3em;background:linear-gradient(90deg,var(--volt),var(--aqua));-webkit-background-clip:text;background-clip:text;color:transparent}
+.share-row{display:flex;gap:8px;width:100%}
+.share-row .primary-btn{flex:2} .share-row .ghost-btn{flex:1}
+.link-field{width:100%;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);color:var(--ink-dim);font-size:.78rem;text-align:center}
+.lobby-status{font-weight:600;color:var(--aqua);min-height:1.4em}
+.lobby-tip{font-size:.84rem;color:var(--ink-faint);font-style:italic;min-height:2.4em;max-width:360px}
+.loading{display:flex;flex-direction:column;align-items:center;gap:16px;padding:60px 0}
+.spinner{width:44px;height:44px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--volt);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ============================================================================
+   BATTLE
+   ========================================================================== */
+body.in-battle{overflow:hidden}
+.in-battle #app .screen{padding:0}
+.battle-top{display:flex;align-items:center;justify-content:space-between;padding:10px 14px}
+.battle-tag{font-weight:700;font-size:.85rem;color:var(--ink-dim);letter-spacing:.02em}
+.battle-root{padding:0 12px 14px;display:flex;flex-direction:column;gap:10px}
+.field-shake{will-change:transform}
+.field{position:relative;height:clamp(260px,42dvh,420px);border-radius:20px;overflow:hidden;
+  background:
+    radial-gradient(120% 80% at 50% 8%, rgba(123,108,255,.18), transparent 60%),
+    linear-gradient(180deg,#0c1226 0%, #0a0f20 55%, #10182f 100%);
+  border:1px solid var(--line);box-shadow:inset 0 0 60px rgba(0,0,0,.4)}
+.field::after{content:"";position:absolute;inset:0;background:
+  repeating-linear-gradient(90deg,transparent 0 38px,rgba(255,255,255,.02) 38px 39px);
+  mask:linear-gradient(180deg,transparent 40%,#000);pointer-events:none}
+.slot{position:absolute;display:flex;flex-direction:column;align-items:center}
+.platform{position:absolute;bottom:-8px;width:150px;height:34px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(123,108,255,.35),transparent);filter:blur(2px)}
+.sprite-wrap{position:relative;transition:transform .12s;will-change:transform}
+.sprite{image-rendering:auto;filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
+.slot.far .sprite{width:clamp(96px,26vw,150px);height:auto}
+.slot.near .sprite{width:clamp(120px,32vw,180px);height:auto}
+.slot.boss .sprite{width:clamp(150px,40vw,230px)!important;filter:drop-shadow(0 0 24px rgba(255,93,108,.5)) drop-shadow(0 10px 12px rgba(0,0,0,.6))}
+/* 1v1 positions */
+.pos-1-0{top:10%;right:9%}   /* foe (host perspective side1) */
+.pos-0-0{bottom:2%;left:8%}  /* you */
+.layout-1v1 .pos-0-0.far{top:10%;right:9%;bottom:auto;left:auto} /* guest: your side is 1, foe side0 up top */
+/* mon cards */
+.mon-card{position:absolute;min-width:190px;max-width:46%;padding:9px 12px;z-index:3}
+.mon-card.theirs{top:6%;left:5%}
+.mon-card.mine{bottom:6%;right:5%}
+.layout-raid .mon-card{min-width:150px}
+.card-name{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.card-name .nm{font-weight:750;font-size:.92rem}
+.card-name .lv{font-size:.72rem;color:var(--ink-dim);margin-left:auto}
+.hp-bar{height:9px;border-radius:6px;background:rgba(0,0,0,.45);overflow:hidden;border:1px solid rgba(0,0,0,.3)}
+.hp-inner{height:100%;width:100%;border-radius:6px;transition:width .6s cubic-bezier(.4,0,.2,1),background .4s}
+.hp-inner.low{animation:hpPulse .8s ease-in-out infinite}
+@keyframes hpPulse{50%{filter:brightness(1.5)}}
+.hp-num{font-size:.72rem;color:var(--ink-dim);text-align:right;margin-top:3px;font-variant-numeric:tabular-nums}
+.status-pill{font-size:.6rem;font-weight:800;padding:2px 6px;border-radius:5px;letter-spacing:.05em}
+.status-pill.hidden{display:none}
+.st-brn{background:#ff6b3d;color:#2a0d00} .st-psn,.st-tox{background:#b061e0;color:#26073a}
+.st-par{background:#f4d23c;color:#2e2600} .st-slp{background:#8a93b5;color:#12162a} .st-frz{background:#7ad3e6;color:#042230}
+.boost-tag{display:block;font-size:.62rem;color:var(--aqua);margin-top:4px;font-weight:700}
+.boost-tag.hidden{display:none}
+
+/* message + controls */
+.msgbox{padding:12px 16px;font-weight:600;font-size:.96rem;min-height:48px;display:flex;align-items:center;line-height:1.35}
+.controls{min-height:150px}
+.moves{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.move-btn{position:relative;text-align:left;padding:12px 14px;border-radius:14px;overflow:hidden;
+  background:linear-gradient(120deg,color-mix(in srgb,var(--tc) 30%,var(--bg2)),var(--bg2));
+  border:1px solid color-mix(in srgb,var(--tc) 45%,transparent);transition:.13s;display:flex;flex-direction:column;gap:7px}
+.move-btn::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--tc)}
+.move-btn:hover{transform:translateY(-2px);border-color:var(--tc);box-shadow:0 8px 20px -8px var(--tc)}
+.move-btn:active{transform:scale(.98)}
+.move-btn.disabled{opacity:.4;filter:grayscale(.6);pointer-events:none}
+.mv-name{font-weight:750;font-size:1rem}
+.mv-meta{display:flex;align-items:center;justify-content:space-between}
+.mv-pp{font-size:.72rem;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+.side-btns{display:flex;gap:8px;margin-top:9px}
+.side-btns .ghost-btn{flex:1;padding:11px;font-size:.9rem}
+
+/* switch modal */
+.switch-head{font-weight:800;font-size:1.15rem;margin-bottom:12px;text-align:center}
+.switch-list{display:flex;flex-direction:column;gap:8px}
+.switch-card{display:flex;align-items:center;gap:12px;padding:10px 12px;text-align:left;transition:.13s}
+.switch-card:hover{transform:translateX(3px);border-color:var(--line2)}
+.switch-card.fainted{opacity:.4;pointer-events:none}
+.switch-card img{width:48px;height:48px}
+.sc-name{font-weight:750}
+.sc-hp{font-size:.78rem;color:var(--ink-dim)}
+.sc-types{display:flex;gap:4px;margin-top:3px}
+
+/* juice: float numbers, emotes */
+.float-num{position:absolute;left:50%;top:20%;transform:translateX(-50%);font-weight:850;font-size:1.5rem;pointer-events:none;
+  animation:floatUp 1s ease-out forwards;text-shadow:0 2px 6px rgba(0,0,0,.7);z-index:5}
+.float-num.super{color:var(--volt);font-size:1.9rem}
+.float-num.weak{color:var(--ink-dim);font-size:1.2rem}
+.float-num.norm{color:#fff}
+.float-num.heal{color:var(--good)}
+.float-num.crit{color:var(--bad);font-size:1.3rem;top:6%}
+@keyframes floatUp{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}20%{opacity:1;transform:translate(-50%,-6px) scale(1.1)}100%{opacity:0;transform:translate(-50%,-46px) scale(1)}}
+.emote-bubble{position:absolute;left:50%;top:-14px;transform:translateX(-50%);font-size:2rem;pointer-events:none;
+  animation:emotePop 1.8s ease forwards;z-index:6;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+@keyframes emotePop{0%{opacity:0;transform:translate(-50%,10px) scale(.4)}15%{opacity:1;transform:translate(-50%,-4px) scale(1.15)}80%{opacity:1;transform:translate(-50%,-10px)}100%{opacity:0;transform:translate(-50%,-24px)}}
+
+/* animations: lunge / hit / faint / shake / buff / send-in */
+.lunge-up{animation:lungeU .24s ease}
+.lunge-down{animation:lungeD .24s ease}
+@keyframes lungeU{50%{transform:translate(24px,-24px) scale(1.06)}}
+@keyframes lungeD{50%{transform:translate(-24px,20px) scale(1.06)}}
+.hit{animation:hitShake .22s ease}
+@keyframes hitShake{0%,100%{transform:none}20%{transform:translateX(-8px)}40%{transform:translateX(7px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+.hit .sprite{filter:brightness(3) drop-shadow(0 0 8px #fff)}
+.faint{animation:faint .7s ease forwards}
+@keyframes faint{to{opacity:0;transform:translateY(40px) scale(.7);filter:grayscale(1) brightness(.4)}}
+.recall{animation:recall .35s ease forwards}
+@keyframes recall{to{opacity:0;transform:scale(.2) translateY(10px)}}
+.send-in{animation:sendIn .45s cubic-bezier(.2,1.3,.4,1)}
+@keyframes sendIn{from{opacity:0;transform:scale(.2) translateY(-10px)}to{opacity:1;transform:none}}
+.buff{animation:buffPulse .5s ease}
+@keyframes buffPulse{50%{filter:drop-shadow(0 0 14px var(--aqua)) brightness(1.3)}}
+.debuff{animation:debuffPulse .5s ease}
+@keyframes debuffPulse{50%{filter:drop-shadow(0 0 14px var(--bad)) brightness(.7)}}
+.field-shake.shake{animation:fShake .18s ease}
+.field-shake.shake-big{animation:fShakeBig .34s ease}
+@keyframes fShake{0%,100%{transform:none}50%{transform:translate(3px,-2px)}}
+@keyframes fShakeBig{0%,100%{transform:none}20%{transform:translate(-8px,4px)}40%{transform:translate(7px,-5px)}60%{transform:translate(-5px,3px)}80%{transform:translate(4px,-2px)}}
+/* status tints on sprite */
+.tint-brn .sprite{filter:drop-shadow(0 0 6px #ff6b3d) hue-rotate(-15deg)}
+.tint-psn .sprite,.tint-tox .sprite{filter:drop-shadow(0 0 6px #b061e0) saturate(1.4)}
+.tint-par .sprite{filter:drop-shadow(0 0 6px #f4d23c)}
+.tint-slp .sprite{filter:brightness(.7)}
+.tint-frz .sprite{filter:drop-shadow(0 0 8px #7ad3e6) brightness(1.1) saturate(.6)}
+
+/* raid layout: two allies bottom, boss top-centre */
+.layout-raid .pos-1-0{top:2%;left:50%;transform:translateX(-50%)}
+.layout-raid .card-1-0{top:5%;left:50%;transform:translateX(-50%);min-width:210px}
+.layout-raid .pos-0-0{bottom:2%;left:6%}
+.layout-raid .pos-0-1{bottom:2%;right:6%}
+.layout-raid .card-0-0{bottom:6%;left:3%}
+.layout-raid .card-0-1{bottom:6%;right:3%}
+.layout-raid .slot.near .sprite{width:clamp(90px,24vw,140px)}
+.emote-picker{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.emote-btn{font-size:1.6rem;width:56px;height:56px;border-radius:14px;background:var(--glass);border:1px solid var(--line);transition:.13s}
+.emote-btn:hover{transform:scale(1.1);background:var(--glass2)}
+.power-btn{display:flex;flex-direction:column;align-items:center;gap:3px;width:82px;padding:12px 6px;border-radius:14px;background:var(--glass);border:1px solid var(--line);font-size:.78rem;font-weight:600;transition:.13s}
+.power-btn:hover{transform:translateY(-2px);border-color:var(--aqua)}
+.power-btn span:first-child{font-size:1.5rem}
+
+/* raid setup / boss cards */
+.raid-setup h2{font-size:1.5rem;font-weight:800}
+.raid-setup>p{margin:6px 0 16px;max-width:560px}
+.boss-list{display:flex;flex-direction:column;gap:12px}
+.boss-card{display:flex;gap:14px;padding:14px;text-align:left;align-items:center;transition:.16s}
+.boss-card:hover{transform:translateY(-2px);border-color:rgba(255,93,108,.5);box-shadow:0 14px 40px -12px rgba(255,93,108,.4)}
+.boss-portrait{width:96px;height:96px;object-fit:contain;flex:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
+.boss-name{font-weight:800;font-size:1.15rem}
+.boss-stars{color:var(--volt);letter-spacing:2px;margin:2px 0}
+.boss-types{display:flex;gap:4px;margin:4px 0}
+.boss-intro{color:var(--ink-dim);font-size:.84rem;font-style:italic}
+
+/* result */
+.result-wrap{display:grid;place-items:center;padding:30px 0}
+.result-card{padding:30px 24px;text-align:center;max-width:440px;width:100%;display:flex;flex-direction:column;align-items:center;gap:12px}
+.result-card.win{border-color:rgba(255,210,63,.45);background:linear-gradient(160deg,rgba(255,210,63,.14),var(--glass))}
+.result-card.lose{border-color:rgba(255,93,108,.35)}
+.result-emoji{font-size:3.4rem;animation:trophyIn .6s cubic-bezier(.2,1.4,.4,1)}
+@keyframes trophyIn{from{transform:scale(0) rotate(-20deg)}}
+.result-h{font-size:2rem;font-weight:850}
+.result-sub{color:var(--ink-dim);font-variant-numeric:tabular-nums}
+.reward-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:0}
+.reward-pill{display:flex;align-items:center;gap:6px;background:var(--glass2);border:1px solid var(--line2);padding:7px 13px;border-radius:999px;font-size:.85rem;font-weight:600;animation:screenIn .4s both}
+.result-actions{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:8px}
+.result-actions .primary-btn,.result-actions .ghost-btn{width:100%}
+
+/* pass & play privacy curtain */
+.curtain-back{position:fixed;inset:0;z-index:550;background:rgba(4,6,14,.9);backdrop-filter:blur(14px);display:grid;place-items:center;opacity:0;transition:.2s}
+.curtain-back.on{opacity:1}
+.curtain{width:100%;height:100%;display:grid;place-items:center;cursor:pointer;padding:24px}
+.curtain-inner{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;animation:screenIn .3s both}
+.curtain-icon{font-size:3rem;animation:bob 2s ease-in-out infinite}
+.curtain-inner h2{font-size:1.8rem;font-weight:850}
+.curtain-cta{margin-top:14px;padding:12px 26px;border-radius:999px;background:var(--glass2);border:1px solid var(--line2);font-weight:700;animation:pulse 1.6s ease-in-out infinite}
+
+/* emoji tokens (offline / strict-CSP fallback for sprites) */
+.sprite.token{display:grid;place-items:center;line-height:1;filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
+.slot.far .sprite.token{width:auto;font-size:clamp(58px,17vw,104px)}
+.slot.near .sprite.token{width:auto;font-size:clamp(74px,22vw,128px)}
+.slot.boss .sprite.token{width:auto!important;font-size:clamp(104px,30vw,180px)!important;filter:drop-shadow(0 0 22px rgba(255,93,108,.5))}
+.mon-icon.token{display:grid;place-items:center;font-size:32px;width:52px;height:52px}
+.pick-sprite.token{width:72px;height:72px;display:grid;place-items:center;font-size:48px}
+.chosen-mon .mon-icon.token,.box-mon .mon-icon.token{font-size:30px}
+
+/* reduced motion */
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms!important;transition-duration:.05ms!important}
+  .hp-inner{transition:width .2s}
+}
+/* desktop niceties */
+@media (min-width:720px){
+  .cta-row{gap:14px}
+  .moves{gap:12px}
+  .field{height:clamp(340px,44dvh,460px)}
+  .mon-card{min-width:220px}
+}
+/* tiny phones */
+@media (max-width:360px){
+  .mv-name{font-size:.9rem}
+  .mon-card{min-width:150px;padding:7px 9px}
+  .code-big{font-size:2rem}
+}
+
+</style>
+<div id="app">
+  <div class="screen" style="padding:40px 16px;text-align:center">
+    <div class="spinner" style="margin:60px auto"></div>
+    <p class="muted">Loading the Arena…</p>
+  </div>
+</div>
+<div id="toasts"></div>
+<script>
+globalThis.LINKMON_TOKENS = true;   // emoji tokens instead of CDN sprites
+globalThis.LINKMON_OFFLINE = true;  // online button explains itself
+try {
+
+/* ===== rng.js ===== */
+// rng.js — deterministic seeded PRNG (mulberry32). Host runs the only RNG in
+// online play so both peers stay perfectly in sync (no double-rolls, no desync).
+function makeRng(seed) {
+  let a = seed >>> 0;
+  const next = () => {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  return {
+    next,                                   // [0,1)
+    int: (n) => Math.floor(next() * n),     // [0,n)
+    range: (lo, hi) => lo + Math.floor(next() * (hi - lo + 1)),
+    chance: (p) => next() < p,
+    pick: (arr) => arr[Math.floor(next() * arr.length)],
+    state: () => a >>> 0,
+  };
+}
+
+// Fold a string (room code + battle index) into a 32-bit seed.
+function hashSeed(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+
+/* ===== data.js ===== */
+// ---------------------------------------------------------------------------
+// data.js — types, type chart, moves, species, presets, raid bosses.
+// Pure data + tiny helpers. No DOM, no side effects. Importable in Node & browser.
+// Base stats / types / move values follow canonical Pokémon values (Gen 8/9).
+// ---------------------------------------------------------------------------
+
+const TYPES = [
+  'Normal', 'Fire', 'Water', 'Electric', 'Grass', 'Ice', 'Fighting', 'Poison',
+  'Ground', 'Flying', 'Psychic', 'Bug', 'Rock', 'Ghost', 'Dragon', 'Dark',
+  'Steel', 'Fairy',
+];
+
+// Type-flavored accent colors (used by the UI for badges + juice).
+const TYPE_COLORS = {
+  Normal: '#9099a1', Fire: '#ff9d55', Water: '#4d90d5', Electric: '#f4d23c',
+  Grass: '#63bc5a', Ice: '#73cec0', Fighting: '#ce4069', Poison: '#ab6ac8',
+  Ground: '#d97845', Flying: '#8fa9de', Psychic: '#f97176', Bug: '#90c12c',
+  Rock: '#c7b78b', Ghost: '#5269ac', Dragon: '#0b6dc3', Dark: '#5a5366',
+  Steel: '#5a8ea1', Fairy: '#ec8fe6',
+};
+
+// Attacker -> Defender multipliers. Only non-1.0 entries listed; default = 1.
+const CHART = {
+  Normal:   { Rock: .5, Ghost: 0, Steel: .5 },
+  Fire:     { Fire: .5, Water: .5, Grass: 2, Ice: 2, Bug: 2, Rock: .5, Dragon: .5, Steel: 2 },
+  Water:    { Fire: 2, Water: .5, Grass: .5, Ground: 2, Rock: 2, Dragon: .5 },
+  Electric: { Water: 2, Electric: .5, Grass: .5, Ground: 0, Flying: 2, Dragon: .5 },
+  Grass:    { Fire: .5, Water: 2, Grass: .5, Poison: .5, Ground: 2, Flying: .5, Bug: .5, Rock: 2, Dragon: .5, Steel: .5 },
+  Ice:      { Fire: .5, Water: .5, Grass: 2, Ice: .5, Ground: 2, Flying: 2, Dragon: 2, Steel: .5 },
+  Fighting: { Normal: 2, Ice: 2, Poison: .5, Flying: .5, Psychic: .5, Bug: .5, Rock: 2, Ghost: 0, Dark: 2, Steel: 2, Fairy: .5 },
+  Poison:   { Grass: 2, Poison: .5, Ground: .5, Rock: .5, Ghost: .5, Steel: 0, Fairy: 2 },
+  Ground:   { Fire: 2, Electric: 2, Grass: .5, Poison: 2, Flying: 0, Bug: .5, Rock: 2, Steel: 2 },
+  Flying:   { Electric: .5, Grass: 2, Fighting: 2, Bug: 2, Rock: .5, Steel: .5 },
+  Psychic:  { Fighting: 2, Poison: 2, Psychic: .5, Dark: 0, Steel: .5 },
+  Bug:      { Fire: .5, Grass: 2, Fighting: .5, Poison: .5, Flying: .5, Psychic: 2, Ghost: .5, Dark: 2, Steel: .5, Fairy: .5 },
+  Rock:     { Fire: 2, Ice: 2, Fighting: .5, Ground: .5, Flying: 2, Bug: 2, Steel: .5 },
+  Ghost:    { Normal: 0, Psychic: 2, Ghost: 2, Dark: .5 },
+  Dragon:   { Dragon: 2, Steel: .5, Fairy: 0 },
+  Dark:     { Fighting: .5, Psychic: 2, Ghost: 2, Dark: .5, Fairy: .5 },
+  Steel:    { Fire: .5, Water: .5, Electric: .5, Ice: 2, Rock: 2, Steel: .5, Fairy: 2 },
+  Fairy:    { Fire: .5, Fighting: 2, Poison: .5, Dragon: 2, Dark: 2, Steel: .5 },
+};
+
+function typeMult(atkType, defType) {
+  const row = CHART[atkType];
+  if (!row) return 1;
+  return defType in row ? row[defType] : 1;
+}
+
+function effectiveness(atkType, defenderTypes) {
+  return defenderTypes.reduce((m, t) => m * typeMult(atkType, t), 1);
+}
+
+// ---------------------------------------------------------------------------
+// Moves. category: Physical | Special | Status.
+// effect fields (all optional):
+//   status: 'brn'|'psn'|'tox'|'par'|'slp'|'frz'  chance: 0..1 (default 1 for status moves)
+//   boosts: {stat: stage}  target: 'self'|'target'  boostChance
+//   heal: fraction of max HP healed (self)         drain: fraction of damage dealt healed
+//   recoil: fraction of damage dealt taken         flinch: chance
+//   crit: extra crit stages (high-crit moves)      recharge: true
+//   priority (number)   protect: true   neverMiss: true   selfDrop:{stat,stage}
+// ---------------------------------------------------------------------------
+const MOVES = {
+  // Normal
+  tackle:      { name: 'Tackle', type: 'Normal', category: 'Physical', power: 40, acc: 100, pp: 35 },
+  bodyslam:    { name: 'Body Slam', type: 'Normal', category: 'Physical', power: 85, acc: 100, pp: 15, status: 'par', chance: .3 },
+  doubleedge:  { name: 'Double-Edge', type: 'Normal', category: 'Physical', power: 120, acc: 100, pp: 15, recoil: 1/3 },
+  return:      { name: 'Return', type: 'Normal', category: 'Physical', power: 102, acc: 100, pp: 20 },
+  hyperbeam:   { name: 'Hyper Beam', type: 'Normal', category: 'Special', power: 150, acc: 90, pp: 5, recharge: true },
+  quickattack: { name: 'Quick Attack', type: 'Normal', category: 'Physical', power: 40, acc: 100, pp: 30, priority: 1 },
+  extremespeed:{ name: 'Extreme Speed', type: 'Normal', category: 'Physical', power: 80, acc: 100, pp: 5, priority: 2 },
+  swordsdance: { name: 'Swords Dance', type: 'Normal', category: 'Status', pp: 20, boosts: { atk: 2 }, target: 'self' },
+  // Fire
+  ember:       { name: 'Ember', type: 'Fire', category: 'Special', power: 40, acc: 100, pp: 25, status: 'brn', chance: .1 },
+  flamethrower:{ name: 'Flamethrower', type: 'Fire', category: 'Special', power: 90, acc: 100, pp: 15, status: 'brn', chance: .1 },
+  fireblast:   { name: 'Fire Blast', type: 'Fire', category: 'Special', power: 110, acc: 85, pp: 5, status: 'brn', chance: .1 },
+  firepunch:   { name: 'Fire Punch', type: 'Fire', category: 'Physical', power: 75, acc: 100, pp: 15, status: 'brn', chance: .1 },
+  flareblitz:  { name: 'Flare Blitz', type: 'Fire', category: 'Physical', power: 120, acc: 100, pp: 15, recoil: 1/3, status: 'brn', chance: .1 },
+  overheat:    { name: 'Overheat', type: 'Fire', category: 'Special', power: 130, acc: 90, pp: 5, selfDrop: { stat: 'spa', stage: 2 } },
+  willowisp:   { name: 'Will-O-Wisp', type: 'Fire', category: 'Status', acc: 85, pp: 15, status: 'brn' },
+  // Water
+  watergun:    { name: 'Water Gun', type: 'Water', category: 'Special', power: 40, acc: 100, pp: 25 },
+  surf:        { name: 'Surf', type: 'Water', category: 'Special', power: 90, acc: 100, pp: 15 },
+  hydropump:   { name: 'Hydro Pump', type: 'Water', category: 'Special', power: 110, acc: 80, pp: 5 },
+  scald:       { name: 'Scald', type: 'Water', category: 'Special', power: 80, acc: 100, pp: 15, status: 'brn', chance: .3 },
+  aquajet:     { name: 'Aqua Jet', type: 'Water', category: 'Physical', power: 40, acc: 100, pp: 20, priority: 1 },
+  waterfall:   { name: 'Waterfall', type: 'Water', category: 'Physical', power: 80, acc: 100, pp: 15, flinch: .2 },
+  // Electric
+  thunderbolt: { name: 'Thunderbolt', type: 'Electric', category: 'Special', power: 90, acc: 100, pp: 15, status: 'par', chance: .1 },
+  thunder:     { name: 'Thunder', type: 'Electric', category: 'Special', power: 110, acc: 70, pp: 10, status: 'par', chance: .3 },
+  thunderpunch:{ name: 'Thunder Punch', type: 'Electric', category: 'Physical', power: 75, acc: 100, pp: 15, status: 'par', chance: .1 },
+  wildcharge:  { name: 'Wild Charge', type: 'Electric', category: 'Physical', power: 90, acc: 100, pp: 15, recoil: .25 },
+  thunderwave: { name: 'Thunder Wave', type: 'Electric', category: 'Status', acc: 90, pp: 20, status: 'par' },
+  voltswitch:  { name: 'Volt Switch', type: 'Electric', category: 'Special', power: 70, acc: 100, pp: 20 },
+  // Grass
+  vinewhip:    { name: 'Vine Whip', type: 'Grass', category: 'Physical', power: 45, acc: 100, pp: 25 },
+  energyball:  { name: 'Energy Ball', type: 'Grass', category: 'Special', power: 90, acc: 100, pp: 10, boosts: { spd: -1 }, target: 'target', boostChance: .1 },
+  gigadrain:   { name: 'Giga Drain', type: 'Grass', category: 'Special', power: 75, acc: 100, pp: 10, drain: .5 },
+  leafblade:   { name: 'Leaf Blade', type: 'Grass', category: 'Physical', power: 90, acc: 100, pp: 15, crit: 1 },
+  powerwhip:   { name: 'Power Whip', type: 'Grass', category: 'Physical', power: 120, acc: 85, pp: 10 },
+  leechseed:   { name: 'Leech Seed', type: 'Grass', category: 'Status', acc: 90, pp: 10, seed: true },
+  synthesis:   { name: 'Synthesis', type: 'Grass', category: 'Status', pp: 5, heal: .5 },
+  // Ice
+  icebeam:     { name: 'Ice Beam', type: 'Ice', category: 'Special', power: 90, acc: 100, pp: 10, status: 'frz', chance: .1 },
+  blizzard:    { name: 'Blizzard', type: 'Ice', category: 'Special', power: 110, acc: 70, pp: 5, status: 'frz', chance: .1 },
+  icepunch:    { name: 'Ice Punch', type: 'Ice', category: 'Physical', power: 75, acc: 100, pp: 15, status: 'frz', chance: .1 },
+  iceshard:    { name: 'Ice Shard', type: 'Ice', category: 'Physical', power: 40, acc: 100, pp: 30, priority: 1 },
+  // Fighting
+  aurasphere:  { name: 'Aura Sphere', type: 'Fighting', category: 'Special', power: 80, acc: 100, pp: 20, neverMiss: true },
+  closecombat: { name: 'Close Combat', type: 'Fighting', category: 'Physical', power: 120, acc: 100, pp: 5, selfDrop: { stat: 'def', stage: 1, stat2: 'spd', stage2: 1 } },
+  drainpunch:  { name: 'Drain Punch', type: 'Fighting', category: 'Physical', power: 75, acc: 100, pp: 10, drain: .5 },
+  machpunch:   { name: 'Mach Punch', type: 'Fighting', category: 'Physical', power: 40, acc: 100, pp: 30, priority: 1 },
+  brickbreak:  { name: 'Brick Break', type: 'Fighting', category: 'Physical', power: 75, acc: 100, pp: 15 },
+  dynamicpunch:{ name: 'Dynamic Punch', type: 'Fighting', category: 'Physical', power: 100, acc: 100, pp: 5 },
+  // Poison
+  sludgebomb:  { name: 'Sludge Bomb', type: 'Poison', category: 'Special', power: 90, acc: 100, pp: 10, status: 'psn', chance: .3 },
+  poisonjab:   { name: 'Poison Jab', type: 'Poison', category: 'Physical', power: 80, acc: 100, pp: 20, status: 'psn', chance: .3 },
+  toxic:       { name: 'Toxic', type: 'Poison', category: 'Status', acc: 90, pp: 10, status: 'tox' },
+  gunkshot:    { name: 'Gunk Shot', type: 'Poison', category: 'Physical', power: 120, acc: 80, pp: 5, status: 'psn', chance: .3 },
+  // Ground
+  earthquake:  { name: 'Earthquake', type: 'Ground', category: 'Physical', power: 100, acc: 100, pp: 10 },
+  earthpower:  { name: 'Earth Power', type: 'Ground', category: 'Special', power: 90, acc: 100, pp: 10, boosts: { spd: -1 }, target: 'target', boostChance: .1 },
+  highhorsepower:{ name: 'High Horsepower', type: 'Ground', category: 'Physical', power: 95, acc: 95, pp: 10 },
+  // Flying
+  airslash:    { name: 'Air Slash', type: 'Flying', category: 'Special', power: 75, acc: 95, pp: 15, flinch: .3 },
+  bravebird:   { name: 'Brave Bird', type: 'Flying', category: 'Physical', power: 120, acc: 100, pp: 15, recoil: 1/3 },
+  hurricane:   { name: 'Hurricane', type: 'Flying', category: 'Special', power: 110, acc: 70, pp: 10 },
+  roost:       { name: 'Roost', type: 'Flying', category: 'Status', pp: 5, heal: .5 },
+  // Psychic
+  psychic:     { name: 'Psychic', type: 'Psychic', category: 'Special', power: 90, acc: 100, pp: 10, boosts: { spd: -1 }, target: 'target', boostChance: .1 },
+  psyshock:    { name: 'Psyshock', type: 'Psychic', category: 'Special', power: 80, acc: 100, pp: 10 },
+  calmmind:    { name: 'Calm Mind', type: 'Psychic', category: 'Status', pp: 20, boosts: { spa: 1, spd: 1 }, target: 'self' },
+  recover:     { name: 'Recover', type: 'Psychic', category: 'Status', pp: 5, heal: .5 },
+  // Bug
+  xscissor:    { name: 'X-Scissor', type: 'Bug', category: 'Physical', power: 80, acc: 100, pp: 15 },
+  bugbuzz:     { name: 'Bug Buzz', type: 'Bug', category: 'Special', power: 90, acc: 100, pp: 10, boosts: { spd: -1 }, target: 'target', boostChance: .1 },
+  uturn:       { name: 'U-turn', type: 'Bug', category: 'Physical', power: 70, acc: 100, pp: 20 },
+  quiverdance: { name: 'Quiver Dance', type: 'Bug', category: 'Status', pp: 20, boosts: { spa: 1, spd: 1, spe: 1 }, target: 'self' },
+  // Rock
+  rockslide:   { name: 'Rock Slide', type: 'Rock', category: 'Physical', power: 75, acc: 90, pp: 10, flinch: .3 },
+  stoneedge:   { name: 'Stone Edge', type: 'Rock', category: 'Physical', power: 100, acc: 80, pp: 5, crit: 1 },
+  powergem:    { name: 'Power Gem', type: 'Rock', category: 'Special', power: 80, acc: 100, pp: 20 },
+  // Ghost
+  shadowball:  { name: 'Shadow Ball', type: 'Ghost', category: 'Special', power: 80, acc: 100, pp: 15, boosts: { spd: -1 }, target: 'target', boostChance: .2 },
+  shadowclaw:  { name: 'Shadow Claw', type: 'Ghost', category: 'Physical', power: 70, acc: 100, pp: 15, crit: 1 },
+  shadowsneak: { name: 'Shadow Sneak', type: 'Ghost', category: 'Physical', power: 40, acc: 100, pp: 30, priority: 1 },
+  poltergeist: { name: 'Poltergeist', type: 'Ghost', category: 'Physical', power: 110, acc: 90, pp: 5 },
+  // Dragon
+  dragonpulse: { name: 'Dragon Pulse', type: 'Dragon', category: 'Special', power: 85, acc: 100, pp: 10 },
+  dragonclaw:  { name: 'Dragon Claw', type: 'Dragon', category: 'Physical', power: 80, acc: 100, pp: 15 },
+  outrage:     { name: 'Outrage', type: 'Dragon', category: 'Physical', power: 120, acc: 100, pp: 10 },
+  dracometeor: { name: 'Draco Meteor', type: 'Dragon', category: 'Special', power: 130, acc: 90, pp: 5, selfDrop: { stat: 'spa', stage: 2 } },
+  dragondance: { name: 'Dragon Dance', type: 'Dragon', category: 'Status', pp: 20, boosts: { atk: 1, spe: 1 }, target: 'self' },
+  // Dark
+  crunch:      { name: 'Crunch', type: 'Dark', category: 'Physical', power: 80, acc: 100, pp: 15, boosts: { def: -1 }, target: 'target', boostChance: .2 },
+  darkpulse:   { name: 'Dark Pulse', type: 'Dark', category: 'Special', power: 80, acc: 100, pp: 15, flinch: .2 },
+  knockoff:    { name: 'Knock Off', type: 'Dark', category: 'Physical', power: 65, acc: 100, pp: 20 },
+  suckerpunch: { name: 'Sucker Punch', type: 'Dark', category: 'Physical', power: 70, acc: 100, pp: 5, priority: 1 },
+  nastyplot:   { name: 'Nasty Plot', type: 'Dark', category: 'Status', pp: 20, boosts: { spa: 2 }, target: 'self' },
+  // Steel
+  ironhead:    { name: 'Iron Head', type: 'Steel', category: 'Physical', power: 80, acc: 100, pp: 15, flinch: .3 },
+  flashcannon: { name: 'Flash Cannon', type: 'Steel', category: 'Special', power: 80, acc: 100, pp: 10, boosts: { spd: -1 }, target: 'target', boostChance: .1 },
+  bulletpunch: { name: 'Bullet Punch', type: 'Steel', category: 'Physical', power: 40, acc: 100, pp: 30, priority: 1 },
+  meteormash:  { name: 'Meteor Mash', type: 'Steel', category: 'Physical', power: 90, acc: 90, pp: 10, boosts: { atk: 1 }, target: 'self', boostChance: .2 },
+  irondefense: { name: 'Iron Defense', type: 'Steel', category: 'Status', pp: 15, boosts: { def: 2 }, target: 'self' },
+  // Fairy
+  moonblast:   { name: 'Moonblast', type: 'Fairy', category: 'Special', power: 95, acc: 100, pp: 15, boosts: { spa: -1 }, target: 'target', boostChance: .3 },
+  playrough:   { name: 'Play Rough', type: 'Fairy', category: 'Physical', power: 90, acc: 90, pp: 10, boosts: { atk: -1 }, target: 'target', boostChance: .1 },
+  dazzlinggleam:{ name: 'Dazzling Gleam', type: 'Fairy', category: 'Special', power: 80, acc: 100, pp: 10 },
+};
+
+// ---------------------------------------------------------------------------
+// Species. base stats in canonical order. `dex` drives sprite URLs.
+// `anim` = has Gen-V animated sprite (front+back); else UI falls back to art.
+// ---------------------------------------------------------------------------
+function S(id, dex, name, types, base, moves, anim = true, role = '') {
+  return { id, dex, name, types, base, moves, anim, role };
+}
+
+const SPECIES = [
+  // ---- Kanto ----
+  S('venusaur', 3, 'Venusaur', ['Grass', 'Poison'], [80,82,83,100,100,80], ['gigadrain','sludgebomb','synthesis','leechseed'], true, 'Bulky attacker'),
+  S('charizard', 6, 'Charizard', ['Fire', 'Flying'], [78,84,78,109,85,100], ['flamethrower','airslash','dragonpulse','roost'], true, 'Special sweeper'),
+  S('blastoise', 9, 'Blastoise', ['Water'], [79,83,100,85,105,78], ['surf','icebeam','flashcannon','recover'], true, 'Bulky water'),
+  S('arcanine', 59, 'Arcanine', ['Fire'], [90,110,80,100,80,95], ['flareblitz','wildcharge','closecombat','extremespeed'], true, 'Physical wallbreaker'),
+  S('alakazam', 65, 'Alakazam', ['Psychic'], [55,50,45,135,95,120], ['psychic','shadowball','dazzlinggleam','calmmind'], true, 'Frail sweeper'),
+  S('machamp', 68, 'Machamp', ['Fighting'], [90,130,80,65,85,55], ['dynamicpunch','icepunch','earthquake','bulletpunch'], true, 'Bulky brawler'),
+  S('gengar', 94, 'Gengar', ['Ghost', 'Poison'], [60,65,60,130,75,110], ['shadowball','sludgebomb','psychic','nastyplot'], true, 'Speedy special'),
+  S('starmie', 121, 'Starmie', ['Water', 'Psychic'], [60,75,85,100,85,115], ['surf','psychic','icebeam','recover'], true, 'Fast pivot'),
+  S('gyarados', 130, 'Gyarados', ['Water', 'Flying'], [95,125,79,60,100,81], ['waterfall','crunch','earthquake','dragondance'], true, 'Dragon-dance sweeper'),
+  S('lapras', 131, 'Lapras', ['Water', 'Ice'], [130,85,80,85,95,60], ['surf','icebeam','thunderbolt','bodyslam'], true, 'Bulky tank'),
+  S('vaporeon', 134, 'Vaporeon', ['Water'], [130,65,60,110,95,65], ['surf','icebeam','shadowball','recover'], true, 'Bulky water'),
+  S('jolteon', 135, 'Jolteon', ['Electric'], [65,65,60,110,95,130], ['thunderbolt','shadowball','voltswitch','calmmind'], true, 'Speed control'),
+  S('flareon', 136, 'Flareon', ['Fire'], [65,130,60,95,110,65], ['flareblitz','firepunch','bodyslam','quickattack'], true, 'Physical attacker'),
+  S('snorlax', 143, 'Snorlax', ['Normal'], [160,110,65,65,110,30], ['bodyslam','earthquake','firepunch','recover'], true, 'Wall'),
+  S('dragonite', 149, 'Dragonite', ['Dragon', 'Flying'], [91,134,95,100,100,80], ['outrage','firepunch','extremespeed','dragondance'], true, 'Setup sweeper'),
+  // ---- Johto ----
+  S('scizor', 212, 'Scizor', ['Bug', 'Steel'], [70,130,100,55,80,65], ['bulletpunch','xscissor','swordsdance','drainpunch'], true, 'Priority breaker'),
+  S('heracross', 214, 'Heracross', ['Bug', 'Fighting'], [80,125,75,40,95,85], ['closecombat','xscissor','stoneedge','swordsdance'], true, 'Wallbreaker'),
+  S('tyranitar', 248, 'Tyranitar', ['Rock', 'Dark'], [100,134,110,95,100,61], ['stoneedge','crunch','earthquake','icepunch'], true, 'Sand tank'),
+  // ---- Hoenn ----
+  S('gardevoir', 282, 'Gardevoir', ['Psychic', 'Fairy'], [68,65,65,125,115,80], ['moonblast','psychic','shadowball','calmmind'], true, 'Special sweeper'),
+  S('breloom', 286, 'Breloom', ['Grass', 'Fighting'], [60,130,80,60,60,70], ['machpunch','leafblade','closecombat','swordsdance'], true, 'Priority punch'),
+  S('milotic', 350, 'Milotic', ['Water'], [95,60,79,100,125,81], ['scald','icebeam','dragonpulse','recover'], true, 'Special wall'),
+  S('salamence', 373, 'Salamence', ['Dragon', 'Flying'], [95,135,80,110,80,100], ['dracometeor','fireblast','dragonclaw','dragondance'], true, 'Mixed sweeper'),
+  S('metagross', 376, 'Metagross', ['Steel', 'Psychic'], [80,135,130,95,90,70], ['meteormash','earthquake','icepunch','bulletpunch'], true, 'Physical tank'),
+  // ---- Sinnoh ----
+  S('garchomp', 445, 'Garchomp', ['Dragon', 'Ground'], [108,130,95,80,85,102], ['earthquake','outrage','stoneedge','swordsdance'], true, 'Offensive tank'),
+  S('lucario', 448, 'Lucario', ['Fighting', 'Steel'], [70,110,70,115,70,90], ['aurasphere','flashcannon','nastyplot','extremespeed'], true, 'Mixed attacker'),
+  S('weavile', 461, 'Weavile', ['Dark', 'Ice'], [70,120,65,45,85,125], ['iceshard','knockoff','icepunch','swordsdance'], true, 'Fast priority'),
+  S('togekiss', 468, 'Togekiss', ['Fairy', 'Flying'], [85,50,95,120,115,80], ['airslash','dazzlinggleam','aurasphere','roost'], true, 'Flinch abuser'),
+  S('mamoswine', 473, 'Mamoswine', ['Ice', 'Ground'], [110,130,80,70,60,80], ['earthquake','iceshard','icepunch','stoneedge'], true, 'Priority breaker'),
+  // ---- Unova ----
+  S('excadrill', 530, 'Excadrill', ['Ground', 'Steel'], [110,135,60,50,65,88], ['earthquake','ironhead','rockslide','swordsdance'], true, 'Sand sweeper'),
+  S('conkeldurr', 534, 'Conkeldurr', ['Fighting'], [105,140,95,55,65,45], ['drainpunch','machpunch','poisonjab','bulletpunch'], true, 'Bulky attacker'),
+  S('ferrothorn', 598, 'Ferrothorn', ['Grass', 'Steel'], [74,94,131,54,116,20], ['powerwhip','gyroball_x','leechseed','thunderwave'], true, 'Hazard wall'),
+  S('chandelure', 609, 'Chandelure', ['Ghost', 'Fire'], [60,55,90,145,90,80], ['shadowball','flamethrower','energyball','calmmind'], true, 'Special nuke'),
+  S('hydreigon', 635, 'Hydreigon', ['Dark', 'Dragon'], [92,105,90,125,90,98], ['darkpulse','dracometeor','flashcannon','nastyplot'], true, 'Special sweeper'),
+  S('volcarona', 637, 'Volcarona', ['Bug', 'Fire'], [85,60,65,135,105,100], ['fireblast','bugbuzz','psychic','quiverdance'], true, 'Setup sweeper'),
+  // ---- Modern favorites (official artwork fallback) ----
+  S('greninja', 658, 'Greninja', ['Water', 'Dark'], [72,95,67,103,71,122], ['hydropump','darkpulse','icebeam','gunkshot'], false, 'Fast mixed'),
+  S('aegislash', 681, 'Aegislash', ['Steel', 'Ghost'], [60,50,140,50,140,60], ['shadowball','flashcannon','shadowsneak','irondefense'], false, 'Bulky pivot'),
+  S('sylveon', 700, 'Sylveon', ['Fairy'], [95,65,65,110,130,60], ['moonblast','psyshock','shadowball','calmmind'], false, 'Special wall'),
+  S('toxapex', 748, 'Toxapex', ['Poison', 'Water'], [50,63,152,53,142,35], ['scald','toxic','recover','sludgebomb'], false, 'Ultimate wall'),
+  S('mimikyu', 778, 'Mimikyu', ['Ghost', 'Fairy'], [55,90,80,50,105,96], ['poltergeist','playrough','shadowsneak','swordsdance'], false, 'Disguise sweeper'),
+  S('cinderace', 815, 'Cinderace', ['Fire'], [80,116,75,65,75,119], ['flareblitz','highhorsepower','suckerpunch','uturn'], false, 'Fast breaker'),
+  S('corviknight', 823, 'Corviknight', ['Flying', 'Steel'], [98,87,105,53,85,67], ['bravebird','ironhead','roost','bulkup_x'], false, 'Physical wall'),
+  S('dragapult', 887, 'Dragapult', ['Dragon', 'Ghost'], [88,120,75,100,75,142], ['dragonclaw','poltergeist','fireblast','uturn'], false, 'Fastest sweeper'),
+];
+
+// A couple of movepool ids above reference moves that don't need unique mechanics;
+// alias them to existing moves so every species has 4 legal, functional moves.
+MOVES.gyroball_x = { name: 'Gyro Ball', type: 'Steel', category: 'Physical', power: 80, acc: 100, pp: 5 };
+MOVES.bulkup_x   = { name: 'Bulk Up', type: 'Fighting', category: 'Status', pp: 20, boosts: { atk: 1, def: 1 }, target: 'self' };
+
+const SPECIES_BY_ID = Object.fromEntries(SPECIES.map(s => [s.id, s]));
+
+// Curated 3-mon preset teams for instant play.
+const PRESETS = [
+  { name: 'Kanto Classic',  emoji: '🔴', team: ['charizard', 'blastoise', 'venusaur'], blurb: 'The three that started it all.' },
+  { name: 'Eeveelution',    emoji: '🌈', team: ['jolteon', 'vaporeon', 'flareon'], blurb: 'One shape, three destinies.' },
+  { name: 'Pseudo Power',   emoji: '🐉', team: ['dragonite', 'tyranitar', 'garchomp'], blurb: 'Slow to raise. Terrifying to face.' },
+  { name: 'Hyper Offense',  emoji: '⚡', team: ['weavile', 'dragapult', 'greninja'], blurb: 'Hit first. Hit hard. No apologies.' },
+  { name: 'Fairy Tale',     emoji: '✨', team: ['sylveon', 'togekiss', 'gardevoir'], blurb: 'Deceptively lethal charm.' },
+  { name: 'Iron Wall',      emoji: '🛡️', team: ['metagross', 'ferrothorn', 'toxapex'], blurb: 'You will get bored before they faint.' },
+];
+
+// Raid bosses — powered-up, big HP, two actions per round.
+// Boss stats + HP multipliers tuned via simulation so difficulty is monotonic
+// (AI-ally win rates ≈ 72% / 52% / 30%). Real players also get Pass Power heals.
+const BOSSES = [
+  {
+    id: 'inferno-volcarona', name: 'Inferno Volcarona', dex: 637, anim: true,
+    types: ['Bug', 'Fire'], base: [85,60,65,95,95,90],
+    moves: ['flamethrower', 'bugbuzz', 'airslash', 'psychic'],
+    hpMult: 1.8, actions: 2, star: 3,
+    intro: 'The sky glows ember-orange. A Sun Pokémon the size of a house descends.',
+  },
+  {
+    id: 'tyrant-tyranitar', name: 'Tyrant Tyranitar', dex: 248, anim: true,
+    types: ['Rock', 'Dark'], base: [110,110,105,80,90,61],
+    moves: ['stoneedge', 'crunch', 'earthquake', 'icepunch'],
+    hpMult: 2.8, actions: 2, star: 4,
+    intro: 'The ground quakes. Sand blots out the sun. It has been waiting.',
+  },
+  {
+    id: 'spectral-dragapult', name: 'Spectral Dragapult', dex: 887, anim: false,
+    types: ['Dragon', 'Ghost'], base: [100,105,80,95,80,115],
+    moves: ['dragonclaw', 'poltergeist', 'fireblast', 'shadowball'],
+    hpMult: 2.9, actions: 2, star: 5,
+    intro: 'You never see it move. You only see where it has been.',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Sprite URLs (PokéAPI community CDN — free, hosted on GitHub). onerror in the
+// UI cascades to the next fallback so a missing sprite never breaks the scene.
+// ---------------------------------------------------------------------------
+// Emoji "tokens" — a zero-byte, offline fallback for environments that can't
+// reach the sprite CDN (e.g. a strict-CSP embed). Keyed by Pokédex number.
+const EMOJI_BY_DEX = {
+  3: '🌿', 6: '🔥', 9: '🐢', 59: '🐕', 65: '🥄', 68: '💪', 94: '👻', 121: '⭐',
+  130: '🐍', 131: '🐋', 134: '💧', 135: '⚡', 136: '🦊', 143: '😴', 149: '🐉',
+  212: '🦞', 214: '🪲', 248: '🦖', 282: '💃', 286: '🍄', 350: '🐟', 373: '✈️',
+  376: '🤖', 445: '🦈', 448: '🐺', 461: '🐾', 468: '🕊️', 473: '🦣', 530: '⛏️',
+  534: '🏋️', 598: '🌰', 609: '🕯️', 635: '🐲', 637: '🦋', 658: '🐸', 681: '⚔️',
+  700: '🎀', 748: '☂️', 778: '🎭', 815: '⚽', 823: '🦅', 887: '🚀',
+};
+
+const SP = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
+function spriteFront(dex, anim) {
+  return anim ? `${SP}/versions/generation-v/black-white/animated/${dex}.gif` : `${SP}/other/official-artwork/${dex}.png`;
+}
+function spriteBack(dex, anim) {
+  return anim ? `${SP}/versions/generation-v/black-white/animated/back/${dex}.gif` : `${SP}/back/${dex}.png`;
+}
+function spriteFrontFallbacks(dex) {
+  return [`${SP}/${dex}.png`, `${SP}/other/official-artwork/${dex}.png`, `${SP}/other/home/${dex}.png`];
+}
+function spriteBackFallbacks(dex) {
+  return [`${SP}/back/${dex}.png`, `${SP}/${dex}.png`, `${SP}/other/official-artwork/${dex}.png`];
+}
+function spriteIcon(dex) {
+  return `${SP}/versions/generation-viii/icons/${dex}.png`;
+}
+
+
+/* ===== engine.js ===== */
+// ---------------------------------------------------------------------------
+// engine.js — pure, deterministic turn-based battle simulation.
+// Runs on exactly ONE machine per battle (the AI host locally, or the online
+// host who then broadcasts the event log). Given the same seed + same actions
+// it always produces the same events -> zero desync.
+//
+// A "battle" has sides. Each side has a `party` (mons) and `active` (party
+// indices currently on the field). 1v1 = one active per side. Co-op raid =
+// two allies active on side 0, one boss active on side 1 (boss may act twice).
+// resolveTurn(state, actions) mutates state and returns an event log.
+// ---------------------------------------------------------------------------
+
+
+const STAGES = ['atk', 'def', 'spa', 'spd', 'spe'];
+const CRIT_CHANCE = [1 / 24, 1 / 8, 1 / 2, 1];
+
+function statAt(base, level, isHP) {
+  const v = Math.floor((2 * base + 31) * level / 100);
+  return isHP ? v + level + 10 : v + 5;
+}
+
+function makeMon(spec, { level = 50, hpMult = 1, boss = false } = {}) {
+  const sp = typeof spec === 'string' ? SPECIES_BY_ID[spec] : spec;
+  const [hp, atk, def, spa, spd, spe] = sp.base;
+  const maxHp = Math.floor(statAt(hp, level, true) * hpMult);
+  return {
+    id: sp.id, name: sp.name, dex: sp.dex, anim: sp.anim, types: sp.types.slice(),
+    level, maxHp, hp: maxHp, boss,
+    stats: {
+      atk: statAt(atk, level), def: statAt(def, level), spa: statAt(spa, level),
+      spd: statAt(spd, level), spe: statAt(spe, level),
+    },
+    boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 },
+    moves: sp.moves.map(id => ({ id, pp: MOVES[id].pp, maxpp: MOVES[id].pp })),
+    status: null, sleepTurns: 0, toxic: 0, seededBy: null,
+    mustRecharge: false, flinched: false, fainted: false,
+  };
+}
+
+function newBattle({ format = '1v1', sides, seed = 1 }) {
+  return { format, sides, turn: 0, rng: makeRng(seed), seed, ended: false, winner: null };
+}
+
+// --- helpers -----------------------------------------------------------------
+const monAt = (st, ref) => st.sides[ref.side].party[st.sides[ref.side].active[ref.slot]];
+
+function effStat(mon, stat) {
+  let s = mon.stats[stat];
+  const stage = mon.boosts[stat];
+  s = stage >= 0 ? Math.floor(s * (2 + stage) / 2) : Math.floor(s * 2 / (2 - stage));
+  if (stat === 'spe' && mon.status === 'par') s = Math.floor(s * 0.5);
+  return Math.max(1, s);
+}
+
+function sideAliveCount(side) {
+  return side.party.filter(m => !m.fainted).length;
+}
+
+// public: everything the UI needs to draw a mon
+function monView(mon) {
+  return {
+    id: mon.id, name: mon.name, dex: mon.dex, anim: mon.anim, types: mon.types,
+    hp: mon.hp, maxHp: mon.maxHp, status: mon.status, level: mon.level,
+    boosts: { ...mon.boosts }, fainted: mon.fainted,
+    moves: mon.moves.map(m => ({ ...MOVES[m.id], id: m.id, pp: m.pp, maxpp: m.maxpp })),
+  };
+}
+
+// --- damage ------------------------------------------------------------------
+function calcDamage(st, atkr, dfnd, move, { forceCrit = false } = {}) {
+  const m = MOVES[move];
+  const eff = effectiveness(m.type, dfnd.types);
+  if (eff === 0) return { dmg: 0, eff: 0, crit: false };
+  const physical = m.category === 'Physical';
+  const A = effStat(atkr, physical ? 'atk' : 'spa');
+  const D = effStat(dfnd, physical ? 'def' : 'spd');
+  const critStage = Math.min(3, m.crit || 0);
+  const crit = forceCrit || st.rng.chance(CRIT_CHANCE[critStage]);
+  const lvlF = Math.floor(2 * atkr.level / 5) + 2;
+  let d = Math.floor(Math.floor(lvlF * m.power * A / D) / 50) + 2;
+  if (crit) d = Math.floor(d * 1.5);
+  d = Math.floor(d * (85 + st.rng.int(16)) / 100);
+  if (atkr.types.includes(m.type)) d = Math.floor(d * 1.5);       // STAB
+  d = Math.floor(d * eff);
+  if (physical && atkr.status === 'brn') d = Math.floor(d * 0.5);  // burn
+  return { dmg: Math.max(1, d), eff, crit };
+}
+
+// rng-free damage estimate for the AI (uses an average roll, no crit)
+function estimateDamage(atkr, dfnd, moveId, roll = 0.925) {
+  const m = MOVES[moveId];
+  const eff = effectiveness(m.type, dfnd.types);
+  if (!m.power || eff === 0) return { dmg: 0, eff };
+  const physical = m.category === 'Physical';
+  const A = effStat(atkr, physical ? 'atk' : 'spa');
+  const D = effStat(dfnd, physical ? 'def' : 'spd');
+  const lvlF = Math.floor(2 * atkr.level / 5) + 2;
+  let d = Math.floor(Math.floor(lvlF * m.power * A / D) / 50) + 2;
+  d = Math.floor(d * roll);
+  if (atkr.types.includes(m.type)) d = Math.floor(d * 1.5);
+  d = Math.floor(d * eff);
+  if (physical && atkr.status === 'brn') d = Math.floor(d * 0.5);
+  return { dmg: Math.max(1, d), eff };
+}
+
+// --- status ------------------------------------------------------------------
+const STATUS_IMMUNE = {
+  brn: t => t.includes('Fire'), par: t => t.includes('Electric'),
+  frz: t => t.includes('Ice'), psn: t => t.includes('Poison') || t.includes('Steel'),
+  tox: t => t.includes('Poison') || t.includes('Steel'),
+};
+function applyBoost(mon, stat, delta, ev, ref) {
+  const before = mon.boosts[stat];
+  mon.boosts[stat] = Math.max(-6, Math.min(6, before + delta));
+  const real = mon.boosts[stat] - before;
+  if (real !== 0) ev.push({ t: 'boost', ref, stat, delta: real, name: mon.name });
+  return real;
+}
+
+// --- one actor performs one move --------------------------------------------
+function performMove(st, action, ev) {
+  const atkr = monAt(st, action.actor);
+  if (atkr.fainted) return;
+
+  // pre-move status gates
+  if (atkr.flinched) { ev.push({ t: 'cant', ref: action.actor, reason: 'flinch', name: atkr.name }); return; }
+  if (atkr.mustRecharge) { atkr.mustRecharge = false; ev.push({ t: 'cant', ref: action.actor, reason: 'recharge', name: atkr.name }); return; }
+  if (atkr.status === 'frz') {
+    if (st.rng.chance(0.2)) { atkr.status = null; ev.push({ t: 'text', msg: `${atkr.name} thawed out!` }); }
+    else { ev.push({ t: 'cant', ref: action.actor, reason: 'frz', name: atkr.name }); return; }
+  }
+  if (atkr.status === 'slp') {
+    if (atkr.sleepTurns > 0) atkr.sleepTurns--;
+    if (atkr.sleepTurns <= 0 && atkr.status === 'slp') { atkr.status = null; ev.push({ t: 'text', msg: `${atkr.name} woke up!` }); }
+    else { ev.push({ t: 'cant', ref: action.actor, reason: 'slp', name: atkr.name }); return; }
+  }
+  if (atkr.status === 'par' && st.rng.chance(0.25)) { ev.push({ t: 'cant', ref: action.actor, reason: 'par', name: atkr.name }); return; }
+
+  const slot = atkr.moves[action.move];
+  const m = MOVES[slot.id];
+  if (slot.pp <= 0) { ev.push({ t: 'text', msg: `${atkr.name} has no PP left!` }); return; }
+  slot.pp--;
+  ev.push({ t: 'move', ref: action.actor, move: m.name, moveType: m.type, name: atkr.name });
+
+  // resolve target (retarget if the intended target fainted)
+  let target = action.target;
+  if (m.power || m.category !== 'Status') {
+    if (!target || monAt(st, target).fainted) target = findLiveOpponent(st, action.actor);
+    if (!target) { ev.push({ t: 'text', msg: 'But there was no target...' }); return; }
+  }
+
+  // accuracy
+  const hit = m.neverMiss || m.acc == null || (st.rng.next() * 100 < m.acc);
+  if (!hit) { ev.push({ t: 'miss', ref: action.actor, name: atkr.name }); afterMoveSelf(st, atkr, m, action.actor, ev, 0); return; }
+
+  // status move
+  if (m.category === 'Status') { applyStatusMove(st, atkr, target && monAt(st, target), m, action, ev); return; }
+
+  // damaging move
+  const dfnd = monAt(st, target);
+  const { dmg, eff, crit } = calcDamage(st, atkr, dfnd, slot.id);
+  if (eff === 0) { ev.push({ t: 'immune', ref: target, name: dfnd.name }); afterMoveSelf(st, atkr, m, action.actor, ev, 0); return; }
+  const dealt = Math.min(dfnd.hp, dmg);
+  dfnd.hp -= dealt;
+  if (m.type === 'Fire' && dfnd.status === 'frz') { dfnd.status = null; }
+  ev.push({ t: 'damage', ref: target, amount: dealt, remainHp: dfnd.hp, maxHp: dfnd.maxHp, eff, crit, name: dfnd.name });
+  checkFaint(dfnd, target, ev);
+
+  // drain / recoil / self-drop
+  if (m.drain && !atkr.fainted) heal(atkr, Math.max(1, Math.floor(dealt * m.drain)), action.actor, ev, 'drain');
+  afterMoveSelf(st, atkr, m, action.actor, ev, dealt);
+
+  // secondary effects only if target survived
+  if (!dfnd.fainted) {
+    if (m.status && st.rng.chance(m.chance ?? 1)) tryStatusOn(dfnd, target, m.status, st, ev);
+    if (m.boosts && m.target === 'target' && st.rng.chance(m.boostChance ?? 1))
+      for (const [s, d] of Object.entries(m.boosts)) applyBoost(dfnd, s, d, ev, target);
+    if (m.flinch && st.rng.chance(m.flinch)) dfnd.flinched = true;
+  }
+  // self-boost secondaries (e.g. Meteor Mash)
+  if (m.boosts && m.target === 'self' && !atkr.fainted && st.rng.chance(m.boostChance ?? 1))
+    for (const [s, d] of Object.entries(m.boosts)) applyBoost(atkr, s, d, ev, action.actor);
+}
+
+function afterMoveSelf(st, atkr, m, ref, ev, dealt) {
+  if (m.recoil && dealt > 0 && !atkr.fainted) {
+    const r = Math.max(1, Math.floor(dealt * m.recoil));
+    atkr.hp = Math.max(0, atkr.hp - r);
+    ev.push({ t: 'residual', ref, kind: 'recoil', amount: r, remainHp: atkr.hp, name: atkr.name });
+    checkFaint(atkr, ref, ev);
+  }
+  if (m.selfDrop && !atkr.fainted) {
+    applyBoost(atkr, m.selfDrop.stat, -m.selfDrop.stage, ev, ref);
+    if (m.selfDrop.stat2) applyBoost(atkr, m.selfDrop.stat2, -m.selfDrop.stage2, ev, ref);
+  }
+  if (m.recharge && dealt > 0) atkr.mustRecharge = true;
+}
+
+function tryStatusOn(mon, ref, status, st, ev) {
+  if (mon.status || mon.fainted) return false;
+  if (STATUS_IMMUNE[status] && STATUS_IMMUNE[status](mon.types)) return false;
+  mon.status = status;
+  if (status === 'slp') mon.sleepTurns = st.rng.range(1, 3);
+  if (status === 'tox') mon.toxic = 1;
+  ev.push({ t: 'status', ref, status, applied: true, name: mon.name });
+  return true;
+}
+
+function applyStatusMove(st, atkr, targetMon, m, action, ev) {
+  if (m.heal) { heal(atkr, Math.floor(atkr.maxHp * m.heal), action.actor, ev, 'heal'); return; }
+  if (m.boosts && (m.target === 'self' || !m.target)) {
+    for (const [s, d] of Object.entries(m.boosts)) applyBoost(atkr, s, d, ev, action.actor);
+    return;
+  }
+  if (m.status && targetMon) {
+    if (m.status === 'brn' && targetMon.types.includes('Fire')) { ev.push({ t: 'text', msg: `It doesn't affect ${targetMon.name}...` }); return; }
+    if (!tryStatusOn(targetMon, action.target, m.status, st, ev)) ev.push({ t: 'text', msg: `It failed!` });
+    return;
+  }
+  if (m.seed && targetMon) {
+    if (targetMon.types.includes('Grass') || targetMon.seededBy) { ev.push({ t: 'text', msg: `It failed!` }); return; }
+    targetMon.seededBy = { ...action.actor };
+    ev.push({ t: 'text', msg: `${targetMon.name} was seeded!` });
+    return;
+  }
+  ev.push({ t: 'text', msg: `But nothing happened.` });
+}
+
+function heal(mon, amount, ref, ev, kind) {
+  const before = mon.hp;
+  mon.hp = Math.min(mon.maxHp, mon.hp + amount);
+  if (mon.hp !== before) ev.push({ t: 'heal', ref, amount: mon.hp - before, remainHp: mon.hp, maxHp: mon.maxHp, kind, name: mon.name });
+}
+
+function checkFaint(mon, ref, ev) {
+  if (mon.hp <= 0 && !mon.fainted) { mon.hp = 0; mon.fainted = true; mon.seededBy = null; ev.push({ t: 'faint', ref, name: mon.name }); }
+}
+
+function findLiveOpponent(st, actorRef) {
+  for (let s = 0; s < st.sides.length; s++) {
+    if (s === actorRef.side) continue;
+    const side = st.sides[s];
+    for (let slot = 0; slot < side.active.length; slot++) {
+      const mon = side.party[side.active[slot]];
+      if (mon && !mon.fainted) return { side: s, slot };
+    }
+  }
+  return null;
+}
+
+// --- turn resolution ---------------------------------------------------------
+// actions: array of {actor:{side,slot}, type:'move'|'switch', move?, target?, to?}
+function resolveTurn(st, actions) {
+  const ev = [];
+  st.turn++;
+  // clear per-turn flags
+  for (const side of st.sides) for (const m of side.party) m.flinched = false;
+
+  // 1) switches resolve first, fastest first
+  const switches = actions.filter(a => a.type === 'switch');
+  switches.sort((a, b) => effStat(monAt(st, b.actor), 'spe') - effStat(monAt(st, a.actor), 'spe'));
+  for (const a of switches) doSwitch(st, a, ev);
+
+  // 2) moves ordered by priority then effective speed then rng
+  const moves = actions.filter(a => a.type === 'move').map(a => {
+    const mon = monAt(st, a.actor);
+    return { a, prio: MOVES[mon.moves[a.move].id].priority || 0, spe: effStat(mon, 'spe'), tb: st.rng.next() };
+  });
+  moves.sort((x, y) => y.prio - x.prio || y.spe - x.spe || y.tb - x.tb);
+  for (const { a } of moves) {
+    if (st.ended) break;
+    if (monAt(st, a.actor).fainted) continue;
+    performMove(st, a, ev);
+    maybeEnd(st, ev);
+  }
+
+  // 3) residual damage (burn/poison/leech seed), fastest first
+  if (!st.ended) endOfTurn(st, ev);
+  maybeEnd(st, ev);
+  return { events: ev, ended: st.ended, winner: st.winner };
+}
+
+function doSwitch(st, a, ev) {
+  const side = st.sides[a.actor.side];
+  const outMon = side.party[side.active[a.actor.slot]];
+  if (side.party[a.to].fainted || side.active.includes(a.to)) return;
+  ev.push({ t: 'switchout', ref: a.actor, name: outMon.name });
+  // reset volatile on switch out
+  outMon.boosts = { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+  outMon.seededBy = null; outMon.mustRecharge = false;
+  side.active[a.actor.slot] = a.to;
+  const inMon = side.party[a.to];
+  ev.push({ t: 'switchin', ref: a.actor, name: inMon.name, view: monView(inMon) });
+}
+
+// caller uses this for a forced replacement after a faint (1v1)
+function forcedSwitch(st, ref, partyIndex) {
+  const ev = [];
+  const side = st.sides[ref.side];
+  side.active[ref.slot] = partyIndex;
+  const inMon = side.party[partyIndex];
+  ev.push({ t: 'switchin', ref, name: inMon.name, view: monView(inMon), forced: true });
+  return ev;
+}
+
+function endOfTurn(st, ev) {
+  const actives = [];
+  st.sides.forEach((side, s) => side.active.forEach((pi, slot) => {
+    const mon = side.party[pi];
+    if (mon && !mon.fainted) actives.push({ mon, ref: { side: s, slot } });
+  }));
+  actives.sort((a, b) => effStat(b.mon, 'spe') - effStat(a.mon, 'spe'));
+  for (const { mon, ref } of actives) {
+    if (mon.fainted) continue;
+    if (mon.status === 'brn') residual(mon, ref, Math.max(1, Math.floor(mon.maxHp / 16)), 'brn', ev);
+    else if (mon.status === 'psn') residual(mon, ref, Math.max(1, Math.floor(mon.maxHp / 8)), 'psn', ev);
+    else if (mon.status === 'tox') { residual(mon, ref, Math.max(1, Math.floor(mon.maxHp * mon.toxic / 16)), 'tox', ev); mon.toxic++; }
+    if (mon.fainted) continue;
+    if (mon.seededBy) {
+      const seeder = monAt(st, mon.seededBy);
+      const amt = Math.max(1, Math.floor(mon.maxHp / 8));
+      residual(mon, ref, amt, 'seed', ev);
+      if (seeder && !seeder.fainted) heal(seeder, amt, mon.seededBy, ev, 'drain');
+    }
+  }
+}
+function residual(mon, ref, amount, kind, ev) {
+  const dealt = Math.min(mon.hp, amount);
+  mon.hp -= dealt;
+  ev.push({ t: 'residual', ref, kind, amount: dealt, remainHp: mon.hp, maxHp: mon.maxHp, name: mon.name });
+  checkFaint(mon, ref, ev);
+}
+
+function maybeEnd(st, ev) {
+  if (st.ended) return;
+  const alive = st.sides.map(sideAliveCount);
+  const dead = alive.map(a => a === 0);
+  if (dead.some(d => d)) {
+    st.ended = true;
+    st.winner = dead[0] ? 1 : 0;
+    ev.push({ t: 'end', winner: st.winner });
+  }
+}
+
+
+/* ===== ai.js ===== */
+// ai.js — opponent + raid-boss decision making. Uses the engine's rng-free
+// damage estimate so it plays type-aware, KO-hungry battles without cheating
+// on the RNG. Three tiers so first-timers aren't crushed and veterans aren't bored.
+
+
+// Score a single move for `me` attacking `foe`.
+function scoreMove(me, foe, moveId) {
+  const m = MOVES[moveId];
+  if (m.category === 'Status') {
+    // setup/heal/status — situational value, kept below a strong attack
+    if (m.heal) return me.hp < me.maxHp * 0.5 ? 55 : 8;
+    if (m.status) return foe.status ? 2 : 22;
+    if (m.boosts) {
+      const totalStages = Object.values(m.boosts).reduce((a, b) => a + b, 0);
+      return me.hp > me.maxHp * 0.7 ? 18 + totalStages * 6 : 6;
+    }
+    return 5;
+  }
+  const { dmg, eff } = estimateDamage(me, foe, moveId);
+  let score = (dmg / foe.maxHp) * 100 * ((m.acc ?? 100) / 100);
+  if (dmg >= foe.hp) score += 60;            // can KO this turn
+  if (eff > 1) score += 8;
+  if (m.priority && dmg >= foe.hp) score += 20; // priority KO
+  return score;
+}
+
+function legalMoves(mon) {
+  return mon.moves.map((slot, i) => ({ i, id: slot.id, pp: slot.pp })).filter(s => s.pp > 0);
+}
+
+// Choose an action for one AI-controlled actor.
+function chooseAction(state, actorRef, foeRef, difficulty = 'normal', rand = Math.random) {
+  const me = state.sides[actorRef.side].party[state.sides[actorRef.side].active[actorRef.slot]];
+  const foe = state.sides[foeRef.side].party[state.sides[foeRef.side].active[foeRef.slot]];
+  const options = legalMoves(me);
+  if (!options.length) return { actor: actorRef, type: 'move', move: 0, target: foeRef };
+
+  const scored = options.map(o => ({ ...o, score: scoreMove(me, foe, o.id) }));
+  scored.sort((a, b) => b.score - a.score);
+
+  let pick;
+  if (difficulty === 'easy') pick = scored[Math.floor(rand() * scored.length)];
+  else if (difficulty === 'normal') pick = rand() < 0.82 ? scored[0] : scored[Math.min(1, scored.length - 1)];
+  else pick = scored[0]; // hard: always optimal
+  return { actor: actorRef, type: 'move', move: pick.i, target: foeRef };
+}
+
+// Raid boss: acts `boss.actions` times, spreading pressure across live allies.
+function chooseBossActions(state, bossRef, allyRefs, rand = Math.random) {
+  const boss = state.sides[bossRef.side].party[state.sides[bossRef.side].active[bossRef.slot]];
+  const live = allyRefs.filter(r => {
+    const m = state.sides[r.side].party[state.sides[r.side].active[r.slot]];
+    return m && !m.fainted;
+  });
+  if (!live.length) return [];
+  const acts = [];
+  const n = boss.actions || 1;
+  for (let k = 0; k < n; k++) {
+    // target the ally the boss can hurt most (spread if two live)
+    const target = live[k % live.length];
+    const foe = state.sides[target.side].party[state.sides[target.side].active[target.slot]];
+    const options = legalMoves(boss);
+    const scored = options.map(o => ({ ...o, score: scoreMove(boss, foe, o.id) })).sort((a, b) => b.score - a.score);
+    const pick = scored[0] || { i: 0 };
+    acts.push({ actor: bossRef, type: 'move', move: pick.i, target });
+  }
+  return acts;
+}
+
+// Which benched mon should the AI send in after a faint (1v1)?
+function chooseSwitchIn(state, sideRef, foeRef) {
+  const side = state.sides[sideRef.side];
+  const foe = state.sides[foeRef.side].party[state.sides[foeRef.side].active[foeRef.slot]];
+  let best = -1, bestScore = -Infinity;
+  side.party.forEach((mon, idx) => {
+    if (mon.fainted || side.active.includes(idx)) return;
+    // prefer a mon that resists the foe's STAB and threatens back
+    let score = 0;
+    for (const t of foe.types) score -= (effectiveness(t, mon.types) - 1) * 20;
+    const bestHit = Math.max(...mon.moves.map(m => estimateDamage(mon, foe, m.id).dmg / foe.maxHp));
+    score += bestHit * 40;
+    if (score > bestScore) { bestScore = score; best = idx; }
+  });
+  return best;
+}
+
+
+/* ===== audio.js ===== */
+// audio.js — all sound synthesized at runtime with the Web Audio API.
+// Zero audio files = zero bytes to host, zero licensing, instant load. Muted
+// until first user gesture (browser autoplay policy) and remembered in storage.
+let ctx = null;
+let enabled = localStorage.getItem('pl_sound') !== 'off';
+
+function ac() {
+  if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { ctx = null; } }
+  if (ctx && ctx.state === 'suspended') ctx.resume();
+  return ctx;
+}
+function isSoundOn() { return enabled; }
+function toggleSound() { enabled = !enabled; localStorage.setItem('pl_sound', enabled ? 'on' : 'off'); if (enabled) blip(660, 0.05, 'sine'); return enabled; }
+
+function tone(freq, dur, type = 'sine', gain = 0.14, when = 0, sweepTo = null) {
+  const a = ac(); if (!a || !enabled) return;
+  const t0 = a.currentTime + when;
+  const o = a.createOscillator(), g = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t0);
+  if (sweepTo) o.frequency.exponentialRampToValueAtTime(sweepTo, t0 + dur);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(gain, t0 + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(a.destination);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function noise(dur, gain = 0.2, when = 0, hp = 400) {
+  const a = ac(); if (!a || !enabled) return;
+  const t0 = a.currentTime + when;
+  const buf = a.createBuffer(1, a.sampleRate * dur, a.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
+  const src = a.createBufferSource(); src.buffer = buf;
+  const g = a.createGain(); g.gain.setValueAtTime(gain, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  const f = a.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = hp;
+  src.connect(f).connect(g).connect(a.destination); src.start(t0);
+}
+function blip(f, d, type) { tone(f, d, type, 0.1); }
+
+const sfx = {
+  select: () => blip(520, 0.05, 'square'),
+  back: () => blip(300, 0.06, 'square'),
+  hover: () => tone(700, 0.03, 'sine', 0.05),
+  hit: () => { noise(0.14, 0.22, 0, 300); tone(150, 0.12, 'triangle', 0.12, 0, 60); },
+  superHit: () => { noise(0.22, 0.3, 0, 250); tone(200, 0.2, 'sawtooth', 0.14, 0, 70); tone(400, 0.1, 'square', 0.08, 0.02); },
+  weakHit: () => { noise(0.08, 0.12, 0, 600); },
+  faint: () => { tone(400, 0.5, 'sine', 0.14, 0, 60); },
+  heal: () => { tone(523, 0.12, 'sine', 0.1); tone(659, 0.12, 'sine', 0.1, 0.1); tone(784, 0.16, 'sine', 0.1, 0.2); },
+  buff: () => { tone(330, 0.12, 'square', 0.08); tone(494, 0.14, 'square', 0.08, 0.08); },
+  status: () => { tone(220, 0.2, 'sawtooth', 0.1, 0, 180); },
+  crit: () => { noise(0.05, 0.25, 0, 800); tone(880, 0.08, 'square', 0.12); },
+  connect: () => { tone(440, 0.1, 'sine', 0.12); tone(660, 0.1, 'sine', 0.12, 0.1); tone(880, 0.2, 'sine', 0.12, 0.2); },
+  send: () => { tone(600, 0.08, 'sine', 0.08, 0, 900); },
+  win: () => { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'square', 0.12, i * 0.12)); },
+  lose: () => { [392, 349, 294].forEach((f, i) => tone(f, 0.3, 'triangle', 0.12, i * 0.18, f * 0.6)); },
+  roar: () => { noise(0.6, 0.35, 0, 120); tone(90, 0.6, 'sawtooth', 0.18, 0, 55); },
+  reward: () => { [659, 784, 988, 1319].forEach((f, i) => tone(f, 0.18, 'sine', 0.12, i * 0.1)); },
+};
+
+function haptic(ms = 12) { if (navigator.vibrate) try { navigator.vibrate(ms); } catch {} }
+
+
+/* ===== ui.js ===== */
+// ---------------------------------------------------------------------------
+// ui.js — DOM builders, sprite loading with fallback cascade, toasts/modals,
+// and BattleScene: a juicy renderer that replays the engine's event log with
+// lunges, screen-shake, floating damage numbers, HP drain and status tints.
+// ---------------------------------------------------------------------------
+
+
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
+
+function el(tag, props = {}, kids = []) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') n.className = v;
+    else if (k === 'html') n.innerHTML = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(n.style, v);
+    else if (k.startsWith('on') && typeof v === 'function') n.addEventListener(k.slice(2), v);
+    else if (v != null) n.setAttribute(k, v);
+  }
+  for (const c of [].concat(kids)) if (c != null) n.append(c.nodeType ? c : document.createTextNode(c));
+  return n;
+}
+
+const STAT_NAME = { atk: 'Attack', def: 'Defense', spa: 'Sp. Atk', spd: 'Sp. Def', spe: 'Speed' };
+const STATUS_NAME = { brn: 'BRN', psn: 'PSN', tox: 'TOX', par: 'PAR', slp: 'SLP', frz: 'FRZ' };
+const STATUS_VERB = { brn: 'was burned', psn: 'was poisoned', tox: 'was badly poisoned', par: 'was paralyzed', slp: 'fell asleep', frz: 'was frozen solid' };
+const RESIDUAL_MSG = { brn: 'is hurt by its burn', psn: 'is hurt by poison', tox: 'is hurt by poison', seed: "'s health was sapped", recoil: 'is hit with recoil' };
+
+function typeBadge(t) {
+  return el('span', { class: 'type-badge', style: { background: TYPE_COLORS[t] || '#777' }, text: t.toUpperCase() });
+}
+
+function makeSprite(dex, anim, back = false, cls = '') {
+  if (globalThis.LINKMON_TOKENS) return el('div', { class: 'sprite token ' + cls, text: EMOJI_BY_DEX[dex] || '✨' });
+  const img = el('img', { class: 'sprite ' + cls, alt: '', draggable: 'false' });
+  const fbs = back ? spriteBackFallbacks(dex) : spriteFrontFallbacks(dex);
+  img.dataset.fb = JSON.stringify(fbs); img.dataset.i = '0';
+  img.onerror = () => {
+    const list = JSON.parse(img.dataset.fb); let i = +img.dataset.i;
+    if (i < list.length) { img.dataset.i = String(i + 1); img.src = list[i]; }
+    else { img.onerror = null; img.style.opacity = '0'; }
+  };
+  img.src = back ? spriteBack(dex, anim) : spriteFront(dex, anim);
+  return img;
+}
+
+function monIcon(dex) {
+  if (globalThis.LINKMON_TOKENS) return el('div', { class: 'mon-icon token', text: EMOJI_BY_DEX[dex] || '✨' });
+  const img = el('img', { class: 'mon-icon', alt: '' });
+  img.onerror = () => { img.onerror = null; img.src = spriteFront(dex, false); };
+  img.src = spriteIcon(dex);
+  return img;
+}
+
+// --- toasts / modals ---------------------------------------------------------
+function toast(msg, kind = '') {
+  const host = $('#toasts') || document.body.appendChild(el('div', { id: 'toasts' }));
+  const t = el('div', { class: 'toast ' + kind, text: msg });
+  host.append(t);
+  requestAnimationFrame(() => t.classList.add('on'));
+  setTimeout(() => { t.classList.remove('on'); setTimeout(() => t.remove(), 300); }, 2600);
+}
+
+function modal(contentNode, { dismissable = true } = {}) {
+  const back = el('div', { class: 'modal-back' });
+  const box = el('div', { class: 'modal glass' }, [contentNode]);
+  back.append(box);
+  if (dismissable) back.addEventListener('click', e => { if (e.target === back) close(); });
+  document.body.append(back);
+  requestAnimationFrame(() => back.classList.add('on'));
+  function close() { back.classList.remove('on'); setTimeout(() => back.remove(), 250); }
+  return { close, el: box };
+}
+
+function hpColor(frac) { return frac > 0.5 ? 'var(--good)' : frac > 0.2 ? 'var(--warn)' : 'var(--bad)'; }
+
+// ---------------------------------------------------------------------------
+// BattleScene
+// ---------------------------------------------------------------------------
+class BattleScene {
+  constructor(root, { youSide = 0, layout = '1v1', speed = 1 } = {}) {
+    this.root = root;
+    this.youSide = youSide;
+    this.layout = layout;
+    this.speed = speed;
+    this.slots = new Map();   // "side:slot" -> {sprite, card, hpInner, hpNum, statusEl, boostEl, wrap, view}
+    this.msg = null;
+    this._pending = null;
+  }
+  key(ref) { return `${ref.side}:${ref.slot}`; }
+  ms(x) { return x / this.speed; }
+
+  build(config) {
+    // config.slots: [{ref, view, isBoss}]
+    this.root.innerHTML = '';
+    this.root.classList.add('battle', 'layout-' + this.layout);
+    const field = el('div', { class: 'field' });
+    const shake = el('div', { class: 'field-shake' }, [field]);
+    this.field = field; this.shakeEl = shake;
+    const msg = el('div', { class: 'msgbox glass', text: '' });
+    this.msg = msg;
+    const controls = el('div', { class: 'controls' });
+    this.controls = controls;
+    this.root.append(shake, msg, controls);
+
+    for (const s of config.slots) {
+      const yours = s.ref.side === this.youSide;
+      const posc = `pos-${s.ref.side}-${s.ref.slot}`;
+      const wrap = el('div', { class: `slot ${yours ? 'near' : 'far'} ${s.isBoss ? 'boss' : ''} ${posc}` });
+      const platform = el('div', { class: 'platform' });
+      const sprite = makeSprite(s.view.dex, s.view.anim, yours && !s.isBoss, s.isBoss ? 'huge' : '');
+      const spriteWrap = el('div', { class: 'sprite-wrap' }, [sprite]);
+      wrap.append(platform, spriteWrap);
+      field.append(wrap);
+      const card = this.makeCard(s.view, yours);
+      card.el.classList.add(`card-${s.ref.side}-${s.ref.slot}`);
+      field.append(card.el);
+      this.slots.set(this.key(s.ref), { wrap, spriteWrap, sprite, ...card, view: s.view, yours, isBoss: s.isBoss });
+    }
+    return this;
+  }
+
+  makeCard(view, yours) {
+    const hpInner = el('div', { class: 'hp-inner' });
+    const hpNum = el('div', { class: 'hp-num' });
+    const statusEl = el('span', { class: 'status-pill hidden' });
+    const boostEl = el('span', { class: 'boost-tag hidden' });
+    const nameRow = el('div', { class: 'card-name' }, [
+      el('span', { class: 'nm', text: view.name }),
+      el('span', { class: 'lv', text: 'Lv' + view.level }),
+      statusEl,
+    ]);
+    const bar = el('div', { class: 'hp-bar' }, [hpInner]);
+    const kids = [nameRow, bar, boostEl];
+    if (yours) kids.splice(2, 0, hpNum);
+    const card = el('div', { class: `mon-card glass ${yours ? 'mine' : 'theirs'}` }, kids);
+    const api = { el: card, hpInner, hpNum, statusEl, boostEl, nameEl: nameRow.querySelector('.nm'), lvEl: nameRow.querySelector('.lv') };
+    this.paintCard(api, view);
+    return api;
+  }
+
+  paintCard(api, view) {
+    const frac = Math.max(0, view.hp / view.maxHp);
+    api.hpInner.style.width = (frac * 100) + '%';
+    api.hpInner.style.background = hpColor(frac);
+    api.hpInner.classList.toggle('low', frac <= 0.2 && frac > 0);
+    if (api.hpNum) api.hpNum.textContent = `${view.hp}/${view.maxHp}`;
+    if (view.status) { api.statusEl.textContent = STATUS_NAME[view.status]; api.statusEl.className = 'status-pill st-' + view.status; }
+    else api.statusEl.className = 'status-pill hidden';
+    const boostSum = Object.entries(view.boosts || {}).filter(([, v]) => v !== 0);
+    if (boostSum.length) { api.boostEl.classList.remove('hidden'); api.boostEl.textContent = boostSum.map(([k, v]) => `${STAT_NAME[k].split(' ').pop()} ${v > 0 ? '+' + v : v}`).join('  '); }
+    else api.boostEl.classList.add('hidden');
+  }
+
+  say(msg) { this.msg.textContent = msg; }
+
+  setStatusTint(slot, status) {
+    slot.spriteWrap.classList.remove('tint-brn', 'tint-psn', 'tint-tox', 'tint-par', 'tint-slp', 'tint-frz');
+    if (status) slot.spriteWrap.classList.add('tint-' + status);
+  }
+
+  floatNum(slot, text, kind) {
+    const f = el('div', { class: 'float-num ' + kind, text });
+    slot.spriteWrap.append(f);
+    setTimeout(() => f.remove(), 1100);
+  }
+
+  screenShake(big = false) {
+    this.shakeEl.classList.remove('shake', 'shake-big');
+    void this.shakeEl.offsetWidth;
+    this.shakeEl.classList.add(big ? 'shake-big' : 'shake');
+  }
+
+  // --- input -----------------------------------------------------------------
+  clearControls() { this.controls.innerHTML = ''; }
+
+  promptAction(ref, { view, target, canSwitch = false, bench = [], allowForfeit = true, onEmote = null }) {
+    return new Promise(resolve => {
+      this.clearControls();
+      const grid = el('div', { class: 'moves' });
+      view.moves.forEach((m, i) => {
+        const disabled = m.pp <= 0;
+        const btn = el('button', {
+          class: 'move-btn' + (disabled ? ' disabled' : ''),
+          style: { '--tc': TYPE_COLORS[m.type] },
+          disabled: disabled ? 'true' : null,
+          onclick: () => { if (disabled) return; sfx.select(); haptic(); done({ actor: ref, type: 'move', move: i, target }); },
+          onpointerenter: () => sfx.hover(),
+        }, [
+          el('span', { class: 'mv-name', text: m.name }),
+          el('span', { class: 'mv-meta' }, [typeBadge(m.type), el('span', { class: 'mv-pp', text: `${m.pp}/${m.maxpp}` })]),
+        ]);
+        grid.append(btn);
+      });
+      const side = el('div', { class: 'side-btns' });
+      if (canSwitch && bench.some(b => !b.fainted)) side.append(el('button', { class: 'ghost-btn', text: '⇄ Switch', onclick: () => { sfx.select(); this.showSwitch(bench, ref).then(to => { if (to == null) this.promptAction(ref, { view, target, canSwitch, bench, allowForfeit, onEmote }).then(resolve); else done({ actor: ref, type: 'switch', to }); }); } }));
+      if (onEmote) side.append(el('button', { class: 'ghost-btn', text: '☺ Emote', onclick: () => onEmote() }));
+      if (allowForfeit) side.append(el('button', { class: 'ghost-btn danger', text: 'Forfeit', onclick: () => { done({ actor: ref, type: 'forfeit' }); } }));
+      this.controls.append(grid, side);
+      const done = (a) => { this.clearControls(); resolve(a); };
+    });
+  }
+
+  showSwitch(bench, ref, { forced = false } = {}) {
+    return new Promise(resolve => {
+      const list = el('div', { class: 'switch-list' });
+      bench.forEach((b) => {
+        if (b.isActive) return;
+        const btn = el('button', {
+          class: 'switch-card glass' + (b.fainted ? ' fainted' : ''),
+          disabled: b.fainted ? 'true' : null,
+          onclick: () => { if (b.fainted) return; sfx.select(); m.close(); resolve(b.partyIndex); },
+        }, [
+          monIcon(b.dex),
+          el('div', {}, [el('div', { class: 'sc-name', text: b.name }), el('div', { class: 'sc-hp', text: b.fainted ? 'Fainted' : `${b.hp}/${b.maxHp} HP` }),
+          el('div', { class: 'sc-types' }, b.types.map(typeBadge))]),
+        ]);
+        list.append(btn);
+      });
+      const head = el('div', { class: 'switch-head', text: forced ? 'Choose your next Pokémon' : 'Switch to…' });
+      const wrap = el('div', {}, [head, list]);
+      if (!forced) wrap.append(el('button', { class: 'ghost-btn', text: 'Cancel', onclick: () => { m.close(); resolve(null); } }));
+      const m = modal(wrap, { dismissable: !forced });
+    });
+  }
+
+  // --- playback --------------------------------------------------------------
+  async play(events, { onEnd = null } = {}) {
+    for (const e of events) {
+      if (!this[`_ev_${e.t}`]) continue;
+      await this[`_ev_${e.t}`](e);
+    }
+    if (onEnd) onEnd();
+  }
+
+  slotFor(ref) { return this.slots.get(this.key(ref)); }
+
+  async _ev_text(e) { this.say(e.msg); await wait(this.ms(650)); }
+
+  async _ev_move(e) {
+    const s = this.slotFor(e.ref); if (!s) return;
+    this.say(`${e.name} used ${e.move}!`);
+    s.spriteWrap.classList.add(s.yours ? 'lunge-up' : 'lunge-down');
+    sfx.select();
+    await wait(this.ms(230));
+    s.spriteWrap.classList.remove('lunge-up', 'lunge-down');
+    await wait(this.ms(120));
+  }
+
+  async _ev_damage(e) {
+    const s = this.slotFor(e.ref); if (!s) return;
+    s.view.hp = e.remainHp;
+    const kind = e.eff > 1 ? 'super' : e.eff < 1 ? 'weak' : 'norm';
+    this.floatNum(s, '-' + e.amount, kind);
+    if (e.crit) { sfx.crit(); this.floatNum(s, 'CRIT!', 'crit'); }
+    if (e.eff > 1) sfx.superHit(); else if (e.eff < 1) sfx.weakHit(); else sfx.hit();
+    haptic(e.eff > 1 ? 30 : 12);
+    s.spriteWrap.classList.add('hit');
+    this.screenShake(e.eff > 1 || e.crit);
+    this.paintCard(s, s.view);
+    await wait(this.ms(120));
+    s.spriteWrap.classList.remove('hit');
+    if (e.eff > 1) { this.say("It's super effective!"); await wait(this.ms(500)); }
+    else if (e.eff < 1) { this.say('Not very effective…'); await wait(this.ms(500)); }
+    else await wait(this.ms(260));
+  }
+
+  async _ev_immune(e) { this.say(`It doesn't affect ${e.name}…`); sfx.weakHit(); await wait(this.ms(650)); }
+  async _ev_miss(e) { this.say(`${e.name}'s attack missed!`); await wait(this.ms(600)); }
+
+  async _ev_faint(e) {
+    const s = this.slotFor(e.ref); if (!s) return;
+    s.view.hp = 0; this.paintCard(s, s.view);
+    this.say(`${e.name} fainted!`);
+    sfx.faint(); haptic(40);
+    s.spriteWrap.classList.add('faint');
+    await wait(this.ms(750));
+  }
+
+  async _ev_status(e) {
+    const s = this.slotFor(e.ref); if (!s) return;
+    s.view.status = e.status; this.paintCard(s, s.view); this.setStatusTint(s, e.status);
+    this.say(`${e.name} ${STATUS_VERB[e.status]}!`); sfx.status();
+    await wait(this.ms(650));
+  }
+
+  async _ev_boost(e) {
+    const s = this.slotFor(e.ref); if (!s) return;
+    s.view.boosts[e.stat] = (s.view.boosts[e.stat] || 0) + e.delta;
+    this.paintCard(s, s.view);
+    const up = e.delta > 0;
+    s.spriteWrap.classList.add(up ? 'buff' : 'debuff');
+    this.say(`${e.name}'s ${STAT_NAME[e.stat]} ${up ? 'rose' + (e.delta > 1 ? ' sharply' : '') : 'fell' + (e.delta < -1 ? ' harshly' : '')}!`);
+    sfx.buff();
+    await wait(this.ms(500));
+    s.spriteWrap.classList.remove('buff', 'debuff');
+  }
+
+  async _ev_heal(e) {
+    const s = this.slotFor(e.ref); if (!s) return;
+    s.view.hp = e.remainHp; this.paintCard(s, s.view);
+    this.floatNum(s, '+' + e.amount, 'heal');
+    if (e.kind !== 'drain') this.say(`${e.name} restored its health!`);
+    sfx.heal();
+    await wait(this.ms(500));
+  }
+
+  async _ev_residual(e) {
+    const s = this.slotFor(e.ref); if (!s) return;
+    s.view.hp = e.remainHp; this.paintCard(s, s.view);
+    this.floatNum(s, '-' + e.amount, 'weak');
+    this.say(`${e.name} ${RESIDUAL_MSG[e.kind] || 'was hurt'}!`);
+    sfx.weakHit();
+    await wait(this.ms(520));
+  }
+
+  async _ev_cant(e) {
+    const reason = { par: 'is paralyzed! It can’t move!', slp: 'is fast asleep.', frz: 'is frozen solid!', flinch: 'flinched and couldn’t move!', recharge: 'must recharge!' }[e.reason];
+    this.say(`${e.name} ${reason}`);
+    await wait(this.ms(650));
+  }
+
+  async _ev_switchout(e) {
+    const s = this.slotFor(e.ref); if (!s) return;
+    this.say(`${e.name}, come back!`);
+    s.spriteWrap.classList.add('recall');
+    await wait(this.ms(360));
+  }
+
+  async _ev_switchin(e) {
+    const s = this.slotFor(e.ref); if (!s) return;
+    const v = e.view;
+    s.view = v;
+    // swap sprite image
+    const newSprite = makeSprite(v.dex, v.anim, s.yours && !s.isBoss, s.isBoss ? 'huge' : '');
+    s.spriteWrap.innerHTML = ''; s.spriteWrap.append(newSprite); s.sprite = newSprite;
+    s.spriteWrap.classList.remove('recall', 'faint');
+    this.setStatusTint(s, v.status);
+    // rebuild card (preserve its layout position class)
+    const parent = s.el.parentNode;
+    const yours = s.yours;
+    const posClass = [...s.el.classList].find(c => c.startsWith('card-'));
+    const fresh = this.makeCard(v, yours);
+    if (posClass) fresh.el.classList.add(posClass);
+    parent.replaceChild(fresh.el, s.el);
+    Object.assign(s, fresh, { view: v });
+    s.spriteWrap.classList.add('send-in');
+    sfx.select();
+    this.say(`Go! ${v.name}!`);
+    await wait(this.ms(500));
+    s.spriteWrap.classList.remove('send-in');
+  }
+
+  async _ev_end() { /* handled by controller */ }
+
+  // Belt-and-suspenders repaint from the host's authoritative snapshot.
+  resync(snapshot) {
+    for (const s of snapshot) {
+      const slot = this.slotFor(s.ref);
+      if (!slot) continue;
+      slot.view = s.view;
+      this.paintCard(slot, s.view);
+      this.setStatusTint(slot, s.view.status);
+    }
+  }
+
+  // Floating emoji bubble (quick-chat delight).
+  emote(ref, txt) {
+    const s = this.slotFor(ref); if (!s) return;
+    const b = el('div', { class: 'emote-bubble', text: txt });
+    s.spriteWrap.append(b);
+    setTimeout(() => b.remove(), 1800);
+  }
+}
+
+
+/* ===== net.js ===== */
+// ---------------------------------------------------------------------------
+// net.js — serverless peer-to-peer link, powered by Trystero over FREE public
+// infrastructure (nostr relays / bittorrent trackers / mqtt brokers). No server
+// to run, no account, no cost. WebRTC data channel carries a tiny typed-message
+// protocol; the game logic (host-authoritative) lives in main.js.
+//
+// Trystero is imported lazily from a CDN so that if the CDN or the relays are
+// unreachable, the rest of the game (vs-AI, solo raid, pass-and-play) still runs.
+// ---------------------------------------------------------------------------
+
+const APP_ID = 'pokelink-arena-v1';
+
+// Candidate ESM builds, tried in order until one imports successfully.
+const CANDIDATES = [
+  'https://esm.sh/trystero@0.21.5/nostr',
+  'https://esm.sh/trystero/nostr',
+  'https://cdn.jsdelivr.net/npm/trystero@0.21.5/nostr/+esm',
+  'https://esm.sh/trystero/torrent',
+  'https://esm.sh/trystero/mqtt',
+];
+
+let _mod = null;
+async function loadTrystero() {
+  if (_mod) return _mod;
+  let lastErr;
+  for (const url of CANDIDATES) {
+    try {
+      const m = await import(/* @vite-ignore */ url);
+      if (m && typeof m.joinRoom === 'function') { _mod = m; return m; }
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('Trystero unavailable');
+}
+
+// Short, human-shareable room codes (no ambiguous chars).
+const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function makeRoomCode(len = 5) {
+  let s = '';
+  const buf = new Uint32Array(len);
+  (crypto || {}).getRandomValues?.(buf);
+  for (let i = 0; i < len; i++) s += ALPHABET[(buf[i] ?? Math.floor(Math.random() * 1e9)) % ALPHABET.length];
+  return s;
+}
+
+class LinkSession {
+  constructor(role, code) {
+    this.role = role;              // 'host' | 'guest'
+    this.code = code;
+    this.room = null;
+    this.sendRaw = null;
+    this.peerId = null;
+    this.connected = false;
+    this.handlers = new Map();     // type -> fn(payload, peerId)
+    this._status = () => {};
+    this._onPeer = () => {};
+    this._onLeave = () => {};
+  }
+
+  onStatus(fn) { this._status = fn; return this; }
+  onPeer(fn) { this._onPeer = fn; return this; }
+  onLeave(fn) { this._onLeave = fn; return this; }
+  on(type, fn) { this.handlers.set(type, fn); return this; }
+
+  // Resolve on the next message of `type` (one-shot). Restores any prior handler.
+  once(type, { timeout = 0 } = {}) {
+    return new Promise((resolve, reject) => {
+      const prev = this.handlers.get(type);
+      let timer = null;
+      const restore = () => { if (prev) this.handlers.set(type, prev); else this.handlers.delete(type); if (timer) clearTimeout(timer); };
+      this.handlers.set(type, (payload, peerId) => { restore(); resolve({ payload, peerId }); });
+      if (timeout > 0) timer = setTimeout(() => { restore(); reject(new Error('timeout:' + type)); }, timeout);
+    });
+  }
+
+  async connect() {
+    this._status('connecting');
+    const { joinRoom } = await loadTrystero();
+    const room = joinRoom({ appId: APP_ID }, this.code);
+    this.room = room;
+    const [send, get] = room.makeAction('msg');
+    this.sendRaw = send;
+    get((data, peerId) => {
+      let m = data;
+      if (typeof data === 'string') { try { m = JSON.parse(data); } catch { return; } }
+      if (!m || !m.type) return;
+      const h = this.handlers.get(m.type);
+      if (h) h(m.payload, peerId);
+    });
+    room.onPeerJoin((id) => {
+      this.peerId = id; this.connected = true;
+      this._status('connected');
+      this._onPeer(id);
+    });
+    room.onPeerLeave((id) => {
+      if (id === this.peerId) { this.connected = false; this._status('disconnected'); this._onLeave(id); }
+    });
+    this._status('waiting');
+    return this;
+  }
+
+  send(type, payload) {
+    if (!this.sendRaw) return;
+    try { this.sendRaw(JSON.stringify({ type, payload })); } catch {}
+  }
+
+  leave() {
+    try { this.room?.leave(); } catch {}
+    this.room = null; this.connected = false;
+  }
+}
+
+// Build a shareable deep-link that drops the opponent straight into the room.
+function roomLink(code, mode = 'link') {
+  const base = location.origin + location.pathname;
+  return `${base}?join=${encodeURIComponent(code)}&mode=${mode}`;
+}
+
+function readJoinParams() {
+  const p = new URLSearchParams(location.search);
+  const join = p.get('join');
+  return join ? { code: join.toUpperCase(), mode: p.get('mode') || 'link' } : null;
+}
+
+
+/* ===== main.js ===== */
+// ---------------------------------------------------------------------------
+// main.js — app orchestration: screens, progression, and every game mode.
+// The online model is host-authoritative with a THIN guest terminal: the guest
+// never runs battle logic, it only answers "pick a move / pick a switch" prompts
+// and renders event batches the host sends. That makes desync structurally
+// impossible — there is exactly one simulation, on the host.
+// ---------------------------------------------------------------------------
+
+
+
+
+
+
+// battle animation speed (persisted; ?turbo speeds up automated runs)
+let SPEED = (() => {
+  const u = new URLSearchParams(location.search);
+  if (u.has('turbo')) return 6;
+  const s = +localStorage.getItem('pl_speed');
+  return s >= 1 ? s : 1;
+})();
+let currentScene = null;
+
+// --- engine ref helpers ------------------------------------------------------
+const active = (st, ref) => st.sides[ref.side].party[st.sides[ref.side].active[ref.slot]];
+const benchOf = (st, side) => st.sides[side].party.map((m, i) => ({
+  partyIndex: i, dex: m.dex, name: m.name, anim: m.anim, hp: m.hp, maxHp: m.maxHp,
+  types: m.types, fainted: m.fainted, isActive: st.sides[side].active.includes(i),
+}));
+const activesSnapshot = (st) => {
+  const out = [];
+  st.sides.forEach((side, s) => side.active.forEach((pi, slot) => {
+    out.push({ ref: { side: s, slot }, view: monView(side.party[pi]), isBoss: side.party[pi].boss });
+  }));
+  return out;
+};
+
+// --- progression / profile ---------------------------------------------------
+const TITLES = ['Rookie', 'Challenger', 'Ace Trainer', 'Veteran', 'Elite', 'Champion', 'Legend'];
+function loadProfile() {
+  let p = null;
+  try { p = JSON.parse(localStorage.getItem('pl_profile')); } catch {}
+  if (!p) {
+    p = {
+      name: '', trainerId: (Math.floor(Math.random() * 9000) + 1000),
+      founder: true, season: 'One', created: Date.now(),
+      wins: 0, losses: 0, streak: 0, bestStreak: 0, raids: 0,
+      box: PRESETS[0].team.slice(), badges: [],
+    };
+    saveProfile(p);
+  }
+  return p;
+}
+function saveProfile(p) { localStorage.setItem('pl_profile', JSON.stringify(p)); }
+let profile = loadProfile();
+function titleFor() {
+  const w = profile.wins;
+  return TITLES[Math.min(TITLES.length - 1, Math.floor(w / 3))];
+}
+function addToBox(id) { if (!profile.box.includes(id)) { profile.box.push(id); saveProfile(profile); return true; } return false; }
+
+// --- screen router -----------------------------------------------------------
+const appEl = () => $('#app');
+function show(node) {
+  const app = appEl();
+  const cur = app.firstElementChild;
+  if (cur) { cur.classList.add('leaving'); setTimeout(() => cur.remove(), 220); }
+  node.classList.add('screen', 'entering');
+  app.append(node);
+  requestAnimationFrame(() => node.classList.remove('entering'));
+}
+
+function topbar() {
+  return el('div', { class: 'topbar' }, [
+    el('button', { class: 'brand-btn', onclick: () => renderHome(), title: 'Home' }, [
+      el('span', { class: 'brand-glyph', text: '⚡' }),
+      el('span', { class: 'brand-word', text: 'LINKMON' }),
+    ]),
+    el('div', { class: 'top-actions' }, [
+      el('button', { class: 'icon-btn', title: 'Sound', onclick: (e) => { const on = toggleSound(); e.currentTarget.textContent = on ? '🔊' : '🔇'; }, text: isSoundOn() ? '🔊' : '🔇' }),
+      el('button', { class: 'icon-btn', title: 'Trainer Card', onclick: () => trainerCard(), text: '🪪' }),
+      el('button', { class: 'icon-btn', title: 'How it beats Showdown', onclick: () => aboutModal(), text: 'ⓘ' }),
+    ]),
+  ]);
+}
+
+// --- HOME --------------------------------------------------------------------
+const TIPS = [
+  'Tip: Fire melts Steel, but Ground shocks it harder. Type beats stats.',
+  'Tip: Priority moves like Aqua Jet always strike first — perfect for finishing.',
+  'Tip: A burn halves physical damage. Sometimes the best attack is a Will-O-Wisp.',
+  'Tip: Setup is a gamble. One Swords Dance can end a game — or waste your only turn.',
+  'Tip: Switching costs a turn, but walling a sweeper wins the match.',
+];
+function renderHome() {
+  document.body.classList.remove('in-battle');
+  const hero = el('div', { class: 'hero' }, [
+    el('div', { class: 'hero-glow' }),
+    el('h1', { class: 'hero-title' }, [el('span', { class: 'ht-a', text: 'Battle a friend' }), el('span', { class: 'ht-b', text: 'in 10 seconds.' })]),
+    el('p', { class: 'hero-sub', text: 'A free browser Pokémon battler. No download. No account. No server to pay for. Send a link — and you’re dueling. On any phone, anywhere.' }),
+    el('div', { class: 'cta-row' }, [
+      bigCta('⚔️', 'Quick Battle', 'Play right now vs the AI', () => flowQuickBattle(), 'primary'),
+      bigCta('🔗', 'Link Up', 'Share a link, duel a friend online', () => flowLinkCreate(), 'link'),
+      bigCta('👥', 'Pass & Play', 'Two players, one device', () => flowPassPlay(), 'pass'),
+      bigCta('🐲', 'Co-op Raid', 'Team up vs a giant boss', () => flowRaidSetup(), 'raid'),
+    ]),
+    el('div', { class: 'hero-foot' }, [
+      el('span', { class: 'chip', text: profile.founder ? `✦ Founding Trainer · Season ${profile.season}` : `${titleFor()} · ${profile.wins}W` }),
+      el('span', { class: 'chip ghost', text: `${SPECIES.length} Pokémon · 18 types · real damage math` }),
+      el('button', { class: 'linky', text: 'Why it’s better than Showdown →', onclick: () => aboutModal() }),
+    ]),
+  ]);
+  const screen = el('div', {}, [topbar(), hero]);
+  show(screen);
+}
+function bigCta(icon, title, sub, onclick, kind) {
+  return el('button', {
+    class: 'big-cta ' + kind, onclick: () => { sfx.select(); haptic(); onclick(); }, onpointerenter: () => sfx.hover(),
+  }, [
+    el('span', { class: 'bc-icon', text: icon }),
+    el('span', { class: 'bc-text' }, [el('span', { class: 'bc-title', text: title }), el('span', { class: 'bc-sub', text: sub })]),
+    el('span', { class: 'bc-arrow', text: '→' }),
+  ]);
+}
+
+// --- ABOUT / marketing modal -------------------------------------------------
+function aboutModal() {
+  const rows = [
+    ['⚡ Zero friction', 'No sign-up, no install, no launcher. You’re battling before Showdown finishes loading its team builder.'],
+    ['🎁 The invite is a gift', 'You don’t “refer” a friend — you save them a spot at the table. A shared link opens straight into a duel.'],
+    ['🤝 Pass Powers', 'Gift your raid partner a burst of Attack, Speed, or Vitality mid-fight. A social feature that’s warm, not tryhard.'],
+    ['📱 Built for the phone', 'Big tappable moves, floating damage, screen shake, one-thumb play. Showdown was built for a desktop in 2011.'],
+    ['🐲 Co-op raids', 'Two trainers, one giant boss that hits twice a turn. Showdown has no co-op at all.'],
+    ['✦ You’re a Founder', 'Play in Season One and your Trainer Card carries a Founding Trainer crest. Later trainers can’t get it.'],
+  ];
+  const box = el('div', {}, [
+    el('h2', { class: 'modal-title', text: 'Why LINKMON, not Showdown?' }),
+    el('p', { class: 'modal-lead', text: 'Showdown is deeper — thousands of Pokémon, every mechanic. LINKMON isn’t trying to out-Showdown Showdown. It competes on the axis Showdown ignores: getting two friends into a delightful battle in seconds, for free.' }),
+    el('div', { class: 'why-grid' }, rows.map(([h, b]) => el('div', { class: 'why-cell' }, [el('div', { class: 'why-h', text: h }), el('div', { class: 'why-b', text: b })]))),
+    el('p', { class: 'fine', text: 'A fan-made project for the love of the games. Not affiliated with, endorsed by, or associated with Nintendo, Game Freak, or The Pokémon Company. Sprites via the open PokéAPI.' }),
+    el('button', { class: 'primary-btn', text: 'Let’s battle', onclick: () => m.close() }),
+  ]);
+  const m = modal(box);
+}
+
+// --- TRAINER CARD ------------------------------------------------------------
+function trainerCard() {
+  const wr = profile.wins + profile.losses;
+  const box = el('div', {}, [
+    el('div', { class: 'tc-card' }, [
+      el('div', { class: 'tc-top' }, [
+        el('div', {}, [
+          el('div', { class: 'tc-label', text: 'TRAINER CARD' }),
+          el('div', { class: 'tc-name', text: profile.name || 'Nameless Trainer' }),
+          el('div', { class: 'tc-id', text: `ID · ${String(profile.trainerId).padStart(5, '0')}` }),
+        ]),
+        el('div', { class: 'tc-title', text: titleFor() }),
+      ]),
+      el('div', { class: 'tc-stats' }, [
+        stat('Wins', profile.wins), stat('Losses', profile.losses),
+        stat('Streak', profile.streak), stat('Raids', profile.raids),
+        stat('Win %', wr ? Math.round(profile.wins / wr * 100) + '%' : '—'),
+      ]),
+      profile.founder ? el('div', { class: 'tc-founder', text: `✦ Founding Trainer — Season ${profile.season}` }) : null,
+    ]),
+    el('h3', { class: 'box-h', text: `Your Box · ${profile.box.length} Pokémon` }),
+    el('div', { class: 'box-grid' }, profile.box.map(id => {
+      const sp = SPECIES_BY_ID[id]; if (!sp) return null;
+      return el('div', { class: 'box-mon', title: sp.name }, [monIcon(sp.dex), el('span', { text: sp.name })]);
+    })),
+    el('div', { class: 'tc-actions' }, [
+      el('button', { class: 'ghost-btn', text: profile.name ? 'Rename' : 'Set name', onclick: () => { renameFlow(); m.close(); } }),
+      el('button', { class: 'primary-btn', text: 'Close', onclick: () => m.close() }),
+    ]),
+  ]);
+  const m = modal(box);
+  function stat(k, v) { return el('div', { class: 'tc-stat' }, [el('div', { class: 'tcs-v', text: String(v) }), el('div', { class: 'tcs-k', text: k })]); }
+}
+function renameFlow() {
+  const input = el('input', { class: 'text-input', maxlength: '14', placeholder: 'Trainer name', value: profile.name || '' });
+  const box = el('div', {}, [
+    el('h2', { class: 'modal-title', text: 'Name yourself, Trainer' }),
+    input,
+    el('button', { class: 'primary-btn', text: 'Save', onclick: () => { profile.name = input.value.trim().slice(0, 14); saveProfile(profile); m.close(); toast('Saved, ' + (profile.name || 'Trainer') + '!'); } }),
+  ]);
+  const m = modal(box);
+  setTimeout(() => input.focus(), 50);
+}
+
+// --- TEAM SELECT -------------------------------------------------------------
+function pickTeam({ title = 'Choose your team', cta = 'Ready', allowRandom = true } = {}) {
+  return new Promise(resolve => {
+    let chosen = [];
+    const grid = el('div', { class: 'pick-grid' });
+    const chosenRow = el('div', { class: 'chosen-row' });
+    const readyBtn = el('button', { class: 'primary-btn wide', text: cta, disabled: 'true', onclick: () => { if (chosen.length === 3) { sfx.select(); resolve(chosen.slice()); } } });
+
+    function renderChosen() {
+      chosenRow.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        const id = chosen[i];
+        if (id) {
+          const sp = SPECIES_BY_ID[id];
+          chosenRow.append(el('button', { class: 'chosen-mon', title: 'Remove ' + sp.name, onclick: () => { chosen.splice(i, 1); refresh(); } }, [monIcon(sp.dex), el('span', { text: sp.name })]));
+        } else chosenRow.append(el('div', { class: 'chosen-mon empty', text: '＋' }));
+      }
+      readyBtn.disabled = chosen.length === 3 ? null : 'true';
+    }
+    function refresh() { renderChosen(); [...grid.children].forEach(c => c.classList.toggle('picked', chosen.includes(c.dataset.id))); }
+
+    SPECIES.forEach(sp => {
+      const card = el('button', {
+        class: 'pick-card', 'data-id': sp.id, onpointerenter: () => sfx.hover(),
+        onclick: () => {
+          if (chosen.includes(sp.id)) { chosen = chosen.filter(x => x !== sp.id); }
+          else if (chosen.length < 3) { chosen.push(sp.id); sfx.select(); haptic(); }
+          else { toast('Three is the whole team.'); return; }
+          refresh();
+        },
+      }, [
+        makeSprite(sp.dex, sp.anim, false, 'pick-sprite'),
+        el('div', { class: 'pick-name', text: sp.name }),
+        el('div', { class: 'pick-types' }, sp.types.map(typeBadge)),
+      ]);
+      grid.append(card);
+    });
+
+    const presetRow = el('div', { class: 'preset-row' }, PRESETS.map(p =>
+      el('button', { class: 'preset-chip', onclick: () => { chosen = p.team.slice(); sfx.select(); refresh(); toast(p.name + ' — ' + p.blurb); } }, [
+        el('span', { class: 'pe', text: p.emoji }), el('span', { text: p.name }),
+      ])));
+    if (allowRandom) presetRow.append(el('button', { class: 'preset-chip rnd', text: '🎲 Surprise me', onclick: () => { chosen = shuffle(SPECIES.map(s => s.id)).slice(0, 3); sfx.select(); refresh(); } }));
+
+    const screen = el('div', {}, [
+      topbar(),
+      el('div', { class: 'pick-wrap' }, [
+        el('div', { class: 'pick-head' }, [el('h2', { text: title }), el('p', { class: 'muted', text: 'Pick any 3 — or tap a ready-made squad.' })]),
+        presetRow,
+        chosenRow,
+        readyBtn,
+        el('div', { class: 'pick-scroll' }, [grid]),
+      ]),
+    ]);
+    renderChosen();
+    show(screen);
+  });
+}
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// --- battle scaffold ---------------------------------------------------------
+function battleScreen() {
+  document.body.classList.add('in-battle');
+  const root = el('div', { class: 'battle-root' });
+  const screen = el('div', {}, [
+    el('div', { class: 'battle-top' }, [
+      el('button', { class: 'icon-btn small', text: '🏳️', title: 'Quit', onclick: () => { if (confirm('Leave the battle?')) renderHome(); } }),
+      el('div', { class: 'battle-tag', text: '' }),
+      el('button', { class: 'icon-btn small', title: 'Battle speed', text: speedLabel(), onclick: (e) => { cycleSpeed(); e.currentTarget.textContent = speedLabel(); } }),
+      el('button', { class: 'icon-btn small', text: isSoundOn() ? '🔊' : '🔇', onclick: (e) => { const on = toggleSound(); e.currentTarget.textContent = on ? '🔊' : '🔇'; } }),
+    ]),
+    root,
+  ]);
+  show(screen);
+  return root;
+}
+function speedLabel() { return SPEED >= 3 ? '⏩' : SPEED >= 2 ? '▶▶' : '▶'; }
+function cycleSpeed() {
+  SPEED = SPEED >= 3 ? 1 : SPEED + 1;
+  localStorage.setItem('pl_speed', String(SPEED));
+  if (currentScene) currentScene.speed = SPEED;
+  toast('Battle speed: ' + SPEED + '×');
+}
+const EMOTES = ['👍', '😮', '🔥', '😅', '🎉', 'gg'];
+
+// --- QUICK BATTLE (vs AI) ----------------------------------------------------
+async function flowQuickBattle() {
+  const team = await pickTeam({ title: 'Your team for the duel', cta: 'Find opponent' });
+  const foe = shuffle(SPECIES.map(s => s.id)).slice(0, 3);
+  const root = battleScreen();
+  $('.battle-tag').textContent = 'Quick Battle';
+  const st = newBattle({ sides: [{ name: 'You', party: team.map(id => makeMon(id)), active: [0] }, { name: 'Rival', party: foe.map(id => makeMon(id)), active: [0] }], seed: (Math.random() * 1e9) | 0 });
+  const scene = new BattleScene(root, { youSide: 0, layout: '1v1', speed: SPEED });
+  currentScene = scene;
+  scene.build({ slots: activesSnapshot(st) });
+  scene.say('A rival Trainer wants to battle!');
+  await wait(900);
+  await localLoop(st, scene, { you: 0, foe: 1, foeBrain: (s, fRef, yRef) => chooseAction(s, fRef, yRef, 'normal') });
+}
+
+// --- PASS & PLAY (two humans, one device) ------------------------------------
+function curtain(msg, sub) {
+  return new Promise(resolve => {
+    const box = el('div', { class: 'curtain', onclick: () => { c.remove(); resolve(); } }, [
+      el('div', { class: 'curtain-inner' }, [
+        el('div', { class: 'curtain-icon', text: '📱→' }),
+        el('h2', { text: msg }),
+        el('p', { class: 'muted', text: sub || 'Tap when you’re ready.' }),
+        el('div', { class: 'curtain-cta', text: 'Tap to continue' }),
+      ]),
+    ]);
+    const c = el('div', { class: 'curtain-back' }, [box]);
+    document.body.append(c);
+    requestAnimationFrame(() => c.classList.add('on'));
+  });
+}
+
+async function flowPassPlay() {
+  const t1 = await pickTeam({ title: 'Player 1 — pick your team', cta: 'Ready' });
+  await curtain('Pass to Player 2', 'Player 1 is done. Hand over the device.');
+  const t2 = await pickTeam({ title: 'Player 2 — pick your team', cta: 'Ready' });
+  const root = battleScreen();
+  $('.battle-tag').textContent = 'Pass & Play';
+  const st = newBattle({ sides: [{ name: 'Player 1', party: t1.map(id => makeMon(id)), active: [0] }, { name: 'Player 2', party: t2.map(id => makeMon(id)), active: [0] }], seed: (Math.random() * 1e9) | 0 });
+  const scene = new BattleScene(root, { youSide: 0, layout: '1v1', speed: SPEED });
+  currentScene = scene;
+  scene.build({ slots: activesSnapshot(st) });
+  const p0 = { side: 0, slot: 0 }, p1 = { side: 1, slot: 0 };
+  await curtain('Player 1’s turn', 'Player 2, look away!');
+  while (!st.ended) {
+    const a0 = await scene.promptAction(p0, { view: monView(active(st, p0)), target: p1, canSwitch: true, bench: benchOf(st, 0), allowForfeit: false });
+    await curtain('Player 2’s turn', 'Player 1, look away!');
+    const a1 = await scene.promptAction(p1, { view: monView(active(st, p1)), target: p0, canSwitch: true, bench: benchOf(st, 1), allowForfeit: false });
+    const r = resolveTurn(st, [a0, a1]);
+    await scene.play(r.events);
+    if (st.ended) break;
+    // forced switches, each behind a privacy curtain
+    for (const side of [0, 1]) {
+      const ref = { side, slot: 0 };
+      if (active(st, ref).fainted && sideAliveCount(st.sides[side]) > 0) {
+        await curtain(`Player ${side + 1}, choose a replacement`);
+        const to = await scene.showSwitch(benchOf(st, side), ref, { forced: true });
+        await scene.play(forcedSwitch(st, ref, to));
+      }
+    }
+    if (!st.ended) await curtain('Player 1’s turn', 'Player 2, look away!');
+  }
+  // result: winner side maps to Player 1/2
+  const won = st.winner === 0;
+  endPassPlay(scene, st, won);
+}
+function endPassPlay(scene, st, p1won) {
+  sfx.win();
+  document.body.classList.remove('in-battle');
+  const card = el('div', { class: 'result-card glass win' }, [
+    el('div', { class: 'result-emoji', text: '🏆' }),
+    el('h1', { class: 'result-h', text: `Player ${p1won ? '1' : '2'} wins!` }),
+    el('div', { class: 'result-sub', text: 'Good game.' }),
+    el('div', { class: 'result-actions' }, [
+      el('button', { class: 'primary-btn', text: 'Rematch', onclick: () => flowPassPlay() }),
+      el('button', { class: 'ghost-btn', text: 'Home', onclick: () => renderHome() }),
+    ]),
+  ]);
+  show(el('div', {}, [topbar(), el('div', { class: 'result-wrap' }, [card])]));
+}
+
+// generic local loop: side `you` is human via scene, side `foe` via foeBrain
+async function localLoop(st, scene, { you, foe, foeBrain }) {
+  const youRef = { side: you, slot: 0 }, foeRef = { side: foe, slot: 0 };
+  while (!st.ended) {
+    const yv = monView(active(st, youRef));
+    const action = await scene.promptAction(youRef, { view: yv, target: foeRef, canSwitch: true, bench: benchOf(st, you), onEmote: null });
+    if (action.type === 'forfeit') { return endBattle(scene, st, foe, { forfeit: true }); }
+    const fAction = foeBrain(st, foeRef, youRef);
+    const r = resolveTurn(st, [action, fAction]);
+    await scene.play(r.events);
+    if (st.ended) break;
+    await resolveForced(st, scene, { human: [you], ai: [foe], foeRef: { [you]: foeRef, [foe]: youRef } });
+  }
+  endBattle(scene, st, you);
+}
+
+// handle post-turn forced switches. human sides prompt; ai sides auto-pick.
+async function resolveForced(st, scene, { human, ai, foeRef }) {
+  for (const side of [...human, ...ai]) {
+    const ref = { side, slot: 0 };
+    if (active(st, ref).fainted && sideAliveCount(st.sides[side]) > 0) {
+      let to;
+      if (human.includes(side)) to = await scene.showSwitch(benchOf(st, side), ref, { forced: true });
+      else to = chooseSwitchIn(st, ref, foeRef[side]);
+      const ev = forcedSwitch(st, ref, to);
+      await scene.play(ev);
+    }
+  }
+}
+
+// --- result / rewards --------------------------------------------------------
+function endBattle(scene, st, youSide, { forfeit = false, coop = null } = {}) {
+  const won = coop ? coop.won : (forfeit ? false : st.winner === youSide);
+  sfx[won ? 'win' : 'lose']();
+  document.body.classList.remove('in-battle');
+  // progression
+  if (won) { profile.wins++; profile.streak++; profile.bestStreak = Math.max(profile.bestStreak, profile.streak); if (coop) profile.raids++; }
+  else { profile.losses++; profile.streak = 0; }
+  saveProfile(profile);
+
+  const lines = won
+    ? ['Victory!', 'Flawless.', 'A masterclass.', 'They never stood a chance.']
+    : forfeit ? ['You forfeited.'] : ['Defeat.', 'So close.', 'Next time.', 'Learn. Rematch. Win.'];
+  const headline = coop ? (won ? 'Raid Cleared!' : 'The raid overwhelmed you…') : lines[Math.floor(Math.random() * lines.length)];
+
+  const rewards = el('div', { class: 'reward-row' });
+  if (won && profile.streak >= 2) rewards.append(rewardPill('🔥', `${profile.streak} win streak`));
+  if (won) {
+    // collect a random mon you fought (endowment / Wonder-Trade fuel)
+    const pool = st.sides.map(s => s.party).flat().map(m => m.id);
+    const fresh = shuffle(pool).find(id => !profile.box.includes(id));
+    if (fresh) { addToBox(fresh); rewards.append(rewardPill('✨', `Caught ${SPECIES_BY_ID[fresh].name}!`)); sfx.reward(); }
+  }
+
+  const card = el('div', { class: 'result-card glass ' + (won ? 'win' : 'lose') }, [
+    el('div', { class: 'result-emoji', text: won ? '🏆' : coop ? '💥' : '💤' }),
+    el('h1', { class: 'result-h', text: headline }),
+    el('div', { class: 'result-sub', text: `${profile.wins}W · ${profile.losses}L · streak ${profile.streak}` }),
+    rewards,
+    el('div', { class: 'result-actions' }, [
+      el('button', { class: 'primary-btn', text: 'Play again', onclick: () => { sfx.select(); (coop ? flowRaidSetup : flowQuickBattle)(); } }),
+      el('button', { class: 'ghost-btn', text: 'Home', onclick: () => renderHome() }),
+      el('button', { class: 'ghost-btn', text: 'Challenge a friend', onclick: () => flowLinkCreate() }),
+    ]),
+  ]);
+  show(el('div', {}, [topbar(), el('div', { class: 'result-wrap' }, [card])]));
+}
+function rewardPill(icon, text) { return el('div', { class: 'reward-pill' }, [el('span', { text: icon }), el('span', { text })]); }
+
+// --- LINK BATTLE: create (host) ---------------------------------------------
+async function flowLinkCreate() {
+  if (globalThis.LINKMON_OFFLINE) return offlineLinkExplain();
+  const code = makeRoomCode();
+  const link = roomLink(code, 'link');
+  const session = new LinkSession('host', code);
+  let started = false;
+
+  const status = el('div', { class: 'lobby-status', text: 'Starting a private room…' });
+  const codeBig = el('div', { class: 'code-big', text: code });
+  const linkField = el('input', { class: 'link-field', readonly: 'true', value: link });
+  const tip = el('div', { class: 'lobby-tip', text: TIPS[0] });
+  let tipI = 0; const tipTimer = setInterval(() => { tipI = (tipI + 1) % TIPS.length; tip.textContent = TIPS[tipI]; }, 4200);
+
+  const screen = el('div', {}, [topbar(), el('div', { class: 'lobby' }, [
+    el('h2', { class: 'lobby-h', text: 'You’re inviting a rival' }),
+    el('p', { class: 'muted', text: 'Send this link. When they open it, you’re instantly connected — no app, no account, peer-to-peer.' }),
+    el('div', { class: 'code-card glass' }, [
+      el('div', { class: 'code-label', text: 'ROOM CODE' }), codeBig,
+      el('div', { class: 'share-row' }, [
+        el('button', { class: 'primary-btn', text: '📋 Copy invite link', onclick: () => shareLink(link) }),
+        el('button', { class: 'ghost-btn', text: 'Copy code', onclick: () => { navigator.clipboard?.writeText(code); toast('Code copied'); } }),
+      ]),
+      linkField,
+    ]),
+    status, tip,
+    el('button', { class: 'ghost-btn', text: 'Cancel', onclick: () => { clearInterval(tipTimer); session.leave(); renderHome(); } }),
+  ])]);
+  show(screen);
+
+  session.onStatus(s => { if (!started) status.textContent = { connecting: 'Opening room…', waiting: 'Waiting for your rival to open the link…', connected: 'Rival connected! ⚡', disconnected: 'Rival left.' }[s] || s; });
+  // handshake: greet on peer-join (either order works); proceed on their greeting
+  session.onPeer(() => session.send('hello', { name: profile.name || 'Host', role: 'host' }));
+  session.on('hello', (p) => { if (started) return; started = true; clearInterval(tipTimer); sfx.connect(); haptic(30); hostBegin(session, p); });
+  session.onLeave(() => { if (!started) toast('Rival disconnected'); });
+
+  try { await session.connect(); }
+  catch (e) { clearInterval(tipTimer); onlineUnavailable(); }
+}
+
+function offlineLinkExplain() {
+  const box = el('div', {}, [
+    el('h2', { class: 'modal-title', text: 'Online play needs the hosted site' }),
+    el('p', { class: 'modal-lead', text: 'This embedded preview can’t open peer-to-peer connections (its sandbox blocks WebRTC). Deploy LINKMON free on GitHub Pages and “Link Up” works between any two browsers. Right here, you can still play:' }),
+    el('button', { class: 'primary-btn', text: '👥 Pass & Play (2 players, this device)', onclick: () => { m.close(); flowPassPlay(); } }),
+    el('button', { class: 'ghost-btn', text: '⚔️ Quick Battle vs AI', onclick: () => { m.close(); flowQuickBattle(); } }),
+    el('button', { class: 'ghost-btn', text: 'Back', onclick: () => m.close() }),
+  ]);
+  const m = modal(box);
+}
+
+function onlineUnavailable() {
+  const box = el('div', {}, [
+    el('h2', { class: 'modal-title', text: 'Couldn’t reach the matchmaking relay' }),
+    el('p', { class: 'modal-lead', text: 'Online play needs to load a tiny peer-to-peer library and reach a public relay. Your network or an ad-blocker may be blocking it. Everything else works fully offline:' }),
+    el('button', { class: 'primary-btn', text: '⚔️ Play Quick Battle instead', onclick: () => { m.close(); flowQuickBattle(); } }),
+    el('button', { class: 'ghost-btn', text: '🐲 Solo Raid instead', onclick: () => { m.close(); startSoloRaid(BOSSES[0]); } }),
+    el('button', { class: 'ghost-btn', text: 'Back home', onclick: () => { m.close(); renderHome(); } }),
+  ]);
+  const m = modal(box, { dismissable: false });
+}
+
+// host handshake done -> both pick teams -> host builds battle -> run
+async function hostBegin(session, guestHello) {
+  toast(`${guestHello.name || 'Rival'} connected!`);
+  const team = await pickTeam({ title: 'Pick your team — your rival is waiting', cta: 'Lock it in' });
+  loadingScreen('Waiting for your rival to lock in their team…');
+  // register the reply listener before asking (avoid missing a fast reply)
+  const teamP = session.once('team', { timeout: 120000 });
+  session.send('need_team', {});
+  let guestTeam;
+  try { guestTeam = (await teamP).payload.team; }
+  catch { toast('Rival took too long.'); return renderHome(); }
+  guestTeam = sanitizeTeam(guestTeam);
+
+  const st = newBattle({
+    sides: [
+      { name: profile.name || 'Host', party: team.map(id => makeMon(id)), active: [0] },
+      { name: guestHello.name || 'Rival', party: guestTeam.map(id => makeMon(id)), active: [0] },
+    ], seed: (Math.random() * 1e9) | 0,
+  });
+  const root = battleScreen();
+  $('.battle-tag').textContent = 'Link Battle';
+  const scene = new BattleScene(root, { youSide: 0, layout: '1v1', speed: SPEED });
+  currentScene = scene;
+  scene.build({ slots: activesSnapshot(st) });
+  wireEmotes(session, scene, 1);
+  // tell guest to build its scene (its perspective = side 1)
+  session.send('start', { snap: activesSnapshot(st) });
+  scene.say('The link is live. Battle!');
+  await wait(800);
+  await hostLoop(session, st, scene);
+}
+
+async function hostLoop(session, st, scene) {
+  const youRef = { side: 0, slot: 0 }, foeRef = { side: 1, slot: 0 };
+  while (!st.ended) {
+    // register the guest-reply listener BEFORE asking, so a fast reply can't be missed
+    const guestP = session.once('move', { timeout: 180000 }).then(m => m.payload.action).catch(() => ({ actor: foeRef, type: 'move', move: 0, target: youRef }));
+    session.send('ask_move', { yourRef: foeRef, view: monView(active(st, foeRef)), foeRef: youRef, bench: benchOf(st, 1) });
+    const hostP = scene.promptAction(youRef, { view: monView(active(st, youRef)), target: foeRef, canSwitch: true, bench: benchOf(st, 0), onEmote: () => emotePicker(session, scene, youRef) });
+    const [hostAction, guestActionRaw] = await Promise.all([hostP, guestP]);
+    if (hostAction.type === 'forfeit') { session.send('over', { winner: 1 }); return endBattle(scene, st, 0, { forfeit: true }); }
+    const guestAction = normalizeAction(guestActionRaw, foeRef, youRef, st, 1);
+    const r = resolveTurn(st, [hostAction, guestAction]);
+    session.send('events', { batch: r.events, snap: activesSnapshot(st) });
+    await scene.play(r.events);
+    if (st.ended) break;
+    // forced switches, host-driven
+    for (const side of [0, 1]) {
+      const ref = { side, slot: 0 };
+      if (active(st, ref).fainted && sideAliveCount(st.sides[side]) > 0) {
+        let to;
+        if (side === 0) to = await scene.showSwitch(benchOf(st, 0), ref, { forced: true });
+        else { const swP = session.once('switch', { timeout: 120000 }).catch(() => ({ payload: { to: firstAlive(st, 1) } })); session.send('ask_switch', { ref, bench: benchOf(st, 1) }); to = (await swP).payload.to; }
+        if (!Number.isInteger(to) || st.sides[side].party[to]?.fainted) to = firstAlive(st, side);
+        const ev = forcedSwitch(st, ref, to);
+        session.send('events', { batch: ev, snap: activesSnapshot(st) });
+        await scene.play(ev);
+      }
+    }
+  }
+  session.send('over', { winner: st.winner });
+  endBattle(scene, st, 0);
+}
+
+// --- LINK BATTLE: guest terminal --------------------------------------------
+async function guestJoin(code) {
+  const session = new LinkSession('guest', code);
+  const status = el('div', { class: 'lobby-status', text: 'Connecting to the room…' });
+  const screen = el('div', {}, [topbar(), el('div', { class: 'lobby' }, [
+    el('div', { class: 'challenge-badge', text: '⚔️' }),
+    el('h2', { class: 'lobby-h', text: 'Someone challenged you to a duel' }),
+    el('p', { class: 'muted', text: `Room ${code} · connecting peer-to-peer…` }),
+    status,
+    el('button', { class: 'ghost-btn', text: 'Cancel', onclick: () => { session.leave(); renderHome(); } }),
+  ])]);
+  show(screen);
+
+  let scene = null, myTeam = null;
+  session.onStatus(s => { status.textContent = { connecting: 'Connecting…', waiting: 'Reaching the host…', connected: 'Connected! ⚡', disconnected: 'The host left.' }[s] || s; });
+  // handshake: greet the host as soon as the peer connects
+  session.onPeer(() => session.send('hello', { name: profile.name || 'Guest', role: 'guest' }));
+  session.on('hello', () => { sfx.connect(); haptic(30); });
+  session.on('need_team', async () => {
+    myTeam = await pickTeam({ title: 'Pick your team — accept the challenge', cta: 'Send team' });
+    session.send('team', { team: myTeam });
+    loadingScreen('Team sent. Waiting for the battle to begin…');
+  });
+  session.on('start', (p) => {
+    const root = battleScreen(); $('.battle-tag').textContent = 'Link Battle';
+    scene = new BattleScene(root, { youSide: 1, layout: '1v1', speed: SPEED });
+  currentScene = scene;
+    scene.build({ slots: p.snap });
+    wireEmotes(session, scene, 0);
+    scene.say('The link is live. Battle!');
+  });
+  session.on('ask_move', async (p) => {
+    if (!scene) return;
+    const action = await scene.promptAction(p.yourRef, { view: p.view, target: p.foeRef, canSwitch: true, bench: p.bench, onEmote: () => emotePicker(session, scene, p.yourRef) });
+    if (action.type === 'forfeit') { session.send('move', { action: { type: 'move', move: 0 } }); return; }
+    session.send('move', { action });
+  });
+  session.on('ask_switch', async (p) => {
+    if (!scene) return;
+    const to = await scene.showSwitch(p.bench, p.ref, { forced: true });
+    session.send('switch', { to });
+  });
+  session.on('events', async (p) => { if (!scene) return; await scene.play(p.batch); scene.resync(p.snap); });
+  session.on('over', (p) => { if (scene) endBattle(scene, { winner: p.winner, sides: [{ party: [] }, { party: [] }] }, 1); });
+  session.onLeave(() => { toast('The host disconnected.'); });
+
+  try { await session.connect(); } catch { onlineUnavailable(); }
+}
+
+// --- shared online helpers ---------------------------------------------------
+function normalizeAction(raw, actorRef, foeRef, st, side) {
+  if (!raw || typeof raw !== 'object') return { actor: actorRef, type: 'move', move: 0, target: foeRef };
+  if (raw.type === 'switch' && Number.isInteger(raw.to) && !st.sides[side].party[raw.to]?.fainted && !st.sides[side].active.includes(raw.to))
+    return { actor: actorRef, type: 'switch', to: raw.to };
+  let mv = Number.isInteger(raw.move) ? raw.move : 0;
+  const mon = active(st, actorRef);
+  if (mv < 0 || mv >= mon.moves.length) mv = 0;
+  return { actor: actorRef, type: 'move', move: mv, target: foeRef };
+}
+function firstAlive(st, side) { return st.sides[side].party.findIndex(m => !m.fainted); }
+function sanitizeTeam(team) {
+  const t = (Array.isArray(team) ? team : []).filter(id => SPECIES_BY_ID[id]).slice(0, 3);
+  while (t.length < 3) t.push(shuffle(SPECIES.map(s => s.id)).find(id => !t.includes(id)));
+  return t;
+}
+function wireEmotes(session, scene, fromSide) {
+  session.on('emote', (p) => { scene.emote({ side: fromSide, slot: p.slot ?? 0 }, String(p.emoji).slice(0, 3)); sfx.send(); });
+}
+function emotePicker(session, scene, myRef) {
+  const row = el('div', { class: 'emote-picker' }, EMOTES.map(e =>
+    el('button', { class: 'emote-btn', text: e, onclick: () => { session.send('emote', { emoji: e, slot: myRef.slot }); scene.emote(myRef, e); sfx.send(); m.close(); } })));
+  const m = modal(el('div', {}, [el('h3', { class: 'modal-title', text: 'Send an emote' }), row]));
+}
+function loadingScreen(msg) {
+  const node = el('div', {}, [topbar(), el('div', { class: 'loading' }, [el('div', { class: 'spinner' }), el('p', { class: 'muted', text: msg })])]);
+  show(node); return node;
+}
+function shareLink(link) {
+  if (navigator.share) navigator.share({ title: 'LINKMON — I challenge you!', text: 'Open this and battle me right now:', url: link }).catch(() => { });
+  else { navigator.clipboard?.writeText(link); toast('Invite link copied — send it to a friend!'); }
+}
+
+// --- RAID --------------------------------------------------------------------
+const POWERS = {
+  vitality: { icon: '💚', name: 'Vitality', apply: (m) => { const a = Math.floor(m.maxHp * 0.28); m.hp = Math.min(m.maxHp, m.hp + a); return [{ t: 'heal', ref: null, amount: a, remainHp: m.hp, maxHp: m.maxHp, kind: 'heal', name: m.name }]; } },
+  power: { icon: '⚔️', name: 'Attack', apply: (m) => bump(m, ['atk', 'spa']) },
+  guard: { icon: '🛡️', name: 'Guard', apply: (m) => bump(m, ['def', 'spd']) },
+  haste: { icon: '💨', name: 'Speed', apply: (m) => bump(m, ['spe', 'spe']) },
+  cleanse: { icon: '✨', name: 'Cleanse', apply: (m) => { m.status = null; return [{ t: 'text', msg: `${m.name} was cleansed!` }]; } },
+};
+function bump(m, stats) { const ev = []; for (const s of [...new Set(stats)]) { m.boosts[s] = Math.min(6, m.boosts[s] + 1); ev.push({ t: 'boost', ref: null, stat: s, delta: 1, name: m.name }); } return ev; }
+
+async function flowRaidSetup() {
+  const cards = BOSSES.map(b => el('button', { class: 'boss-card glass', onclick: () => startSoloRaid(b) }, [
+    makeSprite(b.dex, b.anim, false, 'boss-portrait'),
+    el('div', { class: 'boss-info' }, [
+      el('div', { class: 'boss-name', text: b.name }),
+      el('div', { class: 'boss-stars', text: '★'.repeat(b.star) }),
+      el('div', { class: 'boss-types' }, b.types.map(typeBadge)),
+      el('div', { class: 'boss-intro', text: b.intro }),
+    ]),
+  ]));
+  show(el('div', {}, [topbar(), el('div', { class: 'raid-setup' }, [
+    el('h2', { text: 'Co-op Raid' }), el('p', { class: 'muted', text: 'You and a partner vs a colossal boss that strikes twice a turn. Gift your partner Pass Powers to survive — Entralink-style.' }),
+    el('div', { class: 'boss-list' }, cards),
+  ])]));
+}
+
+async function startSoloRaid(boss) {
+  const yourId = await pickOne('Choose your raider');
+  if (!yourId) return renderHome();
+  const partnerId = shuffle(SPECIES.map(s => s.id)).find(id => id !== yourId);
+  const st = makeRaidState(boss, [yourId, partnerId]);
+  const root = battleScreen(); $('.battle-tag').textContent = boss.name + ' · ★'.repeat(boss.star);
+  const scene = new BattleScene(root, { youSide: 0, layout: 'raid', speed: SPEED });
+  currentScene = scene;
+  scene.build({ slots: activesSnapshot(st) });
+  scene.say(boss.intro); sfx.roar(); await wait(1400);
+  await raidLoop(st, scene, boss, {
+    allyBrain: (s) => chooseAction(s, { side: 0, slot: 1 }, { side: 1, slot: 0 }, 'hard'),
+    powersFor: 2,
+    aiGifts: true,
+  });
+}
+
+function makeRaidState(boss, allyIds) {
+  const bossMon = makeMon(boss, { hpMult: boss.hpMult, boss: true });
+  bossMon.actions = boss.actions;
+  return newBattle({
+    format: 'raid',
+    sides: [
+      { name: 'Allies', party: allyIds.map(id => makeMon(id)), active: [0, 1] },
+      { name: boss.name, party: [bossMon], active: [0] },
+    ], seed: (Math.random() * 1e9) | 0,
+  });
+}
+
+async function raidLoop(st, scene, boss, { allyBrain, powersFor = 2, aiGifts = false }) {
+  const bossRef = { side: 1, slot: 0 };
+  const p1 = { side: 0, slot: 0 }, p2 = { side: 0, slot: 1 };
+  let charges = powersFor;
+  while (!st.ended) {
+    const acts = [];
+    // your action (with pass-power tray)
+    if (!active(st, p1).fainted) {
+      const onPower = charges > 0 ? () => raidPowerPicker(st, scene, p2, () => { charges--; }) : null;
+      const a = await scene.promptAction(p1, { view: monView(active(st, p1)), target: bossRef, canSwitch: false, bench: [], allowForfeit: true, onEmote: onPower });
+      if (a.type === 'forfeit') return endBattle(scene, st, 0, { coop: { won: false } });
+      acts.push(a);
+    }
+    // partner (AI) action — occasionally gifts YOU a Pass Power when you're low
+    if (!active(st, p2).fainted) {
+      if (aiGifts && Math.random() < 0.28 && active(st, p1).hp < active(st, p1).maxHp * 0.5 && !active(st, p1).fainted) {
+        const ev = giftPower(st, p1, 'vitality'); await scene.play(ev);
+      }
+      acts.push(allyBrain(st));
+    }
+    // boss acts (twice)
+    acts.push(...chooseBossActions(st, bossRef, [p1, p2]));
+    const r = resolveTurn(st, acts);
+    await scene.play(r.events);
+  }
+  endBattle(scene, st, 0, { coop: { won: st.winner === 0 } });
+}
+
+function raidPowerPicker(st, scene, allyRef, onSpend) {
+  const ally = active(st, allyRef);
+  const row = el('div', { class: 'emote-picker' }, Object.entries(POWERS).map(([k, p]) =>
+    el('button', { class: 'power-btn', onclick: () => { const ev = giftPower(st, allyRef, k); onSpend(); m.close(); scene.play(ev); toast(`Gifted ${p.name} to your partner!`); } }, [el('span', { text: p.icon }), el('span', { text: p.name })])));
+  const m = modal(el('div', {}, [el('h3', { class: 'modal-title', text: 'Pass a Power to your partner' }), el('p', { class: 'muted small', text: 'A gift, Entralink-style. Choose one.' }), row]));
+}
+function giftPower(st, ref, key) {
+  const mon = active(st, ref);
+  const ev = POWERS[key].apply(mon).map(e => ({ ...e, ref }));
+  sfx.buff();
+  return [{ t: 'text', msg: `A Pass Power flows to ${mon.name}!` }, ...ev];
+}
+
+function pickOne(title) {
+  return new Promise(resolve => {
+    const grid = el('div', { class: 'pick-grid' }, SPECIES.map(sp => el('button', {
+      class: 'pick-card', onclick: () => { sfx.select(); resolve(sp.id); },
+    }, [makeSprite(sp.dex, sp.anim, false, 'pick-sprite'), el('div', { class: 'pick-name', text: sp.name }), el('div', { class: 'pick-types' }, sp.types.map(typeBadge))])));
+    show(el('div', {}, [topbar(), el('div', { class: 'pick-wrap' }, [el('div', { class: 'pick-head' }, [el('h2', { text: title })]), el('div', { class: 'pick-scroll' }, [grid])])]));
+  });
+}
+
+// --- boot --------------------------------------------------------------------
+function boot() {
+  // dynamic viewport height fix for mobile browser chrome
+  const setVh = () => document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+  setVh(); addEventListener('resize', setVh);
+
+  const join = readJoinParams();
+  if (join) {
+    // a shared link drops the rival straight into the duel
+    guestJoin(join.code);
+    // clean the URL so a refresh doesn't rejoin a dead room
+    history.replaceState(null, '', location.pathname);
+    return;
+  }
+  renderHome();
+  if (!profile.onboarded) setTimeout(() => firstRunWelcome(), 500);
+}
+function firstRunWelcome() {
+  const input = el('input', { class: 'text-input', maxlength: '14', placeholder: 'Your trainer name (optional)' });
+  const box = el('div', {}, [
+    el('div', { class: 'welcome-crest', text: '✦' }),
+    el('h2', { class: 'modal-title', text: 'Welcome, Founding Trainer' }),
+    el('p', { class: 'modal-lead', text: 'You’re here in Season One — your Trainer Card will carry a Founder crest that later players can’t earn. Pick a name (or stay mysterious) and let’s battle.' }),
+    input,
+    el('button', { class: 'primary-btn wide', text: 'Enter the Arena', onclick: () => { profile.name = input.value.trim().slice(0, 14); profile.onboarded = true; saveProfile(profile); m.close(); sfx.reward(); toast('Founder crest unlocked ✦'); } }),
+  ]);
+  const m = modal(box);
+  setTimeout(() => input.focus(), 60);
+}
+
+boot();
+
+
+} catch (e) {
+  document.getElementById('app').innerHTML =
+    '<div class="screen" style="padding:40px 16px;text-align:center"><h2>Something broke</h2><pre style="white-space:pre-wrap;color:#ff5d6c">'
+    + (e && e.stack || e) + '</pre></div>';
+}
+</script>
+
+</body>
+</html>

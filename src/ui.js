@@ -4,7 +4,7 @@
 // lunges, screen-shake, floating damage numbers, HP drain and status tints.
 // ---------------------------------------------------------------------------
 import {
-  TYPE_COLORS, MOVES, spriteFront, spriteBack, spriteFrontFallbacks,
+  TYPE_COLORS, MOVES, EMOJI_BY_DEX, spriteFront, spriteBack, spriteFrontFallbacks,
   spriteBackFallbacks, spriteIcon,
 } from './data.js';
 import { sfx, haptic } from './audio.js';
@@ -37,6 +37,7 @@ export function typeBadge(t) {
 }
 
 export function makeSprite(dex, anim, back = false, cls = '') {
+  if (globalThis.LINKMON_TOKENS) return el('div', { class: 'sprite token ' + cls, text: EMOJI_BY_DEX[dex] || '✨' });
   const img = el('img', { class: 'sprite ' + cls, alt: '', draggable: 'false' });
   const fbs = back ? spriteBackFallbacks(dex) : spriteFrontFallbacks(dex);
   img.dataset.fb = JSON.stringify(fbs); img.dataset.i = '0';
@@ -50,6 +51,7 @@ export function makeSprite(dex, anim, back = false, cls = '') {
 }
 
 export function monIcon(dex) {
+  if (globalThis.LINKMON_TOKENS) return el('div', { class: 'mon-icon token', text: EMOJI_BY_DEX[dex] || '✨' });
   const img = el('img', { class: 'mon-icon', alt: '' });
   img.onerror = () => { img.onerror = null; img.src = spriteFront(dex, false); };
   img.src = spriteIcon(dex);
