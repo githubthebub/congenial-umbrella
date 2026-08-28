@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hookline — the free post studio</title>
+<meta name="description" content="Write, score and format posts for LinkedIn, then export a carousel PDF. Free, no signup, runs entirely in your browser.">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">Hookline</span>
+    <span class="brand-sub">post studio</span>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab is-active" data-view="composer" role="tab">Composer</button>
+    <button class="tab" data-view="carousel" role="tab">Carousel</button>
+  </nav>
+  <div class="topbar-right">
+    <span id="planBadge" class="badge badge-free">Free</span>
+    <button id="openUpgrade" class="btn btn-pro">Upgrade to Pro</button>
+  </div>
+</header>
+
+<div id="proBanner" class="pro-banner" hidden>
+  <strong>Pro preview active.</strong> Every Pro feature is unlocked locally so you can try it. Nothing is charged.
+  <button id="exitPro" class="linkbtn">Turn off preview</button>
+</div>
+
+<!-- ══════════════════════════ COMPOSER ══════════════════════════ -->
+<main class="view is-active" id="view-composer">
+  <section class="col col-editor">
+    <div class="panel panel-grow">
+      <div class="panel-head">
+        <h2>Draft</h2>
+        <div class="panel-head-right">
+          <span id="charCount" class="meta">0 / 3000</span>
+          <button id="clearDraft" class="linkbtn">Clear</button>
+        </div>
+      </div>
+
+      <div class="toolbar" role="toolbar" aria-label="Formatting">
+        <button class="tbtn" data-fmt="bold" title="Bold (Unicode)"><b>B</b></button>
+        <button class="tbtn" data-fmt="italic" title="Italic (Unicode)"><i>I</i></button>
+        <button class="tbtn" data-fmt="bolditalic" title="Bold italic"><b><i>BI</i></b></button>
+        <button class="tbtn" data-fmt="strike" title="Strikethrough"><s>S</s></button>
+        <button class="tbtn" data-fmt="under" title="Underline"><u>U</u></button>
+        <span class="tsep"></span>
+        <button class="tbtn" data-ins="• " title="Bullet">•</button>
+        <button class="tbtn" data-ins="→ " title="Arrow">→</button>
+        <button class="tbtn" data-ins="✓ " title="Check">✓</button>
+        <button class="tbtn" data-ins="↳ " title="Indent">↳</button>
+        <span class="tsep"></span>
+        <button class="tbtn tbtn-wide" data-fmt="plain" title="Strip all Unicode styling">Clean</button>
+        <button class="tbtn tbtn-wide" id="copyPost" title="Copy post to clipboard">Copy</button>
+      </div>
+
+      <textarea id="editor" spellcheck="true" placeholder="Start with the line that stops the scroll.
+
+Then earn the click.
+
+Most posts die in the first 210 characters — that's all anyone sees before &quot;see more&quot;. Write that part like it's the whole post."></textarea>
+
+      <p class="note">
+        Unicode styling is what everyone uses to fake bold on LinkedIn — it works, but screen readers
+        read it as gibberish. Use it on a few words, never on a whole post.
+      </p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Hook lab</h2>
+        <span class="meta">The line that does 90% of the work</span>
+      </div>
+      <div class="hooklab">
+        <div class="hooklab-free">
+          <p class="meta">Your opening line</p>
+          <p id="hookLine" class="hookline-current">—</p>
+          <p id="hookVerdict" class="hook-verdict">Type something above.</p>
+        </div>
+        <div class="lockwrap" data-pro-feature>
+          <div class="lock-badge">Pro</div>
+          <button id="genVariants" class="btn btn-ghost">Rewrite this hook 6 ways</button>
+          <ul id="variants" class="variants"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="col col-side">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Score</h2>
+        <div class="segmented" id="deviceToggle">
+          <button class="seg is-active" data-device="mobile">Mobile</button>
+          <button class="seg" data-device="desktop">Desktop</button>
+        </div>
+      </div>
+      <div class="scorebox">
+        <div class="ring" id="ring"><span id="scoreNum">—</span><small>/100</small></div>
+        <div class="scoremeta">
+          <p id="scoreGrade" class="grade">Waiting for a draft</p>
+          <p id="scoreBlurb" class="meta">Ten checks run as you type. Nothing leaves your browser.</p>
+        </div>
+      </div>
+      <ul id="checks" class="checks"></ul>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Feed preview</h2><span class="meta">simulated</span></div>
+      <div class="post-card" id="postCard">
+        <div class="post-head">
+          <div class="avatar" id="pvAvatar">YN</div>
+          <div class="post-id">
+            <strong id="pvName">Your Name</strong>
+            <span id="pvHeadline">Your headline goes here</span>
+            <span class="post-time">2h · <span aria-hidden="true">🌐</span></span>
+          </div>
+        </div>
+        <div class="post-body" id="pvBody"></div>
+        <div class="post-actions"><span>Like</span><span>Comment</span><span>Repost</span><span>Send</span></div>
+      </div>
+      <details class="profile-edit">
+        <summary>Edit preview identity</summary>
+        <label>Name <input id="inName" type="text" placeholder="Your Name"></label>
+        <label>Headline <input id="inHeadline" type="text" placeholder="Founder at ..."></label>
+        <label>Photo <input id="inAvatar" type="file" accept="image/*"></label>
+      </details>
+    </div>
+  </section>
+</main>
+
+<!-- ══════════════════════════ CAROUSEL ══════════════════════════ -->
+<main class="view" id="view-carousel">
+  <section class="col col-slides">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Slides</h2>
+        <span id="slideCount" class="meta">0</span>
+      </div>
+      <div class="row-btns">
+        <button id="fromPost" class="btn btn-ghost">Split my draft into slides</button>
+        <button id="addSlide" class="btn btn-ghost">Add slide</button>
+      </div>
+      <ol id="slideList" class="slide-list"></ol>
+      <p id="slideLimitNote" class="note" hidden>Free plan tops out at 8 slides. Pro removes the cap.</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Edit slide</h2><span id="editingWhich" class="meta">—</span></div>
+      <label class="field">Title<input id="slideTitle" type="text" placeholder="Short. Punchy."></label>
+      <label class="field">Body<textarea id="slideBody" rows="5" placeholder="One idea per slide."></textarea></label>
+      <div class="row-btns">
+        <button id="dupSlide" class="btn btn-ghost btn-sm">Duplicate</button>
+        <button id="delSlide" class="btn btn-ghost btn-sm">Delete</button>
+        <button id="upSlide" class="btn btn-ghost btn-sm">↑</button>
+        <button id="downSlide" class="btn btn-ghost btn-sm">↓</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="col col-stage">
+    <div class="panel panel-stage">
+      <div class="panel-head">
+        <h2>Preview</h2>
+        <div class="segmented" id="ratioToggle">
+          <button class="seg is-active" data-ratio="4:5">4:5</button>
+          <button class="seg" data-ratio="1:1">1:1</button>
+        </div>
+      </div>
+      <div class="stage-wrap"><canvas id="stage" width="1080" height="1350"></canvas></div>
+      <div class="stage-nav">
+        <button id="prevSlide" class="btn btn-ghost btn-sm">Prev</button>
+        <span id="stageIdx" class="meta">—</span>
+        <button id="nextSlide" class="btn btn-ghost btn-sm">Next</button>
+      </div>
+      <div class="row-btns export-row">
+        <button id="exportPdf" class="btn btn-primary">Download PDF</button>
+        <button id="exportPng" class="btn btn-ghost" data-pro-feature>Download PNGs <span class="lock-inline">Pro</span></button>
+      </div>
+      <p class="note">LinkedIn document posts take a PDF. Upload it as a document, not an image.</p>
+    </div>
+  </section>
+
+  <section class="col col-style">
+    <div class="panel">
+      <div class="panel-head"><h2>Template</h2></div>
+      <div id="templateGrid" class="template-grid"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Brand kit</h2><span class="lock-inline" data-pro-feature>Pro</span></div>
+      <div class="brandkit" data-pro-feature>
+        <label class="field field-row">Accent<input id="bAccent" type="color" value="#3B5BFF"></label>
+        <label class="field field-row">Background<input id="bBg" type="color" value="#0B0E14"></label>
+        <label class="field field-row">Text<input id="bFg" type="color" value="#FFFFFF"></label>
+        <label class="field">Typeface
+          <select id="bFont">
+            <option value="sans">Sans — modern, neutral</option>
+            <option value="serif">Serif — editorial</option>
+            <option value="mono">Mono — technical</option>
+          </select>
+        </label>
+        <label class="field">Footer handle<input id="bHandle" type="text" placeholder="yourname.com"></label>
+        <label class="field">Logo / headshot<input id="bLogo" type="file" accept="image/*"></label>
+        <button id="resetBrand" class="linkbtn">Reset brand kit</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ══════════════════════════ UPGRADE ══════════════════════════ -->
+<div class="modal" id="upgrade" hidden>
+  <div class="modal-card">
+    <button class="modal-x" id="closeUpgrade" aria-label="Close">×</button>
+    <h2>Ship better posts, faster.</h2>
+    <p class="modal-sub">Hookline is free forever for writing and scoring. Pro is for people who post every week.</p>
+    <div class="plans">
+      <div class="plan">
+        <h3>Free</h3><p class="price">£0</p>
+        <ul>
+          <li>Unlimited posts, scoring &amp; formatting</li>
+          <li>Feed preview + "see more" cutoff</li>
+          <li>Carousels up to 8 slides</li>
+          <li>3 templates, PDF export</li>
+          <li>1 autosaved draft</li>
+        </ul>
+        <button class="btn btn-ghost" disabled>Current plan</button>
+      </div>
+      <div class="plan plan-featured">
+        <div class="plan-flag">Most popular</div>
+        <h3>Pro</h3><p class="price">£9<small>/mo</small></p>
+        <ul>
+          <li>Everything in Free</li>
+          <li><strong>Unlimited slides</strong> + 8 templates</li>
+          <li><strong>Brand kit</strong> — colours, type, logo</li>
+          <li><strong>No watermark</strong>, PNG export</li>
+          <li>Hook rewrites — 6 proven frames</li>
+          <li>Unlimited saved drafts &amp; decks</li>
+        </ul>
+        <button class="btn btn-pro" id="startPro">Start 7-day preview</button>
+      </div>
+      <div class="plan">
+        <h3>Team</h3><p class="price">£29<small>/mo</small></p>
+        <ul>
+          <li>Everything in Pro, 5 seats</li>
+          <li>Shared brand kits</li>
+          <li>Shared template library</li>
+          <li>Approval notes on drafts</li>
+        </ul>
+        <button class="btn btn-ghost" id="teamBtn">Talk to us</button>
+      </div>
+    </div>
+    <p class="modal-fine">Billing isn't wired up in this build — "Start preview" unlocks Pro locally so you can evaluate it. See the README for where the checkout hook goes.</p>
+  </div>
+</div>
+
+<footer class="foot">
+  <span>Zero network requests. No account, no upload, no analytics, no CDN.</span>
+  <span>Not affiliated with LinkedIn.</span>
+</footer>
+
+<script src="assets/pdf.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/composer.js"></script>
+<script src="assets/carousel.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
