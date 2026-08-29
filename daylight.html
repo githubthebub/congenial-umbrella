@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Six daily levers, one rolling 14-day floor. No streaks, no score, nothing to break.">
+<title>The Daylight Floor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400&display=swap">
+<style>
+  :root{
+    --ground:#E9E8F1; --panel:#F6F5FA; --panel-2:#FFFFFF;
+    --ink:#171930; --ink-dim:#54566F; --ink-faint:#8A8AA3;
+    --line:#D2D1E1; --line-soft:#E2E1EC;
+    --gold:#B8791C; --gold-bright:#E8A33D;
+    --deep:#2B2F5E;
+    --held:#5C8A72;
+    --serif:"Newsreader",Iowan Old Style,Georgia,serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+    --r:13px;
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#0F1023; --panel:#181931; --panel-2:#1E1F3A;
+      --ink:#E8E7F3; --ink-dim:#9B9AB6; --ink-faint:#6B6A88;
+      --line:#2B2C4B; --line-soft:#232440;
+      --gold:#F0B356; --gold-bright:#F7C877;
+      --deep:#A9AEE8;
+      --held:#7FB597;
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --ground:#0F1023; --panel:#181931; --panel-2:#1E1F3A;
+    --ink:#E8E7F3; --ink-dim:#9B9AB6; --ink-faint:#6B6A88;
+    --line:#2B2C4B; --line-soft:#232440;
+    --gold:#F0B356; --gold-bright:#F7C877;
+    --deep:#A9AEE8;
+    --held:#7FB597;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none !important}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:var(--ground); color:var(--ink);
+    font-family:var(--serif); font-weight:300; font-size:17px; line-height:1.6;
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:560px;margin:0 auto;padding:0 20px 64px}
+  ::selection{background:var(--gold-bright);color:#171930}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px}
+
+  .lbl{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint)}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+  header.site{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:26px 0 18px}
+  .wordmark{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.24em;text-transform:uppercase;color:var(--ink)}
+  .today-date{font-family:var(--mono);font-size:11px;color:var(--ink-faint);letter-spacing:.08em}
+
+  /* ── the instrument ─────────────────────────────── */
+  .sky{
+    position:relative; height:212px; border-radius:var(--r); overflow:hidden;
+    border:1px solid var(--line); background:#0A0E28;
+  }
+  .layer{position:absolute;inset:0;transition:opacity 1.6s cubic-bezier(.4,0,.2,1)}
+  .l-night{background:linear-gradient(#080B22 0%,#141a44 62%,#20265c 100%);opacity:1}
+  .l-dawn{background:linear-gradient(#1a1c4a 0%,#5b3a6e 48%,#c4623f 88%,#e08a4a 100%);opacity:0}
+  .l-day{background:linear-gradient(#6E9FD4 0%,#A9C4E4 44%,#F0D4A2 84%,#F7E3BE 100%);opacity:0}
+  .stars{position:absolute;inset:0;transition:opacity 1.6s ease}
+  .stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:.75}
+  .sun{
+    position:absolute; left:50%; bottom:34px; width:54px; height:54px; margin-left:-27px;
+    border-radius:50%; background:#E0552B;
+    transition:transform 1.6s cubic-bezier(.4,0,.2,1), background 1.6s ease, box-shadow 1.6s ease;
+    transform:translateY(52px);
+  }
+  .horizon{position:absolute;left:0;right:0;bottom:0;height:34px;background:linear-gradient(180deg,rgba(6,8,24,.55),rgba(6,8,24,.9));border-top:1px solid rgba(255,255,255,.16)}
+  .readout{position:absolute;left:0;right:0;bottom:0;height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;color:#EFEDF7}
+  .readout .r-l{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;opacity:.72}
+  .readout .r-r{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;letter-spacing:.06em}
+
+  .verdict{padding:16px 2px 2px;display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  .verdict h1{font-size:25px;font-weight:400;letter-spacing:-.015em;line-height:1.25;text-wrap:balance}
+  .verdict h1 em{font-style:italic;color:var(--gold)}
+  .verdict .sub{font-size:14px;color:var(--ink-faint);font-family:var(--mono);letter-spacing:.02em;white-space:nowrap}
+
+  .rule{border:0;border-top:1px solid var(--line);margin:26px 0}
+  .rule.soft{border-color:var(--line-soft)}
+
+  section.blk{padding-top:4px}
+  .blk-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+
+  /* ── one thing ──────────────────────────────────── */
+  .onething{
+    background:var(--panel); border:1px solid var(--line); border-left:2px solid var(--gold);
+    border-radius:var(--r); padding:16px 18px; display:flex;gap:14px;align-items:flex-start;
+  }
+  .onething .txt{flex:1}
+  .onething p{font-size:17px;line-height:1.45;margin-top:5px}
+  .onething .go{
+    flex-shrink:0;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+    background:var(--ink);color:var(--ground);border:0;border-radius:999px;padding:9px 14px;cursor:pointer;
+    transition:opacity .15s ease;
+  }
+  .onething .go:hover{opacity:.82}
+  .onething.clear{border-left-color:var(--held)}
+
+  /* ── levers ─────────────────────────────────────── */
+  .levers{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+  .lever{
+    position:relative;text-align:left;cursor:pointer;display:flex;flex-direction:column;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--r);
+    padding:13px 13px 12px;color:var(--ink);font-family:var(--serif);
+    transition:background .2s ease,border-color .2s ease,transform .12s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .lever:hover{border-color:var(--ink-faint)}
+  .lever:active{transform:scale(.985)}
+  .lever .nm{font-size:18px;font-weight:400;display:flex;align-items:center;gap:8px}
+  .lever .what{display:block;font-size:13.5px;color:var(--ink-faint);line-height:1.4;margin-top:3px}
+  .lever .tally{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-faint);margin-top:auto;padding-top:10px;display:block}
+  .dot{width:9px;height:9px;border-radius:50%;border:1px solid var(--ink-faint);flex-shrink:0;transition:background .2s,border-color .2s}
+  .lever[aria-pressed="true"]{background:var(--panel-2);border-color:var(--held)}
+  .lever[aria-pressed="true"] .dot{background:var(--held);border-color:var(--held)}
+  .lever[aria-pressed="true"] .nm{color:var(--held)}
+  .lever[aria-pressed="true"] .tally{color:var(--held)}
+
+  /* ── savor note ─────────────────────────────────── */
+  .note{margin-top:9px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+  .note textarea{
+    width:100%;background:transparent;border:0;outline:none;resize:none;color:var(--ink);
+    font-family:var(--serif);font-size:17px;line-height:1.5;min-height:62px;
+  }
+  .note textarea::placeholder{color:var(--ink-faint);font-style:italic}
+  .note-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
+  .mini{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+    background:transparent;border:1px solid var(--line);border-radius:999px;padding:7px 13px;
+    color:var(--ink-dim);cursor:pointer;transition:border-color .15s,color .15s;
+  }
+  .mini:hover{border-color:var(--ink-faint);color:var(--ink)}
+  .mini.solid{background:var(--ink);border-color:var(--ink);color:var(--ground)}
+
+  /* ── fourteen days ──────────────────────────────── */
+  .matrix{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--panel)}
+  .mrow{display:grid;grid-template-columns:76px 1fr;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid var(--line-soft)}
+  .mrow:last-child{border-bottom:0}
+  .mrow .mname{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-dim)}
+  .cells{display:grid;grid-template-columns:repeat(14,1fr);gap:3px}
+  .cell{aspect-ratio:1;border-radius:2px;background:var(--line-soft);border:1px solid transparent}
+  .cell.on{background:var(--held)}
+  .cell.today{border-color:var(--ink-faint)}
+  .mrow.head{background:var(--panel-2)}
+  .mrow.head .cells span{font-family:var(--mono);font-size:8px;color:var(--ink-faint);text-align:center;line-height:1}
+
+  .nostreak{font-size:14px;color:var(--ink-faint);margin-top:12px;line-height:1.5}
+  .nostreak b{color:var(--ink-dim);font-weight:500}
+
+  /* ── the record ─────────────────────────────────── */
+  .rec{display:flex;flex-direction:column;gap:0}
+  .rec-item{padding:13px 0;border-bottom:1px solid var(--line-soft);display:grid;grid-template-columns:58px 1fr;gap:12px;align-items:baseline}
+  .rec-item:last-child{border-bottom:0}
+  .rec-item .d{font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--ink-faint);white-space:nowrap}
+  .rec-item .t{font-size:16.5px;line-height:1.45}
+  .empty{font-size:15px;color:var(--ink-faint);font-style:italic;padding:6px 0 2px}
+
+  /* ── why ────────────────────────────────────────── */
+  details.why{border-top:1px solid var(--line);padding-top:18px;margin-top:8px}
+  details.why summary{
+    cursor:pointer;list-style:none;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--ink-dim);display:flex;justify-content:space-between;align-items:center;
+  }
+  details.why summary::-webkit-details-marker{display:none}
+  details.why summary::after{content:"+";font-size:15px;color:var(--ink-faint)}
+  details.why[open] summary::after{content:"–"}
+  details.why .body{padding-top:16px}
+  details.why p{font-size:15.5px;color:var(--ink-dim);margin-bottom:12px;line-height:1.6}
+  details.why p b{color:var(--ink);font-weight:500}
+  .cite{font-family:var(--mono);font-size:11px;color:var(--ink-faint);line-height:1.8}
+
+  .anchor-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0 2px;flex-wrap:wrap}
+  .anchor-row input[type=time]{
+    font-family:var(--mono);font-size:14px;background:var(--panel);color:var(--ink);
+    border:1px solid var(--line);border-radius:9px;padding:8px 10px;
+  }
+  footer.fine{padding-top:26px;font-size:13.5px;color:var(--ink-faint);line-height:1.65}
+  footer.fine .care{border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:16px;color:var(--ink-dim)}
+  .tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important}
+  }
+  @media (max-width:344px){
+    .levers{grid-template-columns:1fr}
+    .mrow{grid-template-columns:64px 1fr}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="site">
+    <span class="wordmark">Daylight</span>
+    <span class="today-date" id="dateline"></span>
+  </header>
+
+  <div class="sky" role="img" id="sky" aria-label="Your fourteen-day floor, drawn as a sky.">
+    <div class="layer l-night"><div class="stars" id="stars"></div></div>
+    <div class="layer l-dawn" id="lDawn"></div>
+    <div class="layer l-day" id="lDay"></div>
+    <div class="sun" id="sun"></div>
+    <div class="horizon"></div>
+    <div class="readout">
+      <span class="r-l">14-day floor</span>
+      <span class="r-r" id="pct">0%</span>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <h1 id="verdict">The light hasn't come up yet.</h1>
+    <span class="sub" id="counts">0 of 84</span>
+  </div>
+
+  <hr class="rule">
+
+  <section class="blk">
+    <div class="blk-head"><span class="lbl">If you do one thing</span></div>
+    <div class="onething" id="onething">
+      <div class="txt">
+        <span class="lbl" id="ot-name">Light</span>
+        <p id="ot-copy">Go outside for ten minutes.</p>
+      </div>
+      <button class="go" id="ot-go" type="button">Did it</button>
+    </div>
+  </section>
+
+  <hr class="rule soft">
+
+  <section class="blk">
+    <div class="blk-head">
+      <span class="lbl">Today</span>
+      <span class="lbl" id="today-count">0 of 6</span>
+    </div>
+    <div class="levers" id="levers"></div>
+    <div class="note" id="notebox" hidden>
+      <textarea id="noteText" placeholder="One good thing from today. A full sentence — the detail is the point." aria-label="One good thing from today"></textarea>
+      <div class="note-foot">
+        <span class="lbl" id="noteHint">Written down, it stays.</span>
+        <button class="mini solid" id="noteSave" type="button">Keep it</button>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section class="blk">
+    <div class="blk-head">
+      <span class="lbl">The last fourteen days</span>
+      <span class="lbl">oldest → today</span>
+    </div>
+    <div class="matrix" id="matrix"></div>
+    <p class="nostreak">No streaks, no score, nothing to break. A missed day costs you <b>one dot out of fourteen</b> and the sky barely moves — which is the whole idea. The floor is built out of most days, not every day.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section class="blk">
+    <div class="blk-head">
+      <span class="lbl">The record</span>
+      <span class="lbl" id="recCount"></span>
+    </div>
+    <div class="rec" id="rec"></div>
+  </section>
+
+  <hr class="rule">
+
+  <div class="anchor-row">
+    <div>
+      <span class="lbl">Wake anchor</span>
+      <div style="font-size:14px;color:var(--ink-faint);margin-top:3px" id="windowText">Sets your morning-light window.</div>
+    </div>
+    <input type="time" id="anchor" value="07:00" aria-label="Your usual wake time">
+  </div>
+
+  <details class="why">
+    <summary>Why these six</summary>
+    <div class="body">
+      <p><b>Light.</b> Brain serotonin turnover in healthy people rises and falls with the amount of sunlight on the day of measurement — the effect is fast, and it's the reason bright-light therapy works for seasonal depression. Ten minutes outdoors beats an hour indoors: an overcast morning outside is still ten to fifty times brighter than your kitchen.</p>
+      <p><b>Move.</b> Rhythmic aerobic movement raises tryptophan availability to the brain and increases firing in serotonergic neurons. Trial evidence for exercise against depression is among the strongest of anything on this list. Twenty minutes, most days, at a pace where you could still talk.</p>
+      <p><b>Sleep.</b> A regular wake time — the same one on Saturday — predicts mood better than total hours slept. It's the anchor the other five hang off; light hits differently when your clock knows what time it is.</p>
+      <p><b>People.</b> One real exchange with someone who knows you. Not a like, not a broadcast, not a reply-all. Loneliness moves mood on the scale of a major health risk, and the fix is specific: contact where you're a person, not an audience.</p>
+      <p><b>Savor.</b> Writing down one good thing, in detail, is the smallest intervention with repeatedly measured effects on mood — modest each time, cumulative over weeks. The detail is the active ingredient; "nice day" does nothing.</p>
+      <p><b>Finish.</b> One small thing completed, start to end. Behavioral activation — doing before feeling like it — is a first-line depression treatment on its own, and finishing is the part that pays.</p>
+      <p class="cite">Sources worth your time: Lambert et al., <em>Lancet</em> 2002 (sunlight &amp; serotonin turnover) · Young, <em>J Psychiatry Neurosci</em> 2007 (raising serotonin without drugs) · Noetel et al., <em>BMJ</em> 2024 (exercise for depression) · Cuijpers et al. (behavioral activation).</p>
+    </div>
+  </details>
+
+  <footer class="fine">
+    <div class="care">
+      <b style="color:var(--ink);font-weight:500">Honest note.</b> "Serotonin" is shorthand here. Nothing on this page measures your neurochemistry, and no app can. What these six have in common is that they're the daily behaviors with the most consistent evidence behind them for mood — and that they work by raising a floor slowly, not by spiking anything. If your floor stays down for weeks, or you're thinking about hurting yourself, that's a doctor's job and not an app's. In the US you can call or text 988.
+    </div>
+    Everything you type stays in this browser. Nothing is sent anywhere, there is no account, and there are no notifications — an app that nags you is running on the other chemical.
+    <div class="tools">
+      <button class="mini" id="exportBtn" type="button">Copy my data</button>
+      <button class="mini" id="undoToday" type="button">Clear today</button>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var LEVERS = [
+    { id:"sleep",  name:"Sleep",  what:"Woke within 30 min of your anchor.",
+      say:"Set tomorrow's alarm for {anchor} — and keep it there on Saturday." },
+    { id:"light",  name:"Light",  what:"10 min outside, early.",
+      say:"Go outside for ten minutes. Overcast counts. Your window is {window}." },
+    { id:"move",   name:"Move",   what:"20 min rhythmic — walk counts.",
+      say:"Twenty minutes of walking, at a pace where you could still talk." },
+    { id:"people", name:"People", what:"One real exchange, not a broadcast.",
+      say:"Send one person an actual sentence. Not a like, not a reply-all." },
+    { id:"savor",  name:"Savor",  what:"One good thing, written down.",
+      say:"Write down one good thing from today, with the detail in it." },
+    { id:"finish", name:"Finish", what:"One small thing, start to end.",
+      say:"Pick the smallest unfinished thing you have and finish it now." }
+  ];
+  var ORDER = {
+    morning:   ["light","sleep","move","finish","people","savor"],
+    afternoon: ["move","finish","people","light","savor","sleep"],
+    evening:   ["people","savor","finish","move","light","sleep"]
+  };
+  var VERDICTS = [
+    [0.00, "The light hasn't come up yet.",   "Six things. Pick one."],
+    [0.10, "First light.",                     "Something is on the board."],
+    [0.28, "It's coming up.",                  "This is the part that takes patience."],
+    [0.46, "Your floor is <em>holding</em>.",  "Most days, not every day."],
+    [0.66, "High and steady.",                 "Whatever you're doing, keep doing it."],
+    [0.85, "Full daylight.",                   "Nothing to add."]
+  ];
+
+  var KEY = "daylight.v1";
+  var state = { anchor:"07:00", days:{} };
+  var noteOpen = false;
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(raw){ var p = JSON.parse(raw); if(p && typeof p === "object"){
+        state.anchor = p.anchor || "07:00";
+        state.days   = (p.days && typeof p.days === "object") ? p.days : {};
+      }}
+    }catch(e){ /* private window, blocked storage — run stateless */ }
+  }
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  function key(d){
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+  function dayBack(n){ var d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()-n); return d; }
+  function today(){ return key(new Date()); }
+  function rec(k){
+    if(!state.days[k]) state.days[k] = { levers:{}, note:"" };
+    if(!state.days[k].levers) state.days[k].levers = {};
+    return state.days[k];
+  }
+  function has(k, id){
+    var d = state.days[k];
+    return !!(d && d.levers && d.levers[id]);
+  }
+  function window14(){
+    var out = [];
+    for(var i=13;i>=0;i--) out.push(dayBack(i));
+    return out;
+  }
+  function floorValue(){
+    var days = window14(), n = 0;
+    for(var i=0;i<days.length;i++){
+      var k = key(days[i]);
+      for(var j=0;j<LEVERS.length;j++) if(has(k, LEVERS[j].id)) n++;
+    }
+    return { count:n, total:days.length*LEVERS.length, ratio:n/(days.length*LEVERS.length) };
+  }
+  function clamp(v){ return v<0?0:(v>1?1:v); }
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function mix(c1,c2,t){
+    var r = Math.round(lerp(c1[0],c2[0],t)), g = Math.round(lerp(c1[1],c2[1],t)), b = Math.round(lerp(c1[2],c2[2],t));
+    return "rgb("+r+","+g+","+b+")";
+  }
+  function phase(){
+    var h = new Date().getHours();
+    return h < 11 ? "morning" : (h < 17 ? "afternoon" : "evening");
+  }
+  function fmtTime(t){
+    var p = (t||"07:00").split(":"), h = parseInt(p[0],10), m = p[1];
+    var ap = h >= 12 ? "pm" : "am", hh = h % 12; if(hh === 0) hh = 12;
+    return hh + ":" + m + ap;
+  }
+  function lightWindow(){
+    var p = (state.anchor||"07:00").split(":"), h = parseInt(p[0],10), m = parseInt(p[1],10);
+    var start = h*60 + m + 15, end = start + 60;
+    function f(mins){
+      var hh = Math.floor(mins/60) % 24, mm = mins % 60;
+      return fmtTime(String(hh).padStart(2,"0") + ":" + String(mm).padStart(2,"0"));
+    }
+    return f(start) + "–" + f(end);
+  }
+  function shortDate(d){
+    var days = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+    var mons = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return days[d.getDay()] + " " + d.getDate() + " " + mons[d.getMonth()];
+  }
+  function esc(s){
+    return String(s).replace(/[&<>"]/g, function(c){
+      return ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" })[c];
+    });
+  }
+
+  // ── stars, drawn once ────────────────────────────
+  (function(){
+    var host = document.getElementById("stars"), html = "";
+    var seeds = [[12,18],[27,42],[41,12],[58,31],[68,9],[79,38],[88,20],[19,58],[34,66],[52,54],[63,71],[74,55],[92,63],[8,35],[46,25],[85,44]];
+    for(var i=0;i<seeds.length;i++){
+      html += '<i style="left:'+seeds[i][0]+'%;top:'+seeds[i][1]+'%;opacity:'+(0.35+((i*37)%50)/100)+'"></i>';
+    }
+    host.innerHTML = html;
+  })();
+
+  // ── build lever tiles once ───────────────────────
+  (function(){
+    var host = document.getElementById("levers"), html = "";
+    for(var i=0;i<LEVERS.length;i++){
+      var L = LEVERS[i];
+      html += '<button class="lever" type="button" data-id="'+L.id+'" aria-pressed="false">'
+            +   '<span class="nm"><span class="dot"></span>'+L.name+'</span>'
+            +   '<span class="what">'+esc(L.what)+'</span>'
+            +   '<span class="tally" data-tally="'+L.id+'">0 / 14 days</span>'
+            + '</button>';
+    }
+    host.innerHTML = html;
+  })();
+
+  // ── render ───────────────────────────────────────
+  function render(){
+    var t = today(), f = floorValue(), r = f.ratio;
+
+    // sky
+    document.getElementById("lDawn").style.opacity = clamp(r / 0.42);
+    document.getElementById("lDay").style.opacity  = clamp((r - 0.38) / 0.5);
+    document.getElementById("stars").style.opacity = clamp(1 - r / 0.32);
+    var sun = document.getElementById("sun");
+    sun.style.transform = "translateY(" + Math.round(lerp(52, -62, r)) + "px)";
+    sun.style.background = mix([224,85,43],[255,220,150], clamp(r*1.15));
+    sun.style.boxShadow = "0 0 " + Math.round(lerp(18,64,r)) + "px " + Math.round(lerp(4,20,r)) + "px rgba("
+      + Math.round(lerp(224,255,r)) + "," + Math.round(lerp(110,214,r)) + "," + Math.round(lerp(60,150,r)) + ",.45)";
+    document.getElementById("pct").textContent = Math.round(r*100) + "%";
+    document.getElementById("counts").textContent = f.count + " of " + f.total;
+    document.getElementById("sky").setAttribute("aria-label",
+      "Your fourteen-day floor is " + Math.round(r*100) + " percent: " + f.count + " of " + f.total + " possible days logged.");
+
+    // verdict
+    var v = VERDICTS[0];
+    for(var i=0;i<VERDICTS.length;i++) if(r >= VERDICTS[i][0]) v = VERDICTS[i];
+    document.getElementById("verdict").innerHTML = v[1];
+
+    // today's tiles
+    var done = 0;
+    var tiles = document.querySelectorAll(".lever");
+    for(var j=0;j<tiles.length;j++){
+      var id = tiles[j].getAttribute("data-id"), on = has(t, id);
+      tiles[j].setAttribute("aria-pressed", on ? "true" : "false");
+      if(on) done++;
+      var n = 0, days = window14();
+      for(var d=0;d<days.length;d++) if(has(key(days[d]), id)) n++;
+      tiles[j].querySelector('[data-tally="'+id+'"]').textContent = n + " / 14 days";
+    }
+    document.getElementById("today-count").textContent = done + " of 6";
+
+    // one thing
+    var order = ORDER[phase()], pick = null;
+    for(var o=0;o<order.length;o++){ if(!has(t, order[o])){ pick = order[o]; break; } }
+    var box = document.getElementById("onething");
+    if(!pick){
+      box.classList.add("clear");
+      document.getElementById("ot-name").textContent = "All six, today";
+      document.getElementById("ot-copy").textContent = v[2] + " Come back tomorrow — that's the mechanism.";
+      document.getElementById("ot-go").hidden = true;
+      box.setAttribute("data-pick","");
+    }else{
+      box.classList.remove("clear");
+      var L = null;
+      for(var q=0;q<LEVERS.length;q++) if(LEVERS[q].id === pick) L = LEVERS[q];
+      document.getElementById("ot-name").textContent = L.name;
+      document.getElementById("ot-copy").textContent = L.say
+        .replace("{anchor}", fmtTime(state.anchor))
+        .replace("{window}", lightWindow());
+      document.getElementById("ot-go").hidden = false;
+      box.setAttribute("data-pick", pick);
+    }
+
+    // matrix
+    var days14 = window14(), initials = ["S","M","T","W","T","F","S"], m = "";
+    m += '<div class="mrow head"><span class="mname">day</span><div class="cells">';
+    for(var h=0;h<days14.length;h++) m += "<span>" + initials[days14[h].getDay()] + "</span>";
+    m += "</div></div>";
+    for(var L2=0;L2<LEVERS.length;L2++){
+      m += '<div class="mrow"><span class="mname">' + LEVERS[L2].name + '</span><div class="cells">';
+      for(var c=0;c<days14.length;c++){
+        var kk = key(days14[c]);
+        m += '<div class="cell' + (has(kk, LEVERS[L2].id) ? " on" : "") + (kk === t ? " today" : "") + '"></div>';
+      }
+      m += "</div></div>";
+    }
+    document.getElementById("matrix").innerHTML = m;
+
+    // the record
+    var keys = Object.keys(state.days).filter(function(k){
+      return state.days[k] && state.days[k].note && state.days[k].note.trim();
+    }).sort().reverse();
+    var rhtml = "";
+    for(var x=0; x<keys.length && x<40; x++){
+      var parts = keys[x].split("-");
+      var dt = new Date(+parts[0], +parts[1]-1, +parts[2]);
+      rhtml += '<div class="rec-item"><span class="d">' + shortDate(dt) + '</span><span class="t">'
+             + esc(state.days[keys[x]].note.trim()) + "</span></div>";
+    }
+    document.getElementById("rec").innerHTML = rhtml ||
+      '<p class="empty">Nothing kept yet. Tap Savor and write one good thing — this is where it comes back to you.</p>';
+    document.getElementById("recCount").textContent = keys.length ? keys.length + " kept" : "";
+
+    // chrome
+    document.getElementById("dateline").textContent = shortDate(new Date());
+    document.getElementById("anchor").value = state.anchor;
+    document.getElementById("windowText").textContent = "Your morning-light window: " + lightWindow() + ".";
+  }
+
+  // ── actions ──────────────────────────────────────
+  function openNote(){
+    noteOpen = true;
+    var box = document.getElementById("notebox");
+    box.hidden = false;
+    var ta = document.getElementById("noteText");
+    ta.value = rec(today()).note || "";
+    ta.focus();
+  }
+  function closeNote(){ noteOpen = false; document.getElementById("notebox").hidden = true; }
+
+  function toggle(id){
+    var t = today(), d = rec(t);
+    if(id === "savor"){
+      if(d.levers.savor){ delete d.levers.savor; d.note = ""; closeNote(); save(); render(); return; }
+      openNote(); return;
+    }
+    if(d.levers[id]) delete d.levers[id]; else d.levers[id] = true;
+    save(); render();
+  }
+
+  document.getElementById("levers").addEventListener("click", function(e){
+    var btn = e.target.closest(".lever");
+    if(btn) toggle(btn.getAttribute("data-id"));
+  });
+  document.getElementById("ot-go").addEventListener("click", function(){
+    var pick = document.getElementById("onething").getAttribute("data-pick");
+    if(pick) toggle(pick);
+  });
+  document.getElementById("noteSave").addEventListener("click", function(){
+    var txt = document.getElementById("noteText").value.trim(), d = rec(today());
+    if(!txt){ document.getElementById("noteHint").textContent = "Needs a sentence to keep."; return; }
+    d.note = txt; d.levers.savor = true;
+    document.getElementById("noteHint").textContent = "Written down, it stays.";
+    closeNote(); save(); render();
+  });
+  document.getElementById("noteText").addEventListener("keydown", function(e){
+    if(e.key === "Escape"){ closeNote(); }
+    if((e.metaKey || e.ctrlKey) && e.key === "Enter"){ document.getElementById("noteSave").click(); }
+  });
+  document.getElementById("anchor").addEventListener("change", function(e){
+    state.anchor = e.target.value || "07:00"; save(); render();
+  });
+  document.getElementById("undoToday").addEventListener("click", function(){
+    state.days[today()] = { levers:{}, note:"" };
+    closeNote(); save(); render();
+    this.textContent = "Today cleared";
+    var b = this; setTimeout(function(){ b.textContent = "Clear today"; }, 1800);
+  });
+  document.getElementById("exportBtn").addEventListener("click", function(){
+    var b = this, txt = JSON.stringify(state, null, 2);
+    function ok(){ b.textContent = "Copied"; setTimeout(function(){ b.textContent = "Copy my data"; }, 1800); }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(ok, function(){ b.textContent = "Copy blocked"; });
+    }else{ b.textContent = "Copy blocked"; }
+  });
+
+  // re-render if the tab is left open across midnight
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) render(); });
+
+  load();
+  render();
+})();
+</script>
+
+</body>
+</html>
