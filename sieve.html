@@ -324,15 +324,16 @@
     <div class="hero narrow">
       <div class="kicker">Shorts, out of long video, on a laptop that can't run Premiere</div>
       <h1 class="big">Pour eight hours in.<br>Keep the <em>ninety seconds</em>.</h1>
-      <p class="sub">Paste a Google&nbsp;Drive link. Sieve reads the <b>audio</b>, not the video — so your laptop
-        never downloads the 12&nbsp;GB, never builds a cache, never renders a proxy. You edit the
-        <b>transcript</b>; the video follows. There is no timeline, because there was never any need for one.</p>
+      <p class="sub">Paste a Google&nbsp;Drive link — <b>no key, no sign-in, nothing to install</b>. Sieve reads the
+        <b>audio</b>, not the video, so your laptop never downloads the 12&nbsp;GB, never builds a cache, never
+        renders a proxy. You edit the <b>transcript</b>; the video follows. There is no timeline, because there
+        was never any need for one.</p>
 
       <div class="paste">
         <input id="driveUrl" spellcheck="false" placeholder="https://drive.google.com/file/d/1aB.../view?usp=sharing">
         <button class="btn primary" onclick="startDrive()">Sieve it</button>
       </div>
-      <p class="hint" id="pourHint">Any Drive link works — <span style="color:var(--dim)">file/d/…</span>, <span style="color:var(--dim)">open?id=…</span>, a bare file ID, or any direct https media URL. Read in this tab; no server involved.</p>
+      <p class="hint" id="pourHint"><b style="color:var(--cool)">No key, no sign-in, no server.</b> Set the file to “Anyone with the link” in Drive and paste it — <span style="color:var(--dim)">file/d/…</span>, <span style="color:var(--dim)">open?id=…</span>, a bare file ID, or any direct https media URL.</p>
 
       <div class="btnrow" style="margin-top:22px">
         <button class="btn" onclick="startDemo()">▶ Run the 8-hour demo</button>
@@ -343,7 +344,7 @@
         295,000-sample loudness envelope, scanned live in about a quarter of a second. Nothing uploads, nothing installs, and it runs offline.</p>
 
       <ol class="laws">
-        <li><span class="no">01</span><div><b>Your disk stays empty.</b> The engine reads the source through <i>once</i> and discards it as it goes — measured at 1.30× the file size, nothing stored, on its disk or yours. The only file that ever lands on your machine is the finished short, about 5 MB.</div></li>
+        <li><span class="no">01</span><div><b>Your disk stays empty, and nothing sits in the middle.</b> Google serves link-shared files with <code>access-control-allow-origin: *</code> and honours byte ranges, so the video streams from Drive into this tab and nowhere else — no key, no account, no server of ours. The only file that ever lands on your machine is the finished short, about 5 MB.</div></li>
         <li><span class="no">02</span><div><b>The transcript is the timeline.</b> Strike a sentence, it's gone from the video. Silence is struck for you. Nobody scrubs anything.</div></li>
         <li><span class="no">03</span><div><b>The search index for 8 hours is 3.4 MB — 0.03% of the video.</b> Finding a good clip needs words and loudness, not pixels. Pixels are decoded for the 45 seconds you actually chose, and not one second earlier.</div></li>
         <li><span class="no">04</span><div><b>31 meme sounds, synthesised, 0 MB.</b> Airhorns, vine booms, risers, a metal pipe, a sad trombone — each one two or three oscillators and a filter, built at the moment you render. No pack to download, and nothing for Content ID to fingerprint, because none of them is a recording of anything. One tap, or keys 1–8.</div></li>
@@ -508,14 +509,20 @@
       vine boom made of a sine sweep is not a recording of anything. A downloaded "free meme sounds" pack is
       the opposite bet: most of them contain copyrighted recordings, and the claim arrives after you publish.</p>
 
-    <h3>Drive, read in the tab, with nothing in the middle.</h3>
-    <p>Google serves <code>drive/v3/files/&lt;id&gt;?alt=media</code> with the page origin reflected in
-      <code>access-control-allow-origin</code>, and it honours <code>Range</code>. So the browser streams the
-      file straight from Google as it scans — a 9.5&nbsp;MB test file took <b>four range requests</b> — and the
-      canvas stays <b>untainted</b>, which is the bit that lets the renderer use the real pixels. The credential
-      rides in the URL because a <code>&lt;video&gt;</code> element cannot send an <code>Authorization</code>
-      header; it stays in your browser and goes to Google, because this page has no backend to send it anywhere
-      else.</p>
+    <h3>Drive, read in the tab, with no key and nothing in the middle.</h3>
+    <p>A CORS preflight against <code>drive.usercontent.google.com</code> comes back with
+      <code>access-control-allow-origin: *</code>, <code>access-control-allow-credentials: false</code>,
+      <code>GET,HEAD,OPTIONS</code> and <code>Range</code> among the allowed headers. A wildcard origin with
+      credentials off is exactly what <code>crossorigin="anonymous"</code> wants — so for anything shared
+      “anyone with the link”, the browser streams it straight off Google with <b>no API key, no OAuth and no
+      cloud project</b>, and the canvas stays <b>untainted</b>, which is the bit that lets the renderer use the
+      real pixels. Sieve asks for two bytes first: that one request says whether the file is reachable, whether
+      Google is serving the real thing or its virus-scan interstitial, and how big it is.</p>
+    <p>A credential is the <i>fallback</i>, for a private file you can't re-share. Then it rides in the URL,
+      because a <code>&lt;video&gt;</code> element cannot send an <code>Authorization</code> header — and it
+      stays in your browser and goes to Google, because this page has no backend to send it anywhere else.
+      (<code>drive.google.com/uc</code> answers 403 with no CORS at all, and the <code>lh3</code> host just
+      redirects away, so neither of those works — this one endpoint does.)</p>
     <p>A browser will not play faster than <b>16×</b> — <code>playbackRate = 32</code> throws
       <code>NotSupportedError</code> — so scanning is duration ÷ 16: four minutes for an hour, half an hour for
       eight. Rather than pretend otherwise, Sieve asks which part you want. Twenty minutes of an eight-hour
@@ -1982,8 +1989,38 @@ function adoptIndex(raw){
    ====================================================================== */
 const cred=()=>localStorage.getItem('sieve.gcred')||'';
 const credKind=c=>/^ya29\.|^ya\d{2}\.|^1\/\/|access_token/.test(c)?'access_token':'key';
+
+/* THE KEYLESS PATH — the default, and it needs nothing but the link.
+   Measured with a CORS preflight against drive.usercontent.google.com:
+     access-control-allow-origin: *
+     access-control-allow-credentials: false
+     access-control-allow-methods: GET,HEAD,OPTIONS
+     access-control-allow-headers: … Range …
+   ACAO "*" with credentials false is exactly what crossorigin="anonymous"
+   wants, and Range is allowed, so the browser can stream a link-shared file
+   straight off Google with no API key, no OAuth and no project.
+   (drive.google.com/uc answers 403 with no CORS at all; lh3 just redirects.) */
+const keylessUrl=id=>'https://drive.usercontent.google.com/download?id='+
+  encodeURIComponent(id)+'&export=download&confirm=t';
+
+/* Ask for two bytes. It tells us three things: whether the file is reachable
+   without a key, whether Google is serving the real bytes or its "can't scan
+   this for viruses" HTML interstitial, and how big it is. */
+async function driveProbe(id){
+  const r=await fetch(keylessUrl(id),{headers:{Range:'bytes=0-1'}});
+  const ct=(r.headers.get('content-type')||'').toLowerCase();
+  const cr=r.headers.get('content-range')||'';
+  return {
+    ok:r.ok, status:r.status, ct,
+    html:ct.includes('text/html'),
+    size:+(cr.split('/')[1]||r.headers.get('content-length')||0)||0,
+    ranged:r.status===206,
+  };
+}
+
 function mediaUrl(id){
   const c=cred();
+  if(!c) return keylessUrl(id);
   return 'https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(id)+
          '?alt=media&supportsAllDrives=true&'+credKind(c)+'='+encodeURIComponent(c);
 }
@@ -2010,7 +2047,7 @@ function credPanel(host,id){
   i.onkeydown=e=>{ if(e.key==='Enter') b.click(); };
   f.appendChild(i); f.appendChild(b); box.appendChild(f);
   const h=el('p','hint');
-  h.innerHTML='An <b>API key</b> reads any file shared <i>“anyone with the link”</i> — make one in 2 minutes at '+
+  h.innerHTML='Only needed for a <b>private</b> file. An <b>API key</b> is 2 minutes at '+
     '<a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">console.cloud.google.com/apis/credentials</a> '+
     '(enable the Drive API, create an API key). For a <b>private</b> file, paste an OAuth access token instead — '+
     '<a href="https://developers.google.com/oauthplayground/#step1&scopes=https%3A//www.googleapis.com/auth/drive.readonly" target="_blank" rel="noopener">the OAuth playground</a> '+
@@ -2045,51 +2082,75 @@ async function urlDirect(url){
 }
 
 async function driveDirect(id){
-  const h=$('#pourHint');
-  if(!cred()){
-    h.className='hint';
-    h.innerHTML='Read file ID <b style="color:var(--cool)">'+id+'</b>. To read it straight into this tab, Sieve needs a Google credential — '+
-      'it talks to Google directly, so there is nothing in the middle to trust.';
-    credPanel(h,id); return;
-  }
   go('sift'); $('#siftLog').innerHTML='';
-  $('#siftKicker').textContent='Drive — read in this tab, nothing downloaded';
+  $('#siftKicker').textContent='Drive — read in this tab';
   $('#siftTitle').textContent='Opening the file where it lives.';
-  $('#siftSub').innerHTML='Google serves this file with CORS and honours byte ranges, so the video streams into this tab '+
-    'as it plays. Nothing is copied to your disk and nothing passes through anybody else’s server.';
+  $('#siftSub').innerHTML='No key, no sign-in, no server. Google serves link-shared files with '+
+    '<code>access-control-allow-origin: *</code> and honours byte ranges, so the video streams straight into this tab.';
   document.querySelectorAll('.streambox span')[0].textContent='File size';
   setMeters({streamed:'—',minutes:'—',disk:'0 bytes',cand:'0',pct:4});
-  logLine('GET files/'+id+' · fields=name,size,mimeType');
-  let meta;
-  try{ meta=await driveMeta(id); }
-  catch(e){
-    logLine('<span style="color:var(--hot)">Google said: '+e.message+'</span>');
-    logLine('An API key only reads files shared “anyone with the link”. For a private file use an OAuth access token.');
-    const row=el('div','btnrow'); row.style.marginTop='14px';
-    const b=el('button','btn sm','Change credential');
-    b.onclick=()=>{ localStorage.removeItem('sieve.gcred'); go('pour'); driveDirect(id); };
-    row.appendChild(b); $('#siftLog').appendChild(row);
-    return;
+
+  let url=null, name='Drive '+id, bytes=0;
+
+  // 1. the keyless read: works for anything shared "anyone with the link"
+  if(!cred()){
+    logLine('asking Google for two bytes, without a key…');
+    let pr=null;
+    try{ pr=await driveProbe(id); }
+    catch(e){ logLine('<span style="color:var(--hot)">the browser blocked that request: '+e.message+'</span>'); }
+    if(pr&&pr.ok&&!pr.html){
+      url=keylessUrl(id); bytes=pr.size;
+      logLine('<span class="g">no key needed</span> · '+(pr.ranged?'range request honoured':'served whole')+
+        (bytes?' · '+mb(bytes):'')+' · '+(pr.ct||'unknown type'));
+    } else if(pr&&pr.html){
+      logLine('<span style="color:var(--hot)">Google returned its HTML page instead of the file.</span>');
+      logLine('That means the file is <b>not shared "anyone with the link"</b>, or it is big enough that Google '+
+              'wants a click-through first. Fix the sharing and try again — that is the whole fix, and it is free.');
+    } else if(pr){
+      logLine('<span style="color:var(--hot)">Google said '+pr.status+'</span> — that file is not readable without credentials.');
+    }
   }
-  const bytes=+(meta.size||0);
-  const vm=meta.videoMediaMetadata||{};
-  logLine('<b>'+meta.name+'</b> · '+mb(bytes)+' · '+(meta.mimeType||'?'));
-  setMeters({streamed:mb(bytes),pct:12});
+
+  // 2. only if the keyless read failed do we ever want a credential
+  if(!url){
+    if(!cred()){
+      const h=$('#siftLog');
+      const p2=el('p','hint'); p2.style.marginTop='14px';
+      p2.innerHTML='If it is a <b>private</b> file you cannot re-share, Sieve can use a Google credential instead — '+
+        'it talks to Google directly, so there is nothing in the middle to trust.';
+      h.appendChild(p2);
+      credPanel(h,id);
+      return;
+    }
+    logLine('using your saved credential · GET files/'+id);
+    let meta;
+    try{ meta=await driveMeta(id); }
+    catch(e){
+      logLine('<span style="color:var(--hot)">Google said: '+e.message+'</span>');
+      const row=el('div','btnrow'); row.style.marginTop='14px';
+      const b=el('button','btn sm','Forget it and try without a key');
+      b.onclick=()=>{ localStorage.removeItem('sieve.gcred'); driveDirect(id); };
+      row.appendChild(b); $('#siftLog').appendChild(row);
+      return;
+    }
+    url=mediaUrl(id); name=meta.name||name; bytes=+(meta.size||0);
+    logLine('<b>'+name+'</b> · '+mb(bytes)+' · '+(meta.mimeType||'?'));
+  }
+
+  setMeters({streamed:bytes?mb(bytes):'—',pct:12});
   const v=$('#src');
   v.crossOrigin='anonymous'; v.preload='metadata'; v.muted=false;
-  v.src=mediaUrl(id); S.video=v; VSRC=null; VGAIN=null;
-  logLine('attaching the video element (crossorigin: the canvas stays readable)…');
+  v.src=url; S.video=v; VSRC=null; VGAIN=null;
+  logLine('attaching the video element (crossorigin, so the canvas stays readable)…');
   try{
     await new Promise((res,rej)=>{ v.onloadedmetadata=res;
-      v.onerror=()=>rej(new Error('the browser could not open that stream — is it a format this browser plays?'));
+      v.onerror=()=>rej(new Error('the browser could not decode that stream — either the sharing is wrong, or it is a codec this browser will not play'));
       setTimeout(()=>rej(new Error('timed out opening the stream')),45000); });
-  }catch(e){ logLine('<span style="color:var(--hot)">'+e.message+'</span>');
-    if(vm.durationMillis) logLine('Google reports it as '+hhmmss(+vm.durationMillis/1000)+', so the file is readable — this is a codec the browser will not decode.');
-    return; }
-  const dur=v.duration||(+vm.durationMillis/1000)||0;
+  }catch(e){ logLine('<span style="color:var(--hot)">'+e.message+'</span>'); return; }
+  const dur=v.duration||0;
   logLine('open · <b>'+v.videoWidth+'×'+v.videoHeight+'</b> · '+hhmmss(dur));
   setMeters({minutes:Math.round(dur/60)+' min',pct:18});
-  S.pending={id,name:meta.name,bytes,dur};
+  S.pending={id,name,bytes,dur};
   askScanRange(dur);
 }
 

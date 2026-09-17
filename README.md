@@ -237,15 +237,23 @@ neither of the two things it exists for.
 ### Four ways in
 
 1. **The demo** — a bundled 8h12m podcast index. Runs with the network off.
-2. **A Drive link, read in this tab** — no server at all. Verified:
-   `googleapis.com/drive/v3/files/<id>?alt=media` reflects the page origin in
-   `access-control-allow-origin` and honours `Range`, so the browser streams
-   the file straight from Google. The canvas stays **untainted**, which is what
-   lets the renderer use the real pixels. Needs a credential in the URL,
-   because a `<video>` element cannot send an `Authorization` header: a free
-   **API key** for anything shared “anyone with the link”, or an **OAuth
-   access token** for a private file. It is kept in your browser and sent to
-   Google — this page has no backend to send it anywhere else.
+2. **A Drive link — no key, no sign-in, no server.** A CORS preflight against
+   `drive.usercontent.google.com` returns `access-control-allow-origin: *`,
+   `access-control-allow-credentials: false`, `GET,HEAD,OPTIONS`, and `Range`
+   among the allowed headers. A wildcard origin with credentials off is exactly
+   what `crossorigin="anonymous"` needs, so for anything shared **"anyone with
+   the link"** the browser streams it straight off Google and the canvas stays
+   **untainted** — which is what lets the renderer use the real pixels.
+
+   Sieve asks for two bytes first (`Range: bytes=0-1`). That single request says
+   whether the file is reachable, whether Google is serving the real bytes or
+   its virus-scan interstitial, and how big it is — so the failure message can
+   name the actual problem ("not shared 'anyone with the link'") instead of
+   shrugging.
+
+   A credential is only the **fallback**, for a private file you can't
+   re-share. `drive.google.com/uc` answers 403 with no CORS at all and the
+   `lh3` host just redirects away; this one endpoint is the one that works.
 3. **A file on this laptop** — decoded once at 8 kHz mono (≈60× smaller than
    the real thing), envelope built, samples dropped. Over 300 MB it refuses,
    on purpose: a big file belongs on the engine, not in your RAM.
