@@ -1,0 +1,47 @@
+# Publishes the single-file apps to GitHub Pages.
+# configure-pages with enablement:true switches Pages on using this workflow's
+# own token, so the site goes live without anyone opening repo Settings.
+name: Pages
+
+on:
+  push:
+    branches: ["claude/serotonin-boost-zyjrmt"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp sieve.html index.html daylight.html _site/
+          # /  ->  Sieve, since that is the one people are being sent to
+          cp sieve.html _site/index.html
+          cp index.html _site/darkroom.html
+          ls -la _site
+
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
