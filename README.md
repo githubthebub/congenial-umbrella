@@ -204,16 +204,121 @@ moment in a conversation. A stretch that is loud for over half a second with no
 words in it is, in a two-person podcast, almost always one. It's a heuristic,
 it's labelled as a heuristic, and it beats the alternative of nothing.
 
-### Three ways in
+### Put it online — a link anyone can use
+
+`sieve.html` is one static file, so **GitHub Pages hosts it for free**. This
+repo is public and Pages is not switched on yet; it takes one screen:
+
+> **Settings → Pages → Source: “Deploy from a branch” → branch
+> `claude/serotonin-boost-zyjrmt` → folder `/ (root)` → Save**
+
+About a minute later the link is live, and it updates itself on every push:
+
+```
+https://githubthebub.github.io/congenial-umbrella/sieve.html
+```
+
+**It has to be served over https (or plain http), not opened as a `file://`.**
+Two things only work on a real origin, both measured rather than assumed:
+
+- `AudioWorklet.addModule()` refuses a blob URL on `file://` with
+  `AbortError`, so the scanner falls back to `ScriptProcessorNode` there —
+  which works, but lands in fewer envelope buckets (it interpolates ~130 of
+  401 and logs that it did). On https the worklet covers every bucket.
+- A cross-origin video needs a real page origin for the CORS handshake that
+  keeps the canvas readable.
+
+**Not a Claude artifact, deliberately.** Artifacts run under a CSP that blocks
+media and `fetch` from every host except a few script CDNs, and blocks any
+download the page starts itself. Sieve would be able to read nothing from
+Drive and hand you no file at the end — a link that looks right and does
+neither of the two things it exists for.
+
+### Four ways in
 
 1. **The demo** — a bundled 8h12m podcast index. Runs with the network off.
-2. **A file on this laptop** — decoded once at 8 kHz mono (≈60× smaller than
+2. **A Drive link, read in this tab** — no server at all. Verified:
+   `googleapis.com/drive/v3/files/<id>?alt=media` reflects the page origin in
+   `access-control-allow-origin` and honours `Range`, so the browser streams
+   the file straight from Google. The canvas stays **untainted**, which is what
+   lets the renderer use the real pixels. Needs a credential in the URL,
+   because a `<video>` element cannot send an `Authorization` header: a free
+   **API key** for anything shared “anyone with the link”, or an **OAuth
+   access token** for a private file. It is kept in your browser and sent to
+   Google — this page has no backend to send it anywhere else.
+3. **A file on this laptop** — decoded once at 8 kHz mono (≈60× smaller than
    the real thing), envelope built, samples dropped. Over 300 MB it refuses,
-   on purpose: a big file belongs on the engine, not in your RAM. Renders with
-   real pixels.
-3. **A Drive link or any direct media URL** — via the engine. Without an ASR
-   key you still get the envelope and real jump cuts; four of the six signals
-   then stay blank rather than guessed, and the UI says so.
+   on purpose: a big file belongs on the engine, not in your RAM.
+4. **The engine** — for 8 hours with real words. ffmpeg decodes audio far
+   faster than any browser can play it.
+
+### The honest arithmetic of scanning in a browser
+
+A browser will not play faster than **16×** — `playbackRate = 32` throws
+`NotSupportedError`. Measured at **15.9× effective**, which means:
+
+| Recording | Scan time |
+|---|---|
+| 20 minutes | ~75 seconds |
+| 1 hour | ~4 minutes |
+| 8 hours | ~31 minutes |
+
+So Sieve asks *which part* rather than pretending: scan twenty minutes of an
+eight-hour recording in seventy-five seconds, take the clips, come back for
+the next twenty. The engine has no such ceiling — that is what it is for.
+
+The scan is silent and reads only the bytes it plays: a 9.5 MB file took
+**4 range requests**. Loudness is measured as RMS per 128-sample quantum in an
+AudioWorklet and folded into a 10 Hz envelope — about 22 measurements per
+second of media — then **normalised to that file's own loudest point**, because
+an absolute threshold means nothing across different recordings.
+
+### Captions without downloading a model
+
+There is no transcript on the Drive path, and the fix is not a 40 MB Whisper
+model — it is twelve seconds of typing. **You type the line and Sieve aligns
+it**: the words are distributed across the speech runs it detected, weighted by
+syllable count, so every word lands inside actual speech and the silences are
+skipped. Forced alignment's useful 90% for none of its cost. Measured on the
+test clip: **14 of 14 words landed inside a detected speech run.**
+
+The four text-driven signals (Hook, Alone, Gap, Land) stay **blank** on an
+energy-only index rather than being guessed, and the cards say so.
+
+### The sound library — 31 sounds, 0 MB
+
+| Category | Sounds |
+|---|---|
+| **Impacts & punchlines** | Vine boom · Bass drop · Thud · Metal pipe · Anvil |
+| **Hype** | Airhorn · Airhorn ×3 · Siren · Applause · Sparkle |
+| **Comedy & reactions** | Bruh · Sad trombone · Slide whistle · Boing · Exit whistle · Ba-dum-tss · Record scratch · Raspberry |
+| **Tension & reveals** | Suspense riser · Dun dun dunnn · Ominous drone · Heartbeat · Ticking clock |
+| **Notification & game** | Payoff bell · Message pop · Coin · Level up · Wrong answer · Camera shutter · Typewriter · Whoosh |
+
+Every one is two or three oscillators and a filter, built at render time out of
+four shared helpers (`tone`, `hiss`, `bell`, `chord`). Which means:
+
+- **Nothing downloads.** No sound pack, no CDN, no licence file. The library
+  adds no bytes to the page beyond its own code.
+- **Nothing here is a recording of anything.** Content ID matches audio
+  fingerprints *of recordings* — a vine boom made of a sine sweep has no
+  recording to fingerprint. (That is a statement about how fingerprint
+  matching works, not legal advice.) A downloaded “free meme sounds” pack is
+  the opposite bet: most of them contain copyrighted recordings, and the claim
+  arrives after you have published.
+
+Placement is one tap on the quick bar under the preview, or keys **1–8**, at
+the playhead. The full 31 are searchable, grouped, and preview on hover. Six
+content rules place sounds automatically where the transcript earns them — a
+record scratch on a self-interruption, an airhorn after a number worth
+bragging about, a riser two seconds before the payoff — and on an energy-only
+index the loudest moment gets the hit instead, since that is the only thing
+the envelope actually knows.
+
+**Density is a law, not a slider.** *Tasteful* allows one sound per ~9 seconds,
+*Unhinged* one per ~4.5, and it genuinely generates rather than just raising
+the ceiling. Content-driven sounds are placed in a first pass so a whoosh can
+never displace the riser that the script earned.
 
 ### What Sieve refuses to build
 

@@ -252,7 +252,29 @@
   }
   .sfxmenu button:hover{background:var(--panel)}
   .sfxmenu button small{color:var(--faint);font-family:var(--mono);font-size:10px;display:block;margin-top:1px}
-  .sfxmenu .hd{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);padding:8px 11px 5px}
+  .sfxmenu .hd{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);padding:10px 11px 5px}
+  .sfxmenu{width:340px}
+  .sfxmenu input.q{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:8px;
+    color:var(--ink);font-family:var(--mono);font-size:12px;padding:9px 10px;outline:none;margin:2px 0 4px}
+  .sfxmenu input.q:focus{border-color:var(--gold)}
+  .sfxgrid{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:0 3px}
+  .sfxgrid button{display:block;padding:8px 9px;border-radius:8px;text-align:left}
+  .sfxgrid button .nm{display:flex;align-items:center;gap:7px;font-size:12.5px}
+  .sfxgrid button .k{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--faint);
+    border:1px solid var(--line2);border-radius:4px;padding:0 4px}
+  .sfxgrid button small{color:var(--faint);font-family:var(--mono);font-size:9.5px;display:block;margin-top:2px;line-height:1.35}
+
+  /* the quick bar: one tap at the playhead, which is the whole point */
+  .board{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px}
+  .board button{
+    flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;
+    background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 4px;cursor:pointer;
+    color:var(--dim);transition:.15s;
+  }
+  .board button:hover{border-color:var(--cool);color:var(--ink);background:var(--panel2)}
+  .board button b{font-size:16px;font-weight:400;line-height:1}
+  .board button span{font-family:var(--mono);font-size:8px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+  .board .more{border-style:dashed}
 
   /* ---------- rendered ---------- */
   .done{display:grid;grid-template-columns:minmax(260px,320px) 1fr;gap:30px;padding:26px 0 80px;align-items:start}
@@ -310,7 +332,7 @@
         <input id="driveUrl" spellcheck="false" placeholder="https://drive.google.com/file/d/1aB.../view?usp=sharing">
         <button class="btn primary" onclick="startDrive()">Sieve it</button>
       </div>
-      <p class="hint" id="pourHint">Any Drive link works — <span style="color:var(--dim)">file/d/…</span>, <span style="color:var(--dim)">open?id=…</span>, or a bare file ID.</p>
+      <p class="hint" id="pourHint">Any Drive link works — <span style="color:var(--dim)">file/d/…</span>, <span style="color:var(--dim)">open?id=…</span>, a bare file ID, or any direct https media URL. Read in this tab; no server involved.</p>
 
       <div class="btnrow" style="margin-top:22px">
         <button class="btn" onclick="startDemo()">▶ Run the 8-hour demo</button>
@@ -324,7 +346,7 @@
         <li><span class="no">01</span><div><b>Your disk stays empty.</b> The engine reads the source through <i>once</i> and discards it as it goes — measured at 1.30× the file size, nothing stored, on its disk or yours. The only file that ever lands on your machine is the finished short, about 5 MB.</div></li>
         <li><span class="no">02</span><div><b>The transcript is the timeline.</b> Strike a sentence, it's gone from the video. Silence is struck for you. Nobody scrubs anything.</div></li>
         <li><span class="no">03</span><div><b>The search index for 8 hours is 3.4 MB — 0.03% of the video.</b> Finding a good clip needs words and loudness, not pixels. Pixels are decoded for the 45 seconds you actually chose, and not one second earlier.</div></li>
-        <li><span class="no">04</span><div><b>The meme sounds are synthesised, not sampled.</b> No sound pack to download, and nothing for Content ID to claim — a vine boom made of two oscillators is not a recording of anything.</div></li>
+        <li><span class="no">04</span><div><b>31 meme sounds, synthesised, 0 MB.</b> Airhorns, vine booms, risers, a metal pipe, a sad trombone — each one two or three oscillators and a filter, built at the moment you render. No pack to download, and nothing for Content ID to fingerprint, because none of them is a recording of anything. One tap, or keys 1–8.</div></li>
         <li><span class="no">05</span><div><b>The ranking shows its work.</b> Six signals, each one legible, each one overridable. A score you can't argue with is a score you can't trust.</div></li>
       </ol>
 
@@ -395,6 +417,8 @@
           <div class="scrub" id="scrub"><div class="track"></div><div class="fill" id="scrubFill"></div></div>
           <div class="t" id="clock">0:00 / 0:00</div>
         </div>
+        <div class="board" id="board"></div>
+        <p class="hint" style="margin-top:8px;font-size:10.5px">One tap drops it at the playhead. Hover to hear it. All 31 are synthesised — nothing downloads.</p>
         <div class="stagemeta" id="stagemeta"></div>
       </div>
       <div class="editor">
@@ -402,6 +426,12 @@
           <label>Hook card — the first 1.4 seconds, in big type</label>
           <div class="ed" id="hookEd" contenteditable="true" spellcheck="false"></div>
           <div class="cc" id="hookCount"></div>
+        </div>
+        <div class="hookcard" id="sayBox" style="display:none;border-left-color:var(--cool)">
+          <label>Say the line — no transcript, so type what was said and Sieve aligns it to the audio</label>
+          <textarea id="sayEd" spellcheck="false" placeholder="Type or paste what is said in this clip. Sieve spreads it across the speech it detected, weighted by syllables, so the words land on the voice and skip the pauses."
+            style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:inherit;font-size:15px;line-height:1.5;padding:11px;resize:vertical;min-height:76px;outline:none"></textarea>
+          <div class="cc" id="sayCount"></div>
         </div>
         <div class="knobs" id="knobs"></div>
         <div class="edhead"><h3>Transcript — this is the timeline</h3><div class="hint" id="cutStats"></div></div>
@@ -472,10 +502,27 @@
       breaks every "just pipe it into stdin" design.</p>
 
     <h3>The sounds are oscillators, not samples.</h3>
-    <p>Every meme SFX in here is synthesised at render time out of two or three oscillators and a filter.
-      That's zero MB of sound library, zero licensing, and — the part that actually matters — nothing for
-      YouTube's Content ID to match against, because a vine boom made of a sine sweep is not a recording of
-      anything. A downloaded meme pack is a copyright claim waiting to happen.</p>
+    <p>All 31 of them are synthesised at render time out of two or three oscillators and a filter, from four
+      shared helpers. That's zero MB of sound library, zero licensing, and — the part that actually matters —
+      nothing for YouTube's Content ID to match against, because fingerprinting matches <i>recordings</i>, and a
+      vine boom made of a sine sweep is not a recording of anything. A downloaded "free meme sounds" pack is
+      the opposite bet: most of them contain copyrighted recordings, and the claim arrives after you publish.</p>
+
+    <h3>Drive, read in the tab, with nothing in the middle.</h3>
+    <p>Google serves <code>drive/v3/files/&lt;id&gt;?alt=media</code> with the page origin reflected in
+      <code>access-control-allow-origin</code>, and it honours <code>Range</code>. So the browser streams the
+      file straight from Google as it scans — a 9.5&nbsp;MB test file took <b>four range requests</b> — and the
+      canvas stays <b>untainted</b>, which is the bit that lets the renderer use the real pixels. The credential
+      rides in the URL because a <code>&lt;video&gt;</code> element cannot send an <code>Authorization</code>
+      header; it stays in your browser and goes to Google, because this page has no backend to send it anywhere
+      else.</p>
+    <p>A browser will not play faster than <b>16×</b> — <code>playbackRate = 32</code> throws
+      <code>NotSupportedError</code> — so scanning is duration ÷ 16: four minutes for an hour, half an hour for
+      eight. Rather than pretend otherwise, Sieve asks which part you want. Twenty minutes of an eight-hour
+      recording is seventy-five seconds of scanning.</p>
+    <p>And when there are no words, you type the line instead of downloading a model: Sieve spreads it across
+      the speech it detected, weighted by syllables, so every word lands on a voice and skips the pauses. That
+      is forced alignment's useful ninety percent for none of its cost.</p>
 
     <h3>The ranking argues its case.</h3>
     <p>Auto-clippers fail in one specific way: they hand you a clip that opens on <i>"so that's exactly why he
@@ -887,7 +934,7 @@ function findCandidates(idx,sents){
    and nothing for Content ID to match — a vine boom made of a sine sweep is
    not a recording of anything, so it cannot be claimed.
    ========================================================================= */
-let AC=null, BUS=null, REC=null, NOISE=null;
+let AC=null, BUS=null, REC=null, NOISE=null, VSRC=null, VGAIN=null;
 function ac(){
   if(!AC){
     AC=new (window.AudioContext||window.webkitAudioContext)();
@@ -899,79 +946,250 @@ function ac(){
   if(AC.state==='suspended') AC.resume();
   return AC;
 }
+/* A media element can have exactly ONE MediaElementAudioSourceNode, ever, so
+   it is created once here and reused by the scanner, the player and the
+   recorder. VGAIN is how the scan stays silent: the graph still has to reach
+   the destination or the browser never pulls it (that is the bug that made
+   the first scan return pure silence), so we route through a gain of 0. */
+function videoSource(){
+  ac();
+  if(!VSRC&&S.video){
+    try{
+      VSRC=AC.createMediaElementSource(S.video);
+      VGAIN=AC.createGain(); VGAIN.gain.value=1;
+      VSRC.connect(VGAIN).connect(BUS);
+    }catch(e){ VSRC=null; }
+  }
+  return VSRC;
+}
+const videoAudio=on=>{ if(VGAIN) VGAIN.gain.value=on?1:0; };
 function recBus(){ ac(); if(!REC){ REC=AC.createMediaStreamDestination(); BUS.connect(REC); } return REC; }
 function noiseSrc(){ const s=ac().createBufferSource(); s.buffer=NOISE; s.loop=true; return s; }
 function env(g,t,pts){ g.gain.setValueAtTime(0,t); for(const [dt,v,exp] of pts){
   if(exp) g.gain.exponentialRampToValueAtTime(Math.max(.0001,v),t+dt); else g.gain.linearRampToValueAtTime(v,t+dt); } }
 function chain(t,dur,nodes,gain){ const g=ac().createGain(); g.gain.value=gain==null?1:gain; nodes.concat([g,BUS]).reduce((a,b)=>(a.connect(b),b)); return g; }
 
+/* ---- synthesis helpers: every sound below is built out of these ---- */
+function tone(t,o){                                  // one oscillator, swept
+  const a=ac(),x=a.createOscillator(),g=a.createGain();
+  x.type=o.type||'sine';
+  x.frequency.setValueAtTime(o.f0,t);
+  if(o.f1!=null) o.lin ? x.frequency.linearRampToValueAtTime(o.f1,t+(o.sweep||o.dur))
+                       : x.frequency.exponentialRampToValueAtTime(Math.max(1,o.f1),t+(o.sweep||o.dur));
+  if(o.steps) o.steps.forEach(([dt,f])=>x.frequency.setValueAtTime(f,t+dt));
+  let node=x;
+  if(o.lp){ const f=a.createBiquadFilter(); f.type='lowpass'; f.frequency.value=o.lp; if(o.Q)f.Q.value=o.Q; x.connect(f); node=f; }
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(o.gain==null?.3:o.gain,t+(o.atk||.008));
+  if(o.hold) g.gain.setValueAtTime(o.gain==null?.3:o.gain,t+o.hold);
+  g.gain.exponentialRampToValueAtTime(.0001,t+o.dur);
+  node.connect(g).connect(BUS);
+  x.start(t); x.stop(t+o.dur+.02);
+  return x;
+}
+function hiss(t,o){                                  // noise through a filter
+  const a=ac(),n=noiseSrc(),f=a.createBiquadFilter(),g=a.createGain();
+  f.type=o.type||'bandpass'; f.Q.value=o.Q==null?1:o.Q;
+  f.frequency.setValueAtTime(o.f0,t);
+  if(o.f1!=null) f.frequency.exponentialRampToValueAtTime(Math.max(20,o.f1),t+(o.sweep||o.dur));
+  if(o.rate) n.playbackRate.value=o.rate;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(o.gain==null?.25:o.gain,t+(o.atk||.006));
+  if(o.hold) g.gain.setValueAtTime(o.gain==null?.25:o.gain,t+o.hold);
+  g.gain.exponentialRampToValueAtTime(.0001,t+o.dur);
+  n.connect(f).connect(g).connect(BUS);
+  n.start(t); n.stop(t+o.dur+.02);
+}
+function bell(t,parts,dur,gain){                     // inharmonic partials = metal
+  parts.forEach(([f,v,d])=>tone(t,{type:'sine',f0:f,dur:(d||1)*dur,gain:(gain==null?.2:gain)*v,atk:.004}));
+}
+function chord(t,freqs,o){ freqs.forEach(f=>tone(t,{...o,f0:f,f1:o.f1?o.f1*(f/freqs[0]):null})); }
+
+/* =========================== THE SOUND LIBRARY ===========================
+   31 sounds, 0 MB. Each one is two or three oscillators and a filter, built
+   at render time. Nothing here is a recording of anything, which is the whole
+   point: Content ID matches audio fingerprints of recordings, so there is
+   nothing here for it to match. (That is a technical statement about how
+   fingerprinting works, not legal advice.)
+   ========================================================================= */
+const SFXCATS=[['impact','Impacts & punchlines'],['hype','Hype'],['comedy','Comedy & reactions'],
+               ['tension','Tension & reveals'],['ui','Notification & game']];
 const SFXLIB = {
-  boom:{name:'Vine boom',emoji:'💥',why:'after an absolute statement',dur:.8,play(t){
-    const a=ac(),o=a.createOscillator(),g=a.createGain(),n=noiseSrc(),lp=a.createBiquadFilter(),ng=a.createGain();
-    o.type='sine'; o.frequency.setValueAtTime(115,t); o.frequency.exponentialRampToValueAtTime(27,t+.55);
-    env(g,t,[[.008,1.0],[.72,.0001,1]]); o.connect(g).connect(BUS); o.start(t); o.stop(t+.8);
-    lp.type='lowpass'; lp.frequency.value=190; env(ng,t,[[.004,.5],[.16,.0001,1]]);
-    n.connect(lp).connect(ng).connect(BUS); n.start(t); n.stop(t+.25);
+  /* ---------------------------------- impact --------------------------- */
+  boom:{name:'Vine boom',emoji:'💥',cat:'impact',why:'after an absolute statement',dur:.8,play(t){
+    tone(t,{type:'sine',f0:115,f1:27,dur:.75,gain:1,sweep:.55});
+    hiss(t,{type:'lowpass',f0:190,dur:.18,gain:.5});
   }},
-  airhorn:{name:'Airhorn',emoji:'📢',why:'after a number worth bragging about',dur:1.1,play(t){
-    const a=ac(),bp=a.createBiquadFilter(),g=a.createGain();
-    bp.type='bandpass'; bp.frequency.value=950; bp.Q.value=1.1; bp.connect(g).connect(BUS);
-    [1,1.005,2.001,2.99].forEach((m,k)=>{ const o=a.createOscillator(); o.type='sawtooth';
-      o.frequency.setValueAtTime(415*m,t); o.frequency.linearRampToValueAtTime(468*m,t+.09);
-      o.connect(bp); o.start(t); o.stop(t+1.05); });
-    g.gain.setValueAtTime(0,t);
-    [[0,.30],[.30,.42],[.42,.72],[.72,1.0]].forEach(([s,e],k)=>{
-      g.gain.setValueAtTime(k%2?0:.0001,t+s);
-      if(k%2===0){ g.gain.linearRampToValueAtTime(.34,t+s+.015); g.gain.setValueAtTime(.34,t+e-.02); g.gain.linearRampToValueAtTime(0,t+e); }
+  bassdrop:{name:'Bass drop',emoji:'🔊',cat:'impact',why:'on the hardest cut in the clip',dur:1.4,play(t){
+    tone(t,{type:'sine',f0:180,f1:24,dur:1.3,gain:1,sweep:1.1});
+    tone(t,{type:'triangle',f0:90,f1:22,dur:1.2,gain:.4,sweep:1.0});
+    hiss(t,{type:'lowpass',f0:400,f1:60,dur:.5,gain:.3});
+  }},
+  thud:{name:'Thud',emoji:'🥊',cat:'impact',why:'a small punctuation mark',dur:.4,play(t){
+    tone(t,{type:'sine',f0:150,f1:45,dur:.3,gain:.8,sweep:.2});
+    hiss(t,{type:'lowpass',f0:250,dur:.1,gain:.35});
+  }},
+  pipe:{name:'Metal pipe',emoji:'🪈',cat:'impact',why:'the punchline landing badly, on purpose',dur:1.6,play(t){
+    [0,.19,.34,.46].forEach((dt,i)=>{
+      const k=1-i*.2;
+      bell(t+dt,[[412,1,.5],[1094,.7,.35],[1723,.5,.25],[2541,.35,.18],[3300,.2,.12]],1.1,.19*k);
+      hiss(t+dt,{f0:2600,Q:1.2,dur:.06,gain:.12*k});
     });
   }},
-  scratch:{name:'Record scratch',emoji:'🎚',why:'on a self-interruption',dur:.5,play(t){
+  anvil:{name:'Anvil',emoji:'🔔',cat:'impact',why:'a heavier version of the bell',dur:2,play(t){
+    bell(t,[[523,1,1],[1318,.6,.8],[2093,.4,.55],[2794,.25,.4]],1.9,.22);
+    hiss(t,{f0:3400,Q:.9,dur:.08,gain:.1});
+  }},
+
+  /* ----------------------------------- hype ---------------------------- */
+  airhorn:{name:'Airhorn',emoji:'📢',cat:'hype',why:'after a number worth bragging about',dur:.6,play(t){
+    const a=ac(),bp=a.createBiquadFilter(),g=a.createGain();
+    bp.type='bandpass'; bp.frequency.value=950; bp.Q.value=1.1; bp.connect(g).connect(BUS);
+    [1,1.005,2.001,2.99].forEach(m=>{ const o=a.createOscillator(); o.type='sawtooth';
+      o.frequency.setValueAtTime(415*m,t); o.frequency.linearRampToValueAtTime(468*m,t+.09);
+      o.connect(bp); o.start(t); o.stop(t+.58); });
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.34,t+.02);
+    g.gain.setValueAtTime(.34,t+.48); g.gain.linearRampToValueAtTime(0,t+.56);
+  }},
+  airhorn3:{name:'Airhorn ×3',emoji:'🎺',cat:'hype',why:'the unsubtle version',dur:1.6,play(t){
+    [0,.34,.68].forEach(dt=>SFXLIB.airhorn.play(t+dt));
+  }},
+  siren:{name:'Siren',emoji:'🚨',cat:'hype',why:'on something outrageous',dur:1.8,play(t){
+    const st=[]; for(let i=0;i<=12;i++) st.push([i*.14,i%2?1180:620]);
+    tone(t,{type:'sawtooth',f0:620,steps:st,dur:1.75,gain:.16,lp:2200,hold:1.5});
+  }},
+  applause:{name:'Applause',emoji:'👏',cat:'hype',why:'after the payoff lands',dur:2.2,play(t){
+    const a=ac(),n=noiseSrc(),bp=a.createBiquadFilter(),g=a.createGain();
+    bp.type='bandpass'; bp.frequency.value=2000; bp.Q.value=.7;
+    g.gain.setValueAtTime(0,t);
+    for(let i=0;i<70;i++){ const dt=.02+i*.03;
+      g.gain.setValueAtTime(.06+Math.random()*.16*(1-dt/2.2),t+dt); }
+    g.gain.linearRampToValueAtTime(0,t+2.15);
+    n.connect(bp).connect(g).connect(BUS); n.start(t); n.stop(t+2.2);
+    for(let i=0;i<26;i++) hiss(t+Math.random()*1.9,{f0:1200+Math.random()*2600,Q:3,dur:.035,gain:.05});
+  }},
+  sparkle:{name:'Sparkle',emoji:'✨',cat:'hype',why:'over the hook card',dur:1,play(t){
+    const sc=[1568,1760,2093,2637,3136,3520];
+    for(let i=0;i<9;i++) tone(t+i*.055,{type:'sine',f0:sc[(Math.random()*sc.length)|0],dur:.45,gain:.10,atk:.003});
+  }},
+
+  /* ---------------------------------- comedy --------------------------- */
+  bruh:{name:'Bruh',emoji:'🙄',cat:'comedy',why:'after something stupid',dur:.55,play(t){
+    tone(t,{type:'sawtooth',f0:142,f1:96,dur:.52,gain:.34,lp:950,Q:4,sweep:.42});
+    tone(t,{type:'square',f0:71,f1:48,dur:.5,gain:.16,lp:520,sweep:.42});
+  }},
+  trombone:{name:'Sad trombone',emoji:'🎭',cat:'comedy',why:'after an admission of failure',dur:1.5,play(t){
+    const a=ac(),lfo=a.createOscillator(),lg=a.createGain();
+    const o=tone(t,{type:'sawtooth',f0:233,steps:[[0,233],[.30,207],[.60,185],[.90,155]],f1:116,dur:1.45,gain:.26,lp:1100,hold:1.15,sweep:1.4});
+    lfo.frequency.value=5.5; lg.gain.value=6; lfo.connect(lg).connect(o.frequency); lfo.start(t); lfo.stop(t+1.5);
+  }},
+  slide:{name:'Slide whistle',emoji:'🛝',cat:'comedy',why:'on a swift exit',dur:.9,play(t){
+    tone(t,{type:'sine',f0:700,f1:2400,dur:.42,gain:.16,sweep:.38});
+    tone(t+.42,{type:'sine',f0:2400,f1:600,dur:.45,gain:.16,sweep:.42});
+    hiss(t,{f0:2000,Q:2,dur:.85,gain:.03});
+  }},
+  boing:{name:'Boing',emoji:'🪀',cat:'comedy',why:'a spring, for a bad idea',dur:.7,play(t){
+    const a=ac(),o=a.createOscillator(),g=a.createGain(),m=a.createOscillator(),mg=a.createGain();
+    o.type='triangle'; o.frequency.value=210;
+    m.frequency.value=13; mg.gain.setValueAtTime(190,t); mg.gain.exponentialRampToValueAtTime(2,t+.65);
+    m.connect(mg).connect(o.frequency);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.3,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.68);
+    o.connect(g).connect(BUS); o.start(t); m.start(t); o.stop(t+.7); m.stop(t+.7);
+  }},
+  exit:{name:'Exit whistle',emoji:'💨',cat:'comedy',why:'somebody leaving the room',dur:.8,play(t){
+    tone(t,{type:'sine',f0:1500,f1:280,dur:.75,gain:.14,sweep:.7});
+    hiss(t,{f0:1800,f1:400,Q:1.5,dur:.75,gain:.06,sweep:.7});
+  }},
+  rimshot:{name:'Ba-dum-tss',emoji:'🥁',cat:'comedy',why:'you told a joke',dur:1.2,play(t){
+    tone(t,{type:'sine',f0:200,f1:90,dur:.16,gain:.5,sweep:.12});
+    tone(t+.17,{type:'sine',f0:170,f1:80,dur:.16,gain:.45,sweep:.12});
+    hiss(t+.34,{type:'highpass',f0:5200,Q:.5,dur:.85,gain:.14});
+  }},
+  scratch:{name:'Record scratch',emoji:'🎚',cat:'comedy',why:'on a self-interruption',dur:.5,play(t){
     const a=ac(),n=noiseSrc(),bp=a.createBiquadFilter(),g=a.createGain();
     bp.type='bandpass'; bp.Q.value=7;
     [[0,700],[.07,2600],[.14,900],[.21,3000],[.30,1100],[.40,2200],[.5,600]].forEach(([dt,f])=>bp.frequency.setValueAtTime(f,t+dt));
     [[0,1.6],[.1,.55],[.2,1.9],[.32,.7],[.45,1.3]].forEach(([dt,r])=>n.playbackRate.setValueAtTime(r,t+dt));
-    env(g,t,[[.01,.42],[.42,.34],[.52,.0001,1]]);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.42,t+.01);
+    g.gain.setValueAtTime(.34,t+.42); g.gain.exponentialRampToValueAtTime(.0001,t+.52);
     n.connect(bp).connect(g).connect(BUS); n.start(t); n.stop(t+.55);
   }},
-  riser:{name:'Suspense riser',emoji:'📈',why:'the two seconds before the payoff',dur:1.9,play(t){
-    const a=ac(),o=a.createOscillator(),g=a.createGain(),n=noiseSrc(),hp=a.createBiquadFilter(),ng=a.createGain();
-    o.type='sawtooth'; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(1500,t+1.8);
-    env(g,t,[[1.7,.16],[1.88,.0001,1]]); o.connect(g).connect(BUS); o.start(t); o.stop(t+1.9);
-    hp.type='highpass'; hp.frequency.setValueAtTime(400,t); hp.frequency.exponentialRampToValueAtTime(4200,t+1.8);
-    env(ng,t,[[1.75,.22],[1.9,.0001,1]]); n.connect(hp).connect(ng).connect(BUS); n.start(t); n.stop(t+1.95);
+  raspberry:{name:'Raspberry',emoji:'😝',cat:'comedy',why:'the most-used sound on the internet',dur:.6,play(t){
+    const a=ac(),o=a.createOscillator(),g=a.createGain(),m=a.createOscillator(),mg=a.createGain(),lp=a.createBiquadFilter();
+    o.type='sawtooth'; o.frequency.setValueAtTime(96,t); o.frequency.exponentialRampToValueAtTime(62,t+.55);
+    m.type='square'; m.frequency.value=32; mg.gain.value=34; m.connect(mg).connect(o.frequency);
+    lp.type='lowpass'; lp.frequency.setValueAtTime(700,t); lp.frequency.exponentialRampToValueAtTime(240,t+.55);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.26,t+.02);
+    g.gain.setValueAtTime(.22,t+.45); g.gain.exponentialRampToValueAtTime(.0001,t+.58);
+    o.connect(lp).connect(g).connect(BUS); o.start(t); m.start(t); o.stop(t+.6); m.stop(t+.6);
   }},
-  ding:{name:'Payoff bell',emoji:'✨',why:'on the line that lands',dur:.9,play(t){
-    const a=ac();
-    [[1568,.20],[3136,.09],[4704,.04]].forEach(([f,v])=>{ const o=a.createOscillator(),g=a.createGain();
-      o.type='sine'; o.frequency.value=f; env(g,t,[[.006,v],[.85,.0001,1]]); o.connect(g).connect(BUS); o.start(t); o.stop(t+.9); });
+
+  /* --------------------------------- tension --------------------------- */
+  riser:{name:'Suspense riser',emoji:'📈',cat:'tension',why:'the two seconds before the payoff',dur:1.9,play(t){
+    tone(t,{type:'sawtooth',f0:150,f1:1500,dur:1.88,gain:.16,sweep:1.8,atk:1.7});
+    hiss(t,{type:'highpass',f0:400,f1:4200,Q:.7,dur:1.9,gain:.22,sweep:1.8,atk:1.75});
   }},
-  trombone:{name:'Sad trombone',emoji:'🎺',why:'after an admission of failure',dur:1.5,play(t){
-    const a=ac(),o=a.createOscillator(),lp=a.createBiquadFilter(),g=a.createGain(),lfo=a.createOscillator(),lg=a.createGain();
-    o.type='sawtooth'; lp.type='lowpass'; lp.frequency.value=1100;
-    [[0,233],[.30,207],[.60,185],[.90,155]].forEach(([dt,f])=>o.frequency.setValueAtTime(f,t+dt));
-    o.frequency.exponentialRampToValueAtTime(116,t+1.4);
-    lfo.frequency.value=5.5; lg.gain.value=6; lfo.connect(lg).connect(o.frequency); lfo.start(t); lfo.stop(t+1.5);
-    env(g,t,[[.03,.26],[1.15,.22],[1.45,.0001,1]]);
-    o.connect(lp).connect(g).connect(BUS); o.start(t); o.stop(t+1.5);
+  dundun:{name:'Dun dun dunnn',emoji:'🎻',cat:'tension',why:'a revelation',dur:2.4,play(t){
+    chord(t,[147,220,294],{type:'sawtooth',dur:.4,gain:.11,lp:1400});
+    chord(t+.45,[147,220,294],{type:'sawtooth',dur:.4,gain:.11,lp:1400});
+    chord(t+.95,[110,165,220,277],{type:'sawtooth',dur:1.4,gain:.11,lp:1200,hold:.9});
   }},
-  bruh:{name:'Bruh',emoji:'🙄',why:'after something stupid',dur:.55,play(t){
-    const a=ac(),o=a.createOscillator(),o2=a.createOscillator(),lp=a.createBiquadFilter(),g=a.createGain();
-    o.type='sawtooth'; o2.type='square';
-    o.frequency.setValueAtTime(142,t); o.frequency.exponentialRampToValueAtTime(96,t+.42);
-    o2.frequency.setValueAtTime(71,t); o2.frequency.exponentialRampToValueAtTime(48,t+.42);
-    lp.type='lowpass'; lp.Q.value=4; lp.frequency.setValueAtTime(950,t); lp.frequency.exponentialRampToValueAtTime(210,t+.45);
-    env(g,t,[[.02,.34],[.38,.30],[.52,.0001,1]]);
-    o.connect(lp); o2.connect(lp); lp.connect(g).connect(BUS);
-    o.start(t); o2.start(t); o.stop(t+.55); o2.stop(t+.55);
+  drone:{name:'Ominous drone',emoji:'🌑',cat:'tension',why:'under a long confession',dur:2.6,play(t){
+    tone(t,{type:'sine',f0:55,dur:2.5,gain:.24,atk:.4,hold:2});
+    tone(t,{type:'sine',f0:55.9,dur:2.5,gain:.2,atk:.4,hold:2});
+    tone(t,{type:'triangle',f0:110,dur:2.5,gain:.08,atk:.6,hold:1.9});
   }},
-  whoosh:{name:'Whoosh',emoji:'🌀',why:'on a hard cut',dur:.45,play(t){
+  heartbeat:{name:'Heartbeat',emoji:'💓',cat:'tension',why:'stakes, without saying so',dur:1.8,play(t){
+    [0,.9].forEach(dt=>{
+      tone(t+dt,{type:'sine',f0:70,f1:38,dur:.2,gain:.7,sweep:.16});
+      tone(t+dt+.28,{type:'sine',f0:62,f1:34,dur:.22,gain:.5,sweep:.18});
+    });
+  }},
+  tick:{name:'Ticking clock',emoji:'⏱',cat:'tension',why:'a deadline in the story',dur:2.1,play(t){
+    for(let i=0;i<4;i++){
+      hiss(t+i*.5,{f0:i%2?2600:2100,Q:6,dur:.05,gain:.2});
+      tone(t+i*.5,{type:'square',f0:i%2?900:780,dur:.03,gain:.08});
+    }
+  }},
+
+  /* ------------------------------ notification ------------------------- */
+  ding:{name:'Payoff bell',emoji:'🔆',cat:'ui',why:'on the line that lands',dur:.9,play(t){
+    bell(t,[[1568,1,1],[3136,.45,.55],[4704,.2,.3]],.88,.2);
+  }},
+  pop:{name:'Message pop',emoji:'💬',cat:'ui',why:'a quick aside or a caption change',dur:.25,play(t){
+    tone(t,{type:'sine',f0:520,f1:980,dur:.16,gain:.26,sweep:.09});
+    hiss(t,{f0:3000,Q:4,dur:.04,gain:.06});
+  }},
+  coin:{name:'Coin',emoji:'🪙',cat:'ui',why:'money mentioned',dur:.5,play(t){
+    tone(t,{type:'square',f0:988,dur:.08,gain:.14});
+    tone(t+.08,{type:'square',f0:1319,dur:.4,gain:.14});
+  }},
+  levelup:{name:'Level up',emoji:'⬆️',cat:'ui',why:'a win in the story',dur:.8,play(t){
+    [523,659,784,1047].forEach((f,i)=>tone(t+i*.09,{type:'square',f0:f,dur:i===3?.42:.12,gain:.12}));
+  }},
+  buzz:{name:'Wrong answer',emoji:'❌',cat:'ui',why:'a bad take',dur:.5,play(t){
+    const st=[]; for(let i=0;i<10;i++) st.push([i*.045,i%2?110:104]);
+    tone(t,{type:'sawtooth',f0:110,steps:st,dur:.46,gain:.2,lp:900,hold:.38});
+  }},
+  shutter:{name:'Camera shutter',emoji:'📷',cat:'ui',why:'freeze-frame moment',dur:.3,play(t){
+    hiss(t,{f0:1800,Q:2,dur:.05,gain:.28});
+    hiss(t+.09,{f0:1200,Q:2.5,dur:.07,gain:.22});
+    tone(t,{type:'square',f0:420,dur:.03,gain:.06});
+  }},
+  typewriter:{name:'Typewriter',emoji:'⌨️',cat:'ui',why:'under on-screen text',dur:.7,play(t){
+    for(let i=0;i<6;i++) hiss(t+i*.11,{f0:1700+Math.random()*900,Q:5,dur:.04,gain:.14});
+  }},
+  whoosh:{name:'Whoosh',emoji:'🌀',cat:'ui',why:'on a hard cut',dur:.45,play(t){
     const a=ac(),n=noiseSrc(),bp=a.createBiquadFilter(),g=a.createGain();
     bp.type='bandpass'; bp.Q.value=1.4;
-    bp.frequency.setValueAtTime(240,t); bp.frequency.exponentialRampToValueAtTime(3200,t+.22); bp.frequency.exponentialRampToValueAtTime(320,t+.44);
-    env(g,t,[[.05,.26],[.42,.0001,1]]);
+    bp.frequency.setValueAtTime(240,t); bp.frequency.exponentialRampToValueAtTime(3200,t+.22);
+    bp.frequency.exponentialRampToValueAtTime(320,t+.44);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.26,t+.05); g.gain.exponentialRampToValueAtTime(.0001,t+.42);
     n.connect(bp).connect(g).connect(BUS); n.start(t); n.stop(t+.5);
   }},
 };
+// the eight on the number keys — the ones you actually reach for
+const SFXQUICK=['boom','airhorn','scratch','bruh','riser','ding','rimshot','whoosh'];
 const SFXKEYS=Object.keys(SFXLIB);
 function playSfx(id,when){ const s=SFXLIB[id]; if(!s) return; ac(); s.play(when==null?AC.currentTime+.02:when); }
 
@@ -999,6 +1217,13 @@ function autoSfx(sents,clipDur){
      bell on every laugh, a boom on the loudest line. The rate limit below
      still thins them, because eight sounds in nine seconds is not a joke,
      it's a bot. */
+  if(S.index.noText&&S.opts.density!=='none'){
+    // no words means no content rules; the envelope is all there is, so the
+    // loudest moment gets the hit and the user taps in the rest
+    let loud=null,lv=-1;
+    for(const s of sents){ const e=energyPeak(S.index,s.t0,s.t1); if(e>lv){ lv=e; loud=s; } }
+    if(loud) out.push({id:'boom',sid:loud.id,at:'after',src:loud.t1+.05,on:true,auto:true,pri:1});
+  }
   if(S.opts.density==='unhinged'){
     const have=new Set(out.map(s=>s.sid));
     let loud=null,lv=-1;
@@ -1037,7 +1262,7 @@ let SENTS=[], CLIPSENTS=[], PROG=null;
 function buildProgram(){
   const kept=CLIPSENTS.filter(s=>!S.cut.has(s.id));
   const words=[];
-  for(const s of kept) for(const w of s.words) words.push({w:w.w,t:w.t,d:w.d,spk:w.spk,lau:w.lau,sid:s.id});
+  for(const s of kept) for(const w of s.words) words.push({w:w.w,t:w.t,d:w.d,spk:w.spk,lau:w.lau,nc:w.nc,sid:s.id});
   if(!words.length){ PROG={segs:[],dur:0,words:[],lines:[],sfx:[],gaps:[],cuts:0,saved:0}; return PROG; }
   const segs=[], gaps=[]; let cs=Math.max(0,words[0].t-.07), prevEnd=words[0].t+words[0].d, saved=0;
   for(let k=1;k<words.length;k++){
@@ -1057,9 +1282,11 @@ function buildProgram(){
     let best=map[0],bd=1e9; for(const m of map){ const d=t<m.s?m.s-t:t-m.e; if(d<bd){bd=d;best=m;} }
     return t<best.s?best.o:best.o+(best.e-best.s); };
   const lwords=words.map(w=>({...w, lt:toLocal(w.t), emph:EMPH.test(w.w)}));
+  const capSrc=(S.index.noText&&S.caption&&S.caption.trim())
+    ? alignCaptions({words:lwords},S.caption) : lwords;
   // caption lines: 3–4 words, broken on punctuation — the shorts grammar
   const lines=[]; let cur=null;
-  for(const w of lwords){
+  for(const w of capSrc){
     if(w.lau){ if(cur){lines.push(cur);cur=null;} lines.push({t0:w.lt,t1:w.lt+w.d,words:[w],lau:1}); continue; }
     if(!cur) cur={t0:w.lt,t1:w.lt+w.d,words:[]};
     cur.words.push(w); cur.t1=w.lt+w.d;
@@ -1069,6 +1296,33 @@ function buildProgram(){
   const sfx=S.sfx.filter(s=>s.on&&!S.cut.has(s.sid)).map(s=>({...s, lt:toLocal(s.src)}));
   PROG={segs,dur:off,words:lwords,lines,sfx,gaps,cuts:segs.length-1,saved,kept};
   return PROG;
+}
+/* No transcript, no problem worth downloading a model for. You type the line
+   — twelve words for a 45-second clip — and Sieve distributes it across the
+   speech runs it detected, weighted by syllables, so every word lands inside
+   actual speech and the silences are skipped. That is forced alignment's
+   useful 90% for none of its cost, and it beats a 40 MB model you have to
+   wait for. */
+function syllables(w){
+  const x=w.toLowerCase().replace(/[^a-z']/g,'').replace(/e$/,'');
+  return Math.max(1,(x.match(/[aeiouy]+/g)||['x']).length);
+}
+function alignCaptions(prog,text){
+  const ws=(text||'').trim().split(/\s+/).filter(Boolean);
+  const runs=prog.words.filter(w=>w.nc);
+  if(!ws.length||!runs.length) return [];
+  const tot=ws.reduce((a,w)=>a+syllables(w),0);
+  const spoken=runs.reduce((a,r)=>a+r.d,0);
+  const toLocal=st=>{ let acc=0;
+    for(const r of runs){ if(st<=acc+r.d) return r.lt+(st-acc); acc+=r.d; }
+    const L=runs[runs.length-1]; return L.lt+L.d; };
+  const out=[]; let st=0;
+  for(const w of ws){
+    const span=spoken*syllables(w)/tot, a=toLocal(st), b=toLocal(st+span);
+    out.push({w,lt:a,d:Math.max(.12,b-a),t:-1,emph:EMPH.test(w)});
+    st+=span;
+  }
+  return out;
 }
 const EMPH=/^(never|nobody|everyone|everybody|always|best|worst|biggest|only|empty|nothing|three|forty-one|\$?\d[\d,.]*|million|thousand|hundred|dumbest|insane|free)[,.?!]?$/i;
 </script>
@@ -1193,12 +1447,17 @@ function drawCards(){
 /* ============================== THE CUT ================================== */
 function openClip(c){
   S.clip=c; CLIPSENTS=SENTS.slice(c.i,c.j+1);
-  S.cut=new Set(); S.keepGap=new Set();
-  S.hook=shorten(c.hookText,62);
+  S.cut=new Set(); S.keepGap=new Set(); S.caption='';
+  const noText=S.index.noText;
+  S.hook=noText?'':shorten(c.hookText,62);
   S.sfx=autoSfx(CLIPSENTS,c.dur);
-  $('#cutTitle').textContent='#'+(S.cands.indexOf(c)+1)+' · '+hhmmss(c.t0);
+  $('#sayBox').style.display=noText?'block':'none';
+  $('#sayEd').value='';
   $('#hookEd').textContent=S.hook;
-  drawKnobs(); refresh(); go('cut'); drawFrame(0);
+  $('#hookEd').dataset.ph=noText?'Type the hook — the big text for the first 1.4 seconds':'';
+  document.querySelector('.edhead h3').textContent=noText?'Speech runs — this is the timeline':'Transcript — this is the timeline';
+  $('#cutTitle').textContent='#'+(S.cands.indexOf(c)+1)+' · '+hhmmss(c.t0);
+  drawKnobs(); drawBoard(); refresh(); go('cut'); drawFrame(0);
 }
 function shorten(t,n){ t=t.replace(/\s+/g,' ').trim(); if(t.length<=n) return t;
   const cut=t.slice(0,n); return cut.slice(0,cut.lastIndexOf(' '))+'…'; }
@@ -1262,23 +1521,90 @@ function sfxChip(sf,n){
 function openSfxMenu(e,sid,at,n){
   e.stopPropagation();
   const m=$('#sfxMenu'); m.innerHTML='';
-  m.appendChild(el('div','hd',n==null?'Drop a sound':'Swap this sound'));
-  SFXKEYS.forEach((id,i)=>{
-    const l=SFXLIB[id], b=el('button');
-    b.innerHTML='<span style="font-size:17px">'+l.emoji+'</span><span>'+l.name+'<small>'+(i+1)+' · '+l.why+'</small></span>';
-    b.onmouseenter=()=>playSfx(id);
-    b.onclick=()=>{ if(n==null) S.sfx.push({id,sid,at,src:sentById(sid)[at==='before'?'t0':'t1']+(at==='before'?-.12:.06),on:true});
-      else S.sfx[n].id=id;
-      S.sfx.sort((a,b)=>a.src-b.src); m.classList.remove('on'); refresh(); };
-    m.appendChild(b);
-  });
-  if(n!=null){ const b=el('button'); b.innerHTML='<span style="font-size:17px">⌫</span><span>Remove<small>no sound here</small></span>';
-    b.onclick=()=>{ S.sfx.splice(n,1); m.classList.remove('on'); refresh(); }; m.appendChild(b); }
+  m.appendChild(el('div','hd',n==null?'Drop a sound — 31 synthesised, 0 MB':'Swap this sound'));
+  const q=el('input','q'); q.placeholder='search 31 sounds…'; q.spellcheck=false;
+  m.appendChild(q);
+  const body=el('div');
+  m.appendChild(body);
+  const place=id=>{
+    if(n==null){ const t=sentById(sid); S.sfx.push({id,sid,at,src:t[at==='before'?'t0':'t1']+(at==='before'?-.12:.06),on:true}); }
+    else S.sfx[n].id=id;
+    S.sfx.sort((a,b)=>a.src-b.src); m.classList.remove('on'); refresh();
+    toast(SFXLIB[id].emoji+' '+SFXLIB[id].name);
+  };
+  const paint=filter=>{
+    body.innerHTML='';
+    const f=(filter||'').trim().toLowerCase();
+    for(const [cat,label] of SFXCATS){
+      const ids=Object.keys(SFXLIB).filter(id=>SFXLIB[id].cat===cat&&
+        (!f||SFXLIB[id].name.toLowerCase().includes(f)||SFXLIB[id].why.toLowerCase().includes(f)||cat.includes(f)));
+      if(!ids.length) continue;
+      body.appendChild(el('div','hd',label));
+      const g=el('div','sfxgrid');
+      for(const id of ids){
+        const l=SFXLIB[id], b=el('button'), k=SFXQUICK.indexOf(id);
+        const nm=el('div','nm');
+        nm.appendChild(el('b',null,l.emoji));
+        nm.appendChild(el('i',null,l.name)).style.fontStyle='normal';
+        if(k>=0) nm.appendChild(el('span','k',String(k+1)));
+        b.appendChild(nm);
+        b.appendChild(el('small',null,l.why));
+        b.onmouseenter=()=>playSfx(id);
+        b.onclick=()=>place(id);
+        g.appendChild(b);
+      }
+      body.appendChild(g);
+    }
+    if(!body.children.length) body.appendChild(el('div','hd','nothing matches that'));
+    if(n!=null){
+      const b=el('button'); b.style.margin='6px 3px 3px';
+      b.innerHTML='<span style="font-size:15px">⌫</span> <span>Remove this sound</span>';
+      b.onclick=()=>{ S.sfx.splice(n,1); m.classList.remove('on'); refresh(); };
+      body.appendChild(b);
+    }
+  };
+  paint('');
+  q.oninput=()=>paint(q.value);
   m.classList.add('on');
   const r=m.getBoundingClientRect();
   m.style.left=clamp(e.clientX-20,8,innerWidth-r.width-8)+'px';
   m.style.top=clamp(e.clientY+14,8,innerHeight-r.height-8)+'px';
+  setTimeout(()=>q.focus(),30);
 }
+
+/* Drop a sound at the playhead — the fast path. Sounds attach to the sentence
+   the playhead is inside, so they survive a re-cut. */
+function dropAtPlayhead(id){
+  if(!S.clip) return;
+  const src=localToSrc(S.playT||0);
+  let s=CLIPSENTS.find(x=>src>=x.t0-.3&&src<=x.t1+.3)||CLIPSENTS[0];
+  S.sfx.push({id,sid:s.id,at:'after',src:clamp(src,s.t0,s.t1+.4),on:true});
+  S.sfx.sort((a,b)=>a.src-b.src);
+  playSfx(id); refresh();
+  toast(SFXLIB[id].emoji+' '+SFXLIB[id].name+' at '+mmss(S.playT||0));
+}
+function drawBoard(){
+  const b=$('#board'); if(!b) return;
+  b.innerHTML='';
+  SFXQUICK.forEach((id,i)=>{
+    const l=SFXLIB[id], n=el('button');
+    n.title=l.name+' — '+l.why+'  (key '+(i+1)+')';
+    n.appendChild(el('b',null,l.emoji));
+    n.appendChild(el('span',null,String(i+1)));
+    n.onmouseenter=()=>playSfx(id);
+    n.onclick=()=>dropAtPlayhead(id);
+    b.appendChild(n);
+  });
+  const more=el('button','more');
+  more.title='All 31 sounds';
+  more.appendChild(el('b',null,'⋯'));
+  more.appendChild(el('span',null,'all 31'));
+  more.onclick=e=>{ const src=localToSrc(S.playT||0);
+    const s=CLIPSENTS.find(x=>src>=x.t0-.3&&src<=x.t1+.3)||CLIPSENTS[0];
+    openSfxMenu(e,s.id,'after',null); };
+  b.appendChild(more);
+}
+
 const sentById=id=>CLIPSENTS.find(s=>s.id===id);
 function spkName(k){
   if(!S.index) return '—';
@@ -1301,12 +1627,19 @@ function drawStats(){
     '<div>index held in RAM <b>'+mb(idxB)+'</b></div>'+
     '<div>'+px+'</div>';
   $('#hookCount').textContent=S.hook.length+' characters · shown for the first 1.4s, then it gets out of the way';
+  if(S.index.noText){
+    const runs=p.words.filter(w=>w.nc).length, cw=(S.caption||'').trim().split(/\s+/).filter(Boolean).length;
+    $('#sayCount').textContent=cw
+      ? cw+' words aligned across '+runs+' speech runs · '+(p.dur/Math.max(1,cw)).toFixed(2)+'s per word average'
+      : runs+' speech runs detected — type the line and it will be aligned to them';
+  }
 }
 function drawPins(){
   const sc=$('#scrub'); sc.querySelectorAll('.sfxpin').forEach(n=>n.remove());
   PROG.sfx.forEach(s=>{ const p=el('div','sfxpin'); p.style.left=(s.lt/Math.max(1,PROG.dur)*100)+'%'; p.title=SFXLIB[s.id].name; sc.appendChild(p); });
 }
 $('#hookEd').addEventListener('input',e=>{ S.hook=e.target.textContent; drawStats(); drawFrame(S.playT||0); });
+$('#sayEd').addEventListener('input',e=>{ S.caption=e.target.value; refresh(); });
 $('#scrub').addEventListener('click',e=>{ const r=e.currentTarget.getBoundingClientRect();
   seek(clamp((e.clientX-r.left)/r.width,0,1)*PROG.dur); });
 document.addEventListener('click',e=>{ if(!e.target.closest('#sfxMenu')) $('#sfxMenu').classList.remove('on'); });
@@ -1509,7 +1842,7 @@ function renderShort(){
   ac();
   const stream=PV.captureStream(30);
   recBus().stream.getAudioTracks().forEach(tr=>stream.addTrack(tr));
-  if(S.video){ try{ if(!S.vsrc){ S.vsrc=AC.createMediaElementSource(S.video); S.vsrc.connect(BUS); } }catch(e){} }
+  if(S.video){ videoSource(); videoAudio(true); }
   const chunks=[];
   const mr=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:4200000,audioBitsPerSecond:128000});
   mr.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
@@ -1582,26 +1915,15 @@ function startDrive(){
   // any direct media URL works too — not everyone keeps 8 hours on Drive
   if(!id&&/^https?:\/\//i.test(raw)){
     if(eng) return runEngine(eng,{url:raw});
-    h.className='hint err'; h.textContent='That looks like a direct media URL, which needs the engine. Point Sieve at one below.';
+    return urlDirect(raw);
   }
   if(!id){ h.className='hint err';
     h.textContent='That is not a Drive link. Expected drive.google.com/file/d/<id>/view, …/open?id=<id>, the bare file ID, or any direct https media URL.';
     return; }
   if(eng) return runEngine(eng,{driveId:id});
-  h.className='hint';
-  h.innerHTML='Read file ID <b style="color:var(--cool)">'+id+'</b>. Now the honest part: a web page cannot read a private '+
-    'Drive file (CORS), and transcribing 8 hours in this tab would mean downloading a 300 MB model — which is the exact '+
-    'thing this app refuses to do to your laptop.<br><br>So point Sieve at an engine: <b>sieve-engine/</b> in this repo is one '+
-    'Node file that streams the bytes out of Drive, keeps nothing, and hands back a few MB of index. '+
-    'Or feel the whole loop right now with the demo — the editor, the ranking and the render are identical either way.';
-  const row=el('div','btnrow'); row.style.marginTop='16px';
-  const b1=el('button','btn sm','Point at an engine'); b1.onclick=()=>{
-    const v=prompt('Engine base URL (e.g. http://localhost:8787)',engineUrl()||'http://localhost:8787');
-    if(v){ localStorage.setItem('sieve.engine',v.replace(/\/$/,'')); toast('Engine set. Paste the link again.'); }
-  };
-  const b2=el('button','btn sm primary','Run the 8-hour demo'); b2.onclick=startDemo;
-  row.appendChild(b1); row.appendChild(b2); h.appendChild(row);
+  return driveDirect(id);          // read it straight into this tab
 }
+
 async function runEngine(base,payload){
   go('sift'); $('#siftLog').innerHTML='';
   $('#siftKicker').textContent='Sifting — '+base;
@@ -1645,6 +1967,291 @@ function adoptIndex(raw){
   logLine('candidates <b>'+S.cands.length+'</b>');
   setMeters({cand:S.cands.length,pct:100});
   setTimeout(showCatch,400);
+}
+
+/* ===================== DRIVE, READ IN THIS TAB =========================
+   Verified: https://www.googleapis.com/drive/v3/files/<id>?alt=media reflects
+   the page origin in access-control-allow-origin and honours Range. So with a
+   credential in the query string a browser can stream a Drive file directly —
+   no server, no download, and the canvas stays UNTAINTED, which is what lets
+   the renderer use the real pixels.
+
+   The credential goes in the URL because a <video> element cannot send an
+   Authorization header. An API key works for files shared "anyone with the
+   link"; an OAuth access token works for private ones.
+   ====================================================================== */
+const cred=()=>localStorage.getItem('sieve.gcred')||'';
+const credKind=c=>/^ya29\.|^ya\d{2}\.|^1\/\/|access_token/.test(c)?'access_token':'key';
+function mediaUrl(id){
+  const c=cred();
+  return 'https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(id)+
+         '?alt=media&supportsAllDrives=true&'+credKind(c)+'='+encodeURIComponent(c);
+}
+async function driveMeta(id){
+  const c=cred();
+  const u='https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(id)+
+    '?fields=name,size,mimeType,videoMediaMetadata&supportsAllDrives=true&'+credKind(c)+'='+encodeURIComponent(c);
+  const r=await fetch(u);
+  if(!r.ok){
+    let msg=r.status+'';
+    try{ const j=await r.json(); msg=j.error&&j.error.message||msg; }catch(e){}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+function credPanel(host,id){
+  const box=el('div'); box.style.marginTop='16px';
+  const f=el('div','paste'); f.style.margin='0 0 10px';
+  const i=el('input'); i.placeholder='Google API key, or an OAuth access token'; i.value=cred(); i.spellcheck=false;
+  const b=el('button','btn primary','Read it in this tab');
+  b.onclick=()=>{ const v=i.value.trim(); if(!v) return toast('Paste a key or a token first.');
+    localStorage.setItem('sieve.gcred',v); driveDirect(id); };
+  i.onkeydown=e=>{ if(e.key==='Enter') b.click(); };
+  f.appendChild(i); f.appendChild(b); box.appendChild(f);
+  const h=el('p','hint');
+  h.innerHTML='An <b>API key</b> reads any file shared <i>“anyone with the link”</i> — make one in 2 minutes at '+
+    '<a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">console.cloud.google.com/apis/credentials</a> '+
+    '(enable the Drive API, create an API key). For a <b>private</b> file, paste an OAuth access token instead — '+
+    '<a href="https://developers.google.com/oauthplayground/#step1&scopes=https%3A//www.googleapis.com/auth/drive.readonly" target="_blank" rel="noopener">the OAuth playground</a> '+
+    'will give you one with the <code>drive.readonly</code> scope.<br>'+
+    'It is stored in this browser only, and it is sent to Google and nowhere else — this page has no backend to send it to.';
+  box.appendChild(h);
+  host.appendChild(box);
+}
+
+/* Any URL that sends CORS works the same way as Drive does — same element,
+   same scan, same untainted canvas. */
+async function urlDirect(url){
+  go('sift'); $('#siftLog').innerHTML='';
+  $('#siftKicker').textContent='Direct URL — read in this tab';
+  $('#siftTitle').textContent='Opening the file where it lives.';
+  $('#siftSub').innerHTML='This needs the host to send <code>access-control-allow-origin</code>. If it does not, the browser will refuse and say so below.';
+  document.querySelectorAll('.streambox span')[0].textContent='Source';
+  setMeters({streamed:'—',minutes:'—',disk:'0 bytes',cand:'0',pct:6});
+  logLine(url.slice(0,72));
+  const v=$('#src'); v.crossOrigin='anonymous'; v.preload='metadata'; v.muted=false;
+  v.src=url; S.video=v; VSRC=null; VGAIN=null;
+  try{
+    await new Promise((res,rej)=>{ v.onloadedmetadata=res;
+      v.onerror=()=>rej(new Error('the browser refused that stream — either the host sends no CORS header, or this browser will not decode the format'));
+      setTimeout(()=>rej(new Error('timed out opening the stream')),45000); });
+  }catch(e){ logLine('<span style="color:var(--hot)">'+e.message+'</span>'); return; }
+  const dur=v.duration||0;
+  logLine('open · <b>'+v.videoWidth+'×'+v.videoHeight+'</b> · '+hhmmss(dur));
+  setMeters({minutes:Math.round(dur/60)+' min',pct:18});
+  S.pending={id:null,name:url.split('/').pop().split('?')[0]||'direct URL',bytes:0,dur};
+  askScanRange(dur);
+}
+
+async function driveDirect(id){
+  const h=$('#pourHint');
+  if(!cred()){
+    h.className='hint';
+    h.innerHTML='Read file ID <b style="color:var(--cool)">'+id+'</b>. To read it straight into this tab, Sieve needs a Google credential — '+
+      'it talks to Google directly, so there is nothing in the middle to trust.';
+    credPanel(h,id); return;
+  }
+  go('sift'); $('#siftLog').innerHTML='';
+  $('#siftKicker').textContent='Drive — read in this tab, nothing downloaded';
+  $('#siftTitle').textContent='Opening the file where it lives.';
+  $('#siftSub').innerHTML='Google serves this file with CORS and honours byte ranges, so the video streams into this tab '+
+    'as it plays. Nothing is copied to your disk and nothing passes through anybody else’s server.';
+  document.querySelectorAll('.streambox span')[0].textContent='File size';
+  setMeters({streamed:'—',minutes:'—',disk:'0 bytes',cand:'0',pct:4});
+  logLine('GET files/'+id+' · fields=name,size,mimeType');
+  let meta;
+  try{ meta=await driveMeta(id); }
+  catch(e){
+    logLine('<span style="color:var(--hot)">Google said: '+e.message+'</span>');
+    logLine('An API key only reads files shared “anyone with the link”. For a private file use an OAuth access token.');
+    const row=el('div','btnrow'); row.style.marginTop='14px';
+    const b=el('button','btn sm','Change credential');
+    b.onclick=()=>{ localStorage.removeItem('sieve.gcred'); go('pour'); driveDirect(id); };
+    row.appendChild(b); $('#siftLog').appendChild(row);
+    return;
+  }
+  const bytes=+(meta.size||0);
+  const vm=meta.videoMediaMetadata||{};
+  logLine('<b>'+meta.name+'</b> · '+mb(bytes)+' · '+(meta.mimeType||'?'));
+  setMeters({streamed:mb(bytes),pct:12});
+  const v=$('#src');
+  v.crossOrigin='anonymous'; v.preload='metadata'; v.muted=false;
+  v.src=mediaUrl(id); S.video=v; VSRC=null; VGAIN=null;
+  logLine('attaching the video element (crossorigin: the canvas stays readable)…');
+  try{
+    await new Promise((res,rej)=>{ v.onloadedmetadata=res;
+      v.onerror=()=>rej(new Error('the browser could not open that stream — is it a format this browser plays?'));
+      setTimeout(()=>rej(new Error('timed out opening the stream')),45000); });
+  }catch(e){ logLine('<span style="color:var(--hot)">'+e.message+'</span>');
+    if(vm.durationMillis) logLine('Google reports it as '+hhmmss(+vm.durationMillis/1000)+', so the file is readable — this is a codec the browser will not decode.');
+    return; }
+  const dur=v.duration||(+vm.durationMillis/1000)||0;
+  logLine('open · <b>'+v.videoWidth+'×'+v.videoHeight+'</b> · '+hhmmss(dur));
+  setMeters({minutes:Math.round(dur/60)+' min',pct:18});
+  S.pending={id,name:meta.name,bytes,dur};
+  askScanRange(dur);
+}
+
+/* A browser can only play at 16x, so scanning is duration/16 — four minutes
+   for an hour, half an hour for eight. Rather than pretend otherwise, let
+   people scan a section: twenty minutes of an eight-hour recording is 75
+   seconds of scanning, and you can come back for the next twenty. */
+function askScanRange(dur){
+  const box=el('div'); box.style.margin='18px 0 0';
+  const est=sec=>sec<90?Math.round(sec)+'s':Math.round(sec/60)+' min';
+  const mk=(label,val,w)=>{ const d=el('div'); d.style.cssText='display:flex;flex-direction:column;gap:5px';
+    const l=el('label',null,label); l.style.cssText='font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)';
+    const i=el('input'); i.value=val; i.spellcheck=false;
+    i.style.cssText='background:var(--bg2);border:1px solid var(--line2);border-radius:9px;padding:11px 12px;color:var(--ink);font-family:var(--mono);font-size:13px;outline:none;width:'+w;
+    d.appendChild(l); d.appendChild(i); return {d,i}; };
+  const from=mk('Scan from','0:00','110px');
+  const mins=mk('For (minutes)',String(Math.min(20,Math.max(1,Math.ceil(dur/60)))),'110px');
+  const row=el('div'); row.style.cssText='display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap';
+  row.appendChild(from.d); row.appendChild(mins.d);
+  const go1=el('button','btn primary','Scan it'); row.appendChild(go1);
+  const all=el('button','btn ghost','Scan all '+hhmmss(dur)+' ('+est(dur/15.5)+')'); row.appendChild(all);
+  box.appendChild(row);
+  const note=el('p','hint'); note.style.marginTop='10px';
+  const upd=()=>{ const m=Math.max(.2,parseFloat(mins.i.value)||1);
+    note.innerHTML='A browser plays at 16× at most, so this scan takes about <b>'+est(m*60/15.5)+'</b> of real time. '+
+      'It is silent, it reads only the bytes it plays, and it writes nothing.'; };
+  mins.i.oninput=upd; upd(); box.appendChild(note);
+  $('#siftLog').appendChild(box);
+  const parse=t=>{ const p=String(t).trim().split(':').map(Number);
+    return p.length>=3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:(p[0]||0); };
+  go1.onclick=()=>{ const a=clamp(parse(from.i.value),0,Math.max(0,dur-2));
+    const b=Math.min(dur,a+Math.max(.2,parseFloat(mins.i.value)||1)*60);
+    box.remove(); scanVideo(a,b); };
+  all.onclick=()=>{ box.remove(); scanVideo(0,dur); };
+}
+
+/* The scan: play silently at 16x, take the RMS of every 128-sample quantum in
+   an AudioWorklet, fold it down to a 10 Hz envelope. Measured at ~22 samples
+   per second of media, so the 10 Hz envelope is comfortably oversampled. */
+async function scanVideo(t0,t1){
+  const v=S.video, span=t1-t0, HZ=10;
+  ac(); const src=videoSource();
+  if(!src){ logLine('<span style="color:var(--hot)">this browser will not give me the audio of that element</span>'); return; }
+  videoAudio(false);
+  /* The tap that measures loudness. An AudioWorklet is the good one — 128
+     frames per callback — but its module has to come from a URL, and a blob
+     URL is refused on a file:// page (AbortError), which is exactly how
+     somebody opens a single HTML file. So fall back to ScriptProcessorNode,
+     which is deprecated, universally supported, and needs no URL at all. */
+  let tap=null, kind='';
+  try{
+    // currentTime inside the worklet is the exact context time of THIS
+    // quantum. Sending it along is the difference between a continuous
+    // envelope and one with a third of its buckets missing, because the
+    // messages reach the main thread in bursts that all share one clock read.
+    const mod="class P extends AudioWorkletProcessor{process(i){const c=i[0][0];if(c){let s=0;"+
+      "for(let k=0;k<c.length;k++)s+=c[k]*c[k];this.port.postMessage([currentTime,Math.sqrt(s/c.length)]);}return true}}"+
+      "registerProcessor('sieve-rms',P);";
+    await AC.audioWorklet.addModule(URL.createObjectURL(new Blob([mod],{type:'text/javascript'})));
+    const wl=new AudioWorkletNode(AC,'sieve-rms');
+    tap={node:wl, set cb(f){ wl.port.onmessage=e=>f(e.data[1],e.data[0]); }, stop(){ try{wl.port.onmessage=null;wl.disconnect()}catch(e){} }};
+    kind='AudioWorklet';
+  }catch(e){
+    if(!AC.createScriptProcessor){
+      logLine('<span style="color:var(--hot)">this browser gives me neither an AudioWorklet nor a ScriptProcessor</span>');
+      videoAudio(true); return;
+    }
+    const sp=AC.createScriptProcessor(256,1,1);
+    tap={node:sp, set cb(f){ sp.onaudioprocess=ev=>{ const c=ev.inputBuffer.getChannelData(0);
+      let q=0; for(let k=0;k<c.length;k++) q+=c[k]*c[k]; f(Math.sqrt(q/c.length),ev.playbackTime); }; },
+      stop(){ try{sp.onaudioprocess=null;sp.disconnect()}catch(e){} }};
+    kind='ScriptProcessor (no worklet on '+(location.protocol||'file:')+')';
+  }
+  const zero=AC.createGain(); zero.gain.value=0;
+  src.connect(tap.node); tap.node.connect(zero).connect(BUS);   // silent, but the graph gets pulled
+
+  const n=Math.ceil(span*HZ), energy=new Float32Array(n), seen=new Uint8Array(n);
+  let peak=0, got=0, rate=1, startCtx=0;
+  /* Attribute each measurement by AUDIO CONTEXT time, not by whatever
+     video.currentTime happens to read when the message is handled: the
+     callbacks arrive in bursts, so reading the element gives several
+     measurements the same timestamp and leaves gaps between. Context time
+     advances one render quantum at a time, and at 16x one second of context
+     time is sixteen seconds of media. If the element stalls to buffer, the
+     two drift apart — so resync whenever they disagree by more than a second. */
+  tap.cb=(val,ts)=>{
+    let mt;
+    if(startCtx&&ts){
+      mt=t0+(ts-startCtx)*rate;
+      if(Math.abs(mt-v.currentTime)>1.5){ startCtx=ts-(v.currentTime-t0)/rate; mt=v.currentTime; }
+    } else mt=v.currentTime;
+    const i=Math.floor((mt-t0)*HZ);
+    if(i<0||i>=n) return;
+    if(val>energy[i]) energy[i]=val;
+    seen[i]=1;
+    if(val>peak) peak=val;
+    got++;
+  };
+  logLine('scanning '+hhmmss(t0)+' → '+hhmmss(t1)+' at 16× · silent · '+kind);
+  v.currentTime=t0;
+  await new Promise(r=>{ v.onseeked=r; setTimeout(r,8000); });
+  try{ v.playbackRate=16; }catch(e){ v.playbackRate=4; }
+  rate=v.playbackRate;
+  const wall0=performance.now();
+  await v.play().catch(()=>{});
+  startCtx=AC.currentTime;
+  let stalledAt=v.currentTime, stalledSince=performance.now();
+  await new Promise(res=>{
+    const tick=()=>{
+      const now=v.currentTime, done=(now-t0)/span;
+      setMeters({pct:18+clamp(done,0,1)*76,minutes:hhmmss(now)});
+      $('#mCand').textContent=Math.round(got/1000)+'k';
+      if(now>=t1||v.ended) return res();
+      // a stream that stops advancing for 8s is not going to start again
+      if(now>stalledAt+.05){ stalledAt=now; stalledSince=performance.now(); }
+      else if(performance.now()-stalledSince>8000){
+        logLine('<span style="color:var(--hot)">the stream stopped advancing at '+hhmmss(now)+' — scanning what we have</span>');
+        return res();
+      }
+      requestAnimationFrame(tick);
+    }; tick();
+  });
+  v.pause(); v.playbackRate=1; videoAudio(true);
+  tap.stop();
+  const wall=(performance.now()-wall0)/1000;
+  logLine('scanned in <b>'+Math.round(wall)+'s</b> · '+(span/wall).toFixed(1)+'× real time · '+
+    nfmt(got)+' RMS windows → '+nfmt(n)+' envelope samples ('+mb(n*4)+')');
+  // the slower tap can miss a bucket; carry the neighbours into it so the
+  // envelope is continuous either way
+  let filled=0;
+  for(let i=0;i<n;i++) if(!seen[i]){
+    let a=i-1,b=i+1;
+    while(a>=0&&!seen[a])a--; while(b<n&&!seen[b])b++;
+    energy[i]=Math.max(a>=0?energy[a]:0,b<n?energy[b]:0); filled++;
+  }
+  if(filled) logLine('interpolated '+filled+' of '+n+' envelope buckets the tap did not land in');
+  // normalise to this file: absolute thresholds mean nothing across recordings
+  if(peak>0) for(let i=0;i<n;i++) energy[i]=Math.min(1,energy[i]/peak);
+  else { logLine('<span style="color:var(--hot)">that section is silent — no audio came through</span>'); return; }
+  const words=[]; const thr=.10;
+  let run=null;
+  for(let i=0;i<=n;i++){
+    const hot=i<n&&energy[i]>thr;
+    if(hot){ if(!run) run={a:i}; run.b=i; }
+    else if(run&&(i-run.b)/HZ>.30){
+      if((run.b-run.a)/HZ>.35) words.push({w:'▮',t:t0+run.a/HZ,d:(run.b-run.a)/HZ,spk:0,nc:1});
+      run=null;
+    }
+  }
+  if(run&&(run.b-run.a)/HZ>.35) words.push({w:'▮',t:t0+run.a/HZ,d:(run.b-run.a)/HZ,spk:0,nc:1});
+  logLine('speech runs · <b>'+words.length+'</b> · loudest point normalised to 1.0');
+  // the envelope covers [t0,t1] but timestamps stay absolute, so pad the front
+  const full=new Float32Array(Math.ceil(t1*HZ));
+  full.set(energy,Math.floor(t0*HZ));
+  S.index={source:{kind:'drive',name:S.pending.name,durationSec:S.pending.dur,bytes:S.pending.bytes,speakers:['SPEAKER']},
+    words,energy:full,hz:HZ,dur:S.pending.dur,noText:true,scanned:[t0,t1]};
+  SENTS=buildSentences(S.index);
+  S.cands=findCandidates(S.index,SENTS);
+  logLine('candidates in that section · <b>'+S.cands.length+'</b>');
+  logLine('<span class="g">no transcript, so Hook / Alone / Gap / Land stay blank — type the line in the editor and Sieve will align it to the audio</span>');
+  setMeters({cand:S.cands.length,pct:100});
+  setTimeout(showCatch,450);
 }
 
 /* ------------------- a file that is already on this laptop ---------------- */
@@ -1710,12 +2317,7 @@ addEventListener('keydown',e=>{
   else if(e.key==='j'){ seek((S.playT||0)-2); }
   else if(e.key==='l'){ seek((S.playT||0)+2); }
   else if(e.key==='k'){ togglePlay(); }
-  else if(/^[1-8]$/.test(e.key)){
-    const id=SFXKEYS[+e.key-1], s=at();
-    S.sfx.push({id,sid:s.id,at:'after',src:s.t1+.06,on:true});
-    S.sfx.sort((a,b)=>a.src-b.src); playSfx(id); refresh();
-    toast(SFXLIB[id].emoji+' '+SFXLIB[id].name+' dropped after “'+shorten(s.text,28)+'”');
-  }
+  else if(/^[1-8]$/.test(e.key)) dropAtPlayhead(SFXQUICK[+e.key-1]);
 });
 
 /* =============================== BOOT ================================== */
