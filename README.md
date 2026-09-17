@@ -4,7 +4,9 @@
 
 Instagram shows you everyone. Darkroom is for your three.
 
-*(There is a second app in here now — [**DAYLIGHT**](#daylight--the-companion-app), `daylight.html`, built on the same law: raise a floor slowly, never spike anything.)*
+*(There are two more apps in here now — [**DAYLIGHT**](#daylight--the-companion-app), `daylight.html`, built on the
+same law: raise a floor slowly, never spike anything. And [**SIEVE**](#sieve--shorts-out-of-long-video-without-downloading-the-video),
+`sieve.html`, which finds the ninety good seconds inside an eight-hour video without your laptop ever downloading it.)*
 
 ## Two ways to run it
 
@@ -95,3 +97,127 @@ Which produces the product law:
 ### Honest note
 
 "Serotonin" is shorthand. Nothing in the app measures neurochemistry and no app can; the claim is only that these six behaviors have the most consistent evidence for mood and that they work by raising a floor slowly. The app says this on its own front page, and says plainly that a floor that stays down for weeks is a doctor's job.
+
+---
+
+## SIEVE — shorts out of long video, without downloading the video
+
+**`sieve.html`** — open it in any browser. Paste a Google Drive link to an
+8-hour recording, get back the ninety seconds worth posting. Same construction
+as the others: one file, no build, no account. There's an optional engine
+([`sieve-engine/`](./sieve-engine)) for the Drive half, and a bundled 8h12m demo
+index so the whole loop works offline with nothing installed.
+
+```
+open sieve.html            # the demo runs with the network off
+cd sieve-engine && npm start   # then: sieve.html?engine=http://localhost:8787
+```
+
+### The problem, stated honestly
+
+A YouTube creator with a 256 GB laptop cannot run Premiere over an 8-hour
+podcast. Not "it's slow" — the media cache alone will fill the disk, and the
+proxy pass takes longer than the episode. iMovie won't open the file. So the
+clip doesn't get made.
+
+Premiere's price is $23 a month. Its **cost** is 40 GB of disk, a six-minute
+launch, a proxy workflow and a render queue you have to sit next to. The real
+competitor is therefore not another NLE — it's *"I'll do it later."* Which
+means the thing to attack is the ritual, not the feature list.
+
+### Three ideas, and they're the whole product
+
+**1. You never needed the pixels.** To *find* a clip inside 8 hours you need
+the transcript (54,000 word-timed words ≈ 2.3 MB) and the loudness envelope
+(10 Hz, 295,000 samples ≈ 1.1 MB). That's a **3.4 MB search index for 12.4 GB
+of video — 0.03% of it**, and scoring every 17–58 second window in all 8 hours
+takes ~250 ms in a browser tab. Pixels get decoded for the 45 seconds you
+actually chose, at the moment you render, one frame at a time. Peak memory is
+one frame. Peak disk is the finished short.
+
+**2. The transcript is the timeline.** A timeline is a skeuomorph of a physical
+strip of film — correct for a wedding video, wrong for a podcast, where every
+edit you want is a sentence-level decision. So there is no timeline. You strike
+a sentence and it leaves the video. Dead air is struck for you: every pause
+over the threshold becomes a 120 ms breath, which is the single highest-ROI
+edit in shorts and the one no human should do by hand.
+
+**3. The meme sounds are oscillators, not samples.** Every SFX — vine boom,
+airhorn, record scratch, suspense riser, payoff bell, sad trombone, bruh,
+whoosh — is synthesised at render time from two or three oscillators and a
+filter. Zero MB of sound library, zero licensing, and nothing for Content ID to
+match against, because a vine boom made of a sine sweep is not a recording of
+anything. A downloaded meme pack is a copyright claim waiting to happen.
+
+### The ranking argues its case
+
+Auto-clippers fail in one specific way: they hand you a clip that opens on
+*"so that's exactly why he did it"* — a pronoun with no antecedent — and the
+viewer is gone in 1.2 seconds. So **self-contained** is a first-class signal
+here, not an afterthought.
+
+| Signal | What it measures | Stolen from |
+|---|---|---|
+| **Hook** | Does the first line stop a thumb? Questions, absolutes, stakes, second person. Penalised for opening on "so…" | Retention graphs die in the first 2s |
+| **Alone** | Can a stranger follow it with none of the previous 8 hours? Leading pronouns are fatal | The failure mode of every auto-clipper |
+| **Peak** | Loudness and laughter, straight off the envelope | The only signal the room can't fake |
+| **Gap** | An open loop, a numbered list, a "turns out" | Berger, *STEPPS*: Curiosity |
+| **Land** | Does it land on a punchline, or just stop mid-sentence? | Sutherland: "the waiting is part of the meal" |
+| **Pace** | Words per second, and how much of it is silence | — |
+
+Six bars, each legible, each overridable, plus an honest disclaimer in the UI:
+this **ranks** candidates, it does not predict views. Nothing predicts views.
+What it does is turn 8 hours into 24 decisions.
+
+One signal earns its keep more than the rest. Grammar can fake a hook — *"Do
+you want to pick this up after a break?"* is a short second-person question,
+structurally perfect and about nothing. Peak can't be faked, so a window where
+nobody laughs and nobody raises their voice is damped, and the card says
+**"nothing happens here"** out loud. On the bundled 8-hour demo that pushes all
+23 hand-written real moments above every one of the ~7,300 filler sentences.
+
+### What's measured rather than asserted
+
+`cd sieve-engine && npm run check` builds a 5-minute test file with its `moov`
+atom deliberately at the end — the case that breaks every "pipe it into stdin"
+design — serves it over HTTP from an origin that counts every byte it pushes to
+the socket, and runs the engine against it:
+
+```
+source file          7.73 MB
+ffprobe              1.75 MB   (header, a ranged seek for the moov at the end, a capped probe)
+ffmpeg               8.29 MB   (one pass through; interleaved audio can't be cherry-picked)
+read amplification   1.30× the file size
+index handed back    0.10% of the file
+disk written         0 bytes
+```
+
+The engine hands ffmpeg the URL rather than the bytes, so **ffmpeg does its own
+Range requests** — which is why a moov-at-the-end MP4 works, why `-vn` means
+the video track is never decoded, and why nothing is ever written to disk.
+Audio is transcribed in 10-minute chunks that are released immediately, so peak
+memory is ~19 MB regardless of whether the recording is 20 minutes or 20 hours.
+
+Laughter is recovered from the envelope, not the transcript: Whisper doesn't
+transcribe a laugh, and a laugh is the best single predictor of a clippable
+moment in a conversation. A stretch that is loud for over half a second with no
+words in it is, in a two-person podcast, almost always one. It's a heuristic,
+it's labelled as a heuristic, and it beats the alternative of nothing.
+
+### Three ways in
+
+1. **The demo** — a bundled 8h12m podcast index. Runs with the network off.
+2. **A file on this laptop** — decoded once at 8 kHz mono (≈60× smaller than
+   the real thing), envelope built, samples dropped. Over 300 MB it refuses,
+   on purpose: a big file belongs on the engine, not in your RAM. Renders with
+   real pixels.
+3. **A Drive link or any direct media URL** — via the engine. Without an ASR
+   key you still get the envelope and real jump cuts; four of the six signals
+   then stay blank rather than guessed, and the UI says so.
+
+### What Sieve refuses to build
+
+No timeline. No media bins. No project files. No account. No upload of your
+footage to anyone. No AI voice, no AI avatar, no generated slop — every word in
+the output is a word somebody actually said. No "smart" edit you can't see and
+can't undo. And no score you can't argue with.

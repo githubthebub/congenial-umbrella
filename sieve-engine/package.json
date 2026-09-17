@@ -1,0 +1,12 @@
+{
+  "name": "sieve-engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Streams a Google Drive video past ffmpeg and hands back Sieve's index. Writes nothing to disk.",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node selftest.js"
+  }
+}
