@@ -1,0 +1,2395 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sieve — pour eight hours in, keep the ninety seconds</title>
+<style>
+  :root{
+    --bg:#0a0c0f; --bg2:#0f1318; --panel:#141a21; --panel2:#1a222b;
+    --line:#242e3a; --line2:#32404f;
+    --ink:#e8edf3; --dim:#93a3b5; --faint:#5c6b7c;
+    --gold:#f3c14a; --gold-soft:#ffd97a; --gold-deep:#8a6a14;
+    --hot:#ff4f6d; --cool:#4fd1c5; --dead:#6b3a44;
+    --radius:14px;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --mono:"SF Mono",ui-monospace,"Roboto Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:
+      radial-gradient(1100px 620px at 82% -12%, rgba(243,193,74,.07), transparent 62%),
+      radial-gradient(760px 520px at 8% 108%, rgba(79,209,197,.05), transparent 60%),
+      var(--bg);
+    color:var(--ink); font-family:var(--sans); line-height:1.5;
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  /* the mesh: a sieve you are always looking through */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+    background-image:
+      repeating-linear-gradient(0deg,rgba(255,255,255,.028) 0 1px,transparent 1px 7px),
+      repeating-linear-gradient(90deg,rgba(255,255,255,.028) 0 1px,transparent 1px 7px);
+    mask-image:radial-gradient(circle at 50% 0%,#000 0%,transparent 72%);
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px;position:relative;z-index:1}
+  .narrow{max-width:700px}
+  a{color:var(--gold-soft);text-decoration-thickness:1px;text-underline-offset:3px}
+
+  .view{display:none}
+  .view.on{display:block;animation:rise .45s cubic-bezier(.2,.8,.2,1)}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ---------- chrome ---------- */
+  header.site{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 0;flex-wrap:wrap}
+  .wordmark{display:flex;align-items:center;gap:11px;background:none;border:0;cursor:pointer;color:var(--ink);padding:0}
+  .mark{width:26px;height:26px;flex:none}
+  .wordmark b{font-family:var(--mono);font-size:15px;letter-spacing:.3em;text-transform:uppercase;font-weight:600}
+  .headmeta{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.09em;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .headmeta b{color:var(--dim);font-weight:500}
+
+  /* ---------- the cost meter: makes an invisible benefit visible ---------- */
+  .cost{
+    display:flex;gap:0;align-items:stretch;border:1px solid var(--line);border-radius:12px;
+    overflow:hidden;background:var(--panel);font-family:var(--mono);font-size:11px;
+  }
+  .cost div{padding:7px 12px;display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--line);min-width:96px}
+  .cost div:last-child{border-right:0;background:rgba(255,79,109,.06)}
+  .cost span{color:var(--faint);letter-spacing:.09em;font-size:9.5px;text-transform:uppercase}
+  .cost i{font-style:normal;color:var(--cool);font-size:13px;letter-spacing:.02em}
+  .cost div:last-child i{color:var(--hot);text-decoration:line-through;text-decoration-color:rgba(255,79,109,.45)}
+
+  /* ---------- hero ---------- */
+  .hero{padding:8vh 0 3vh}
+  .kicker{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:22px}
+  h1.big{font-size:clamp(36px,6.6vw,64px);line-height:1.04;letter-spacing:-.025em;font-weight:800}
+  h1.big em{font-style:normal;color:var(--gold)}
+  .sub{margin-top:22px;font-size:19px;color:var(--dim);max-width:52ch}
+  .sub b{color:var(--ink);font-weight:600}
+
+  /* ---------- controls ---------- */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:9px;
+    font-family:var(--mono);font-size:13px;letter-spacing:.05em;font-weight:500;
+    padding:14px 22px;border-radius:11px;border:1px solid var(--line2);
+    background:var(--panel2);color:var(--ink);cursor:pointer;text-decoration:none;
+    transition:transform .12s ease,background .18s,border-color .18s;
+    -webkit-tap-highlight-color:transparent;white-space:nowrap;
+  }
+  .btn:hover:not(:disabled){transform:translateY(-1px);border-color:var(--faint)}
+  .btn:active:not(:disabled){transform:translateY(0)}
+  .btn.primary{background:var(--gold);border-color:var(--gold);color:#1a1301;font-weight:700}
+  .btn.primary:hover:not(:disabled){background:var(--gold-soft);border-color:var(--gold-soft)}
+  .btn.ghost{background:transparent}
+  .btn.sm{padding:9px 14px;font-size:11.5px;border-radius:9px}
+  .btn.xs{padding:6px 10px;font-size:10.5px;border-radius:8px;letter-spacing:.04em}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.block{width:100%}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+  .paste{display:flex;gap:10px;margin:34px 0 14px;flex-wrap:wrap}
+  .paste input{
+    flex:1;min-width:280px;background:var(--bg2);border:1px solid var(--line2);border-radius:11px;
+    padding:15px 16px;color:var(--ink);font-family:var(--mono);font-size:13px;outline:none;
+  }
+  .paste input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(243,193,74,.1)}
+  .paste input::placeholder{color:var(--faint)}
+  .hint{font-family:var(--mono);font-size:11.5px;color:var(--faint);line-height:1.9;letter-spacing:.02em}
+  .hint.err{color:var(--hot)}
+  .hint.ok{color:var(--cool)}
+
+  /* ---------- law list ---------- */
+  .laws{margin:46px 0 10px;border-top:1px solid var(--line)}
+  .laws li{
+    list-style:none;display:grid;grid-template-columns:34px 1fr;gap:16px;align-items:baseline;
+    padding:16px 0;border-bottom:1px solid var(--line);color:var(--dim);font-size:15.5px;
+  }
+  .laws .no{font-family:var(--mono);color:var(--gold-deep);font-size:11px;letter-spacing:.1em}
+  .laws b{color:var(--ink);font-weight:600}
+  .fineprint{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.05em;line-height:2;padding:30px 0 70px}
+  .fineprint a{color:var(--faint)}
+
+  /* ---------- sifting ---------- */
+  .sift{padding:8vh 0 6vh;max-width:660px}
+  .bar{height:3px;background:var(--panel2);border-radius:2px;overflow:hidden;margin:26px 0 8px}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold));width:0;transition:width .3s ease}
+  .siftlog{font-family:var(--mono);font-size:12px;color:var(--faint);line-height:2;margin-top:20px;min-height:180px}
+  .siftlog b{color:var(--cool);font-weight:500}
+  .siftlog .g{color:var(--gold)}
+  .streambox{display:flex;gap:26px;flex-wrap:wrap;margin-top:8px;font-family:var(--mono);font-size:12px}
+  .streambox div span{display:block;color:var(--faint);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px}
+  .streambox div i{font-style:normal;font-size:20px;color:var(--ink);letter-spacing:-.01em}
+
+  /* ---------- catch: ranked candidates ---------- */
+  .secthead{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;padding:26px 0 18px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+  .secthead h2{font-size:27px;letter-spacing:-.02em;font-weight:700}
+  .secthead p{color:var(--dim);font-size:14.5px;margin-top:6px;max-width:62ch}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;padding:16px 0 4px}
+  .chip{
+    font-family:var(--mono);font-size:11px;letter-spacing:.05em;padding:7px 12px;border-radius:999px;
+    border:1px solid var(--line2);background:transparent;color:var(--dim);cursor:pointer;transition:.15s;
+  }
+  .chip:hover{border-color:var(--faint);color:var(--ink)}
+  .chip.on{background:var(--gold);border-color:var(--gold);color:#1a1301;font-weight:700}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;padding:18px 0 60px}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:17px;
+    cursor:pointer;transition:border-color .18s,transform .14s,background .18s;position:relative;overflow:hidden;
+  }
+  .card:hover{border-color:var(--line2);transform:translateY(-2px);background:var(--panel2)}
+  .card.top{border-color:rgba(243,193,74,.42)}
+  .card.top::after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(420px 120px at 88% -20%,rgba(243,193,74,.1),transparent 70%)}
+  .cardtop{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.09em}
+  .rank{color:var(--gold);font-weight:700}
+  .hook{font-size:19.5px;line-height:1.28;font-weight:700;letter-spacing:-.018em;margin:13px 0 10px}
+  .hook .q{color:var(--gold)}
+  .cardfoot{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-top:14px}
+  .why{font-size:12.5px;color:var(--dim);line-height:1.6;margin-top:2px}
+  .sig{display:flex;gap:5px;margin-top:13px}
+  .sig div{flex:1;height:44px;border-radius:6px;background:#0a0e13;border:1px solid var(--line);position:relative;overflow:hidden;cursor:help}
+  .sig div i{position:absolute;left:0;right:0;bottom:0;display:block;background:var(--gold-deep);opacity:.85}
+  .sig div.hi i{background:var(--gold)}
+  .sig div.lo i{background:var(--dead)}
+  .sig div u,.sig div b{position:absolute;left:0;right:0;text-align:center;font-family:var(--mono);text-decoration:none;font-weight:500}
+  .sig div u{top:4px;font-size:8px;letter-spacing:.07em;color:var(--dim);text-transform:uppercase}
+  .sig div b{bottom:3px;font-size:11px;color:var(--ink);opacity:.9}
+  .score{font-family:var(--mono);font-size:24px;font-weight:600;letter-spacing:-.02em;color:var(--gold);line-height:1}
+  .score s{font-size:10px;color:var(--faint);text-decoration:none;letter-spacing:.1em;display:block;margin-top:3px}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+  .tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;padding:4px 8px;border-radius:6px;background:var(--bg2);color:var(--dim);border:1px solid var(--line)}
+  .tag.warn{color:var(--hot);border-color:rgba(255,79,109,.28)}
+  .tag.good{color:var(--cool);border-color:rgba(79,209,197,.26)}
+
+  /* ---------- the cut: transcript IS the timeline ---------- */
+  .studio{display:grid;grid-template-columns:minmax(280px,352px) 1fr;gap:26px;padding:22px 0 70px;align-items:start}
+  @media(max-width:860px){.studio{grid-template-columns:1fr}}
+  .stage{position:sticky;top:18px}
+  .phone{
+    width:100%;aspect-ratio:9/16;background:#000;border-radius:18px;overflow:hidden;
+    border:1px solid var(--line2);position:relative;box-shadow:0 24px 60px -20px rgba(0,0,0,.8);
+  }
+  .phone canvas{width:100%;height:100%;display:block}
+  .phone video{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none}
+  .playbar{display:flex;align-items:center;gap:10px;margin-top:12px}
+  .playbar .t{font-family:var(--mono);font-size:11px;color:var(--faint);min-width:78px}
+  .scrub{flex:1;height:22px;position:relative;cursor:pointer}
+  .scrub .track{position:absolute;top:9px;left:0;right:0;height:4px;background:var(--panel2);border-radius:2px;overflow:hidden}
+  .scrub .fill{position:absolute;top:9px;left:0;height:4px;background:var(--gold);border-radius:2px}
+  .scrub .sfxpin{position:absolute;top:2px;width:2px;height:18px;background:var(--cool);opacity:.75}
+  .stagemeta{font-family:var(--mono);font-size:10.5px;color:var(--faint);letter-spacing:.06em;line-height:2;margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+  .stagemeta b{color:var(--dim);font-weight:500}
+
+  .editor{min-width:0}
+  .edhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .edhead h3{font-size:13px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:500}
+
+  .hookcard{
+    background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--gold);
+    border-radius:10px;padding:14px 16px;margin:10px 0 18px;
+  }
+  .hookcard label{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:7px}
+  .hookcard .ed{
+    font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1.2;outline:none;
+    border-bottom:1px dashed transparent;min-height:1.2em;
+  }
+  .hookcard .ed:focus{border-bottom-color:var(--line2)}
+  .hookcard .cc{font-family:var(--mono);font-size:10px;color:var(--faint);margin-top:8px}
+
+  .script{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px 20px 16px;
+    font-size:17.5px;line-height:1.95;letter-spacing:-.005em;
+  }
+  .spk{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-deep);display:block;margin:16px 0 2px}
+  .spk:first-child{margin-top:0}
+  .sent{display:inline;transition:opacity .18s}
+  .sent.cut{opacity:.26}
+  .sent.cut .w{text-decoration:line-through;text-decoration-color:var(--hot);text-decoration-thickness:1.5px}
+  .w{cursor:pointer;border-radius:4px;padding:0 1px;transition:background .12s,color .12s}
+  .w:hover{background:rgba(243,193,74,.13)}
+  .w.emph{color:var(--gold);font-weight:700}
+  .w.now{background:var(--gold);color:#1a1301;font-weight:600}
+  .lau{color:var(--cool);font-family:var(--mono);font-size:12px;opacity:.8}
+  .gap{
+    display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;
+    color:var(--dead);border:1px dashed rgba(107,58,68,.6);border-radius:5px;padding:0 5px;margin:0 3px;
+    cursor:pointer;vertical-align:middle;user-select:none;
+  }
+  .gap.kept{color:var(--faint);border-color:var(--line2)}
+  .sfxchip{
+    display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;
+    background:rgba(79,209,197,.1);border:1px solid rgba(79,209,197,.35);color:var(--cool);
+    border-radius:6px;padding:1px 7px;margin:0 4px;cursor:pointer;vertical-align:middle;user-select:none;
+  }
+  .sfxchip:hover{background:rgba(79,209,197,.2)}
+  .sfxchip.mute{opacity:.38;filter:grayscale(1)}
+  .addsfx{
+    display:inline-flex;align-items:center;font-family:var(--mono);font-size:11px;color:var(--faint);
+    border:1px dashed var(--line2);border-radius:6px;width:18px;height:18px;justify-content:center;
+    margin:0 3px;cursor:pointer;vertical-align:middle;user-select:none;opacity:0;transition:opacity .15s;
+  }
+  .sent:hover + .addsfx,.addsfx:hover{opacity:1}
+  .addsfx:hover{color:var(--cool);border-color:var(--cool)}
+
+  .knobs{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:18px 0}
+  .knob{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:13px 14px}
+  .knob label{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);display:flex;justify-content:space-between;gap:8px;margin-bottom:9px}
+  .knob label b{color:var(--dim);font-weight:500;letter-spacing:.04em;text-transform:none}
+  .seg{display:flex;gap:4px}
+  .seg button{
+    flex:1;font-family:var(--mono);font-size:10.5px;padding:7px 4px;border-radius:7px;
+    border:1px solid var(--line2);background:transparent;color:var(--dim);cursor:pointer;transition:.15s;
+  }
+  .seg button.on{background:var(--gold);border-color:var(--gold);color:#1a1301;font-weight:700}
+  input[type=range]{width:100%;accent-color:var(--gold);background:transparent;height:18px}
+
+  .sfxmenu{
+    position:fixed;z-index:60;background:var(--panel2);border:1px solid var(--line2);border-radius:11px;
+    padding:6px;box-shadow:0 20px 50px -14px rgba(0,0,0,.85);display:none;max-height:62vh;overflow:auto;
+  }
+  .sfxmenu.on{display:block}
+  .sfxmenu button{
+    display:flex;width:100%;gap:10px;align-items:center;text-align:left;background:none;border:0;
+    color:var(--ink);font-family:var(--sans);font-size:13px;padding:9px 11px;border-radius:8px;cursor:pointer;
+  }
+  .sfxmenu button:hover{background:var(--panel)}
+  .sfxmenu button small{color:var(--faint);font-family:var(--mono);font-size:10px;display:block;margin-top:1px}
+  .sfxmenu .hd{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);padding:10px 11px 5px}
+  .sfxmenu{width:340px}
+  .sfxmenu input.q{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:8px;
+    color:var(--ink);font-family:var(--mono);font-size:12px;padding:9px 10px;outline:none;margin:2px 0 4px}
+  .sfxmenu input.q:focus{border-color:var(--gold)}
+  .sfxgrid{display:grid;grid-template-columns:1fr 1fr;gap:3px;padding:0 3px}
+  .sfxgrid button{display:block;padding:8px 9px;border-radius:8px;text-align:left}
+  .sfxgrid button .nm{display:flex;align-items:center;gap:7px;font-size:12.5px}
+  .sfxgrid button .k{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--faint);
+    border:1px solid var(--line2);border-radius:4px;padding:0 4px}
+  .sfxgrid button small{color:var(--faint);font-family:var(--mono);font-size:9.5px;display:block;margin-top:2px;line-height:1.35}
+
+  /* the quick bar: one tap at the playhead, which is the whole point */
+  .board{display:flex;gap:5px;flex-wrap:wrap;margin-top:12px}
+  .board button{
+    flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;
+    background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 4px;cursor:pointer;
+    color:var(--dim);transition:.15s;
+  }
+  .board button:hover{border-color:var(--cool);color:var(--ink);background:var(--panel2)}
+  .board button b{font-size:16px;font-weight:400;line-height:1}
+  .board button span{font-family:var(--mono);font-size:8px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+  .board .more{border-style:dashed}
+
+  /* ---------- rendered ---------- */
+  .done{display:grid;grid-template-columns:minmax(260px,320px) 1fr;gap:30px;padding:26px 0 80px;align-items:start}
+  @media(max-width:860px){.done{grid-template-columns:1fr}}
+  .done video{width:100%;aspect-ratio:9/16;background:#000;border-radius:18px;border:1px solid var(--line2)}
+  .copyblock{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin:12px 0}
+  .copyblock label{font-family:var(--mono);font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint);display:block;margin-bottom:8px}
+  .copyblock .val{font-size:15.5px;line-height:1.5}
+  .copyblock textarea{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--dim);font-family:var(--mono);font-size:12px;padding:10px;resize:vertical;min-height:84px;outline:none}
+
+  table.tbl{width:100%;border-collapse:collapse;font-size:14.5px;margin:20px 0}
+  table.tbl th,table.tbl td{text-align:left;padding:12px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.tbl th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:500}
+  table.tbl td b{color:var(--ink)}
+  table.tbl td{color:var(--dim)}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);z-index:90;
+    background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:12px 18px;
+    font-family:var(--mono);font-size:12px;color:var(--ink);opacity:0;pointer-events:none;transition:.28s;
+    box-shadow:0 16px 40px -12px rgba(0,0,0,.8);max-width:86vw;
+  }
+  .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  .kbd{font-family:var(--mono);font-size:10px;border:1px solid var(--line2);border-radius:4px;padding:1px 5px;color:var(--dim)}
+  .prose p{color:var(--dim);font-size:16px;margin:14px 0;max-width:68ch}
+  .prose h3{font-size:18px;margin:30px 0 4px;letter-spacing:-.01em}
+  .prose b{color:var(--ink)}
+  .prose blockquote{border-left:2px solid var(--gold-deep);padding-left:16px;color:var(--dim);font-style:italic;margin:16px 0}
+</style>
+
+<div class="wrap">
+  <header class="site">
+    <button class="wordmark" onclick="go('pour')" title="Sieve">
+      <svg class="mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M3 5h18l-6.4 7.6v5.1L9.4 21v-8.4L3 5z" stroke="#f3c14a" stroke-width="1.4" stroke-linejoin="round"/>
+        <path d="M6.2 8.2h11.6M8.1 10.6h7.8" stroke="#5c6b7c" stroke-width="1.1"/>
+      </svg>
+      <b>Sieve</b>
+    </button>
+    <div class="headmeta" id="headmeta"></div>
+  </header>
+</div>
+
+<!-- ============================== 1. POUR ============================== -->
+<section class="view on" id="v-pour">
+  <div class="wrap">
+    <div class="hero narrow">
+      <div class="kicker">Shorts, out of long video, on a laptop that can't run Premiere</div>
+      <h1 class="big">Pour eight hours in.<br>Keep the <em>ninety seconds</em>.</h1>
+      <p class="sub">Paste a Google&nbsp;Drive link — <b>no key, no sign-in, nothing to install</b>. Sieve reads the
+        <b>audio</b>, not the video, so your laptop never downloads the 12&nbsp;GB, never builds a cache, never
+        renders a proxy. You edit the <b>transcript</b>; the video follows. There is no timeline, because there
+        was never any need for one.</p>
+
+      <div class="paste">
+        <input id="driveUrl" spellcheck="false" placeholder="https://drive.google.com/file/d/1aB.../view?usp=sharing">
+        <button class="btn primary" onclick="startDrive()">Sieve it</button>
+      </div>
+      <p class="hint" id="pourHint"><b style="color:var(--cool)">No key, no sign-in, no server.</b> Set the file to “Anyone with the link” in Drive and paste it — <span style="color:var(--dim)">file/d/…</span>, <span style="color:var(--dim)">open?id=…</span>, a bare file ID, or any direct https media URL.</p>
+
+      <div class="btnrow" style="margin-top:22px">
+        <button class="btn" onclick="startDemo()">▶ Run the 8-hour demo</button>
+        <button class="btn ghost" onclick="pickLocal()">Use a file on this laptop</button>
+        <input type="file" id="localFile" accept="video/*,audio/*" style="display:none">
+      </div>
+      <p class="hint" style="margin-top:10px">The demo is a real 8&nbsp;h&nbsp;12&nbsp;m podcast index — 54,000 word-timed words and a
+        295,000-sample loudness envelope, scanned live in about a quarter of a second. Nothing uploads, nothing installs, and it runs offline.</p>
+
+      <ol class="laws">
+        <li><span class="no">01</span><div><b>Your disk stays empty, and nothing sits in the middle.</b> Google serves link-shared files with <code>access-control-allow-origin: *</code> and honours byte ranges, so the video streams from Drive into this tab and nowhere else — no key, no account, no server of ours. The only file that ever lands on your machine is the finished short, about 5 MB.</div></li>
+        <li><span class="no">02</span><div><b>The transcript is the timeline.</b> Strike a sentence, it's gone from the video. Silence is struck for you. Nobody scrubs anything.</div></li>
+        <li><span class="no">03</span><div><b>The search index for 8 hours is 3.4 MB — 0.03% of the video.</b> Finding a good clip needs words and loudness, not pixels. Pixels are decoded for the 45 seconds you actually chose, and not one second earlier.</div></li>
+        <li><span class="no">04</span><div><b>31 meme sounds, synthesised, 0 MB.</b> Airhorns, vine booms, risers, a metal pipe, a sad trombone — each one two or three oscillators and a filter, built at the moment you render. No pack to download, and nothing for Content ID to fingerprint, because none of them is a recording of anything. One tap, or keys 1–8.</div></li>
+        <li><span class="no">05</span><div><b>The ranking shows its work.</b> Six signals, each one legible, each one overridable. A score you can't argue with is a score you can't trust.</div></li>
+      </ol>
+
+      <p class="fineprint">
+        No install · No account · No media cache · No proxies · No render queue · No timeline<br>
+        One HTML file. <a href="#" onclick="go('why');return false">Why it's built this way →</a>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 2. SIFT ============================== -->
+<section class="view" id="v-sift">
+  <div class="wrap">
+    <div class="sift">
+      <div class="kicker" id="siftKicker">Sifting</div>
+      <h1 class="big" style="font-size:clamp(28px,4.4vw,40px)" id="siftTitle">Reading the audio.</h1>
+      <p class="sub" style="font-size:16px" id="siftSub">The video is being streamed past, not stored. Watch the third number: that's what's landing on your disk.</p>
+      <div class="bar"><i id="siftBar"></i></div>
+      <div class="streambox">
+        <div><span>Streamed</span><i id="mStreamed">0 MB</i></div>
+        <div><span>Transcribed</span><i id="mMinutes">0 min</i></div>
+        <div><span>Written to disk</span><i id="mDisk" style="color:var(--cool)">0 bytes</i></div>
+        <div><span>Candidates</span><i id="mCand" style="color:var(--gold)">0</i></div>
+      </div>
+      <div class="siftlog" id="siftLog"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 3. CATCH ============================== -->
+<section class="view" id="v-catch">
+  <div class="wrap">
+    <div class="secthead">
+      <div>
+        <h2 id="catchTitle">What survived the sieve</h2>
+        <p id="catchSub"></p>
+      </div>
+      <div class="cost" id="costMeter"></div>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="cards" id="cards"></div>
+  </div>
+</section>
+
+<!-- ============================== 4. CUT ============================== -->
+<section class="view" id="v-cut">
+  <div class="wrap">
+    <div class="secthead" style="border:0;padding-bottom:6px">
+      <div>
+        <h2 id="cutTitle">The cut</h2>
+        <p>Click a word to strike its sentence. Click a <span style="color:var(--dead)">dead-air chip</span> to keep the pause. Click a <span style="color:var(--cool)">sound</span> to swap it.
+          <span class="kbd">space</span> play · <span class="kbd">x</span> strike · <span class="kbd">1–8</span> drop a sound</p>
+      </div>
+      <div class="btnrow">
+        <button class="btn ghost sm" onclick="go('catch')">← All candidates</button>
+        <button class="btn primary sm" onclick="renderShort()">Render this short</button>
+      </div>
+    </div>
+    <div class="studio">
+      <div class="stage">
+        <div class="phone">
+          <canvas id="pv" width="720" height="1280"></canvas>
+          <video id="src" playsinline muted></video>
+        </div>
+        <div class="playbar">
+          <button class="btn xs" id="playBtn" onclick="togglePlay()">▶</button>
+          <div class="scrub" id="scrub"><div class="track"></div><div class="fill" id="scrubFill"></div></div>
+          <div class="t" id="clock">0:00 / 0:00</div>
+        </div>
+        <div class="board" id="board"></div>
+        <p class="hint" style="margin-top:8px;font-size:10.5px">One tap drops it at the playhead. Hover to hear it. All 31 are synthesised — nothing downloads.</p>
+        <div class="stagemeta" id="stagemeta"></div>
+      </div>
+      <div class="editor">
+        <div class="hookcard">
+          <label>Hook card — the first 1.4 seconds, in big type</label>
+          <div class="ed" id="hookEd" contenteditable="true" spellcheck="false"></div>
+          <div class="cc" id="hookCount"></div>
+        </div>
+        <div class="hookcard" id="sayBox" style="display:none;border-left-color:var(--cool)">
+          <label>Say the line — no transcript, so type what was said and Sieve aligns it to the audio</label>
+          <textarea id="sayEd" spellcheck="false" placeholder="Type or paste what is said in this clip. Sieve spreads it across the speech it detected, weighted by syllables, so the words land on the voice and skip the pauses."
+            style="width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--ink);font-family:inherit;font-size:15px;line-height:1.5;padding:11px;resize:vertical;min-height:76px;outline:none"></textarea>
+          <div class="cc" id="sayCount"></div>
+        </div>
+        <div class="knobs" id="knobs"></div>
+        <div class="edhead"><h3>Transcript — this is the timeline</h3><div class="hint" id="cutStats"></div></div>
+        <div class="script" id="script"></div>
+        <p class="hint" style="margin-top:14px">Sieve struck the dead air for you: every pause over the threshold above is
+          cut to a 120&nbsp;ms breath. That is the single biggest retention edit in shorts, and it is the one no human
+          should ever do by hand.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 5. DONE ============================== -->
+<section class="view" id="v-done">
+  <div class="wrap">
+    <div class="secthead" style="border:0">
+      <div><h2>Rendered.</h2><p id="doneSub"></p></div>
+      <div class="btnrow">
+        <button class="btn ghost sm" onclick="go('cut')">← Back to the cut</button>
+        <button class="btn sm" onclick="go('catch')">Next candidate</button>
+      </div>
+    </div>
+    <div class="done">
+      <div><video id="outVid" controls playsinline></video></div>
+      <div>
+        <div class="btnrow" style="margin-bottom:18px">
+          <button class="btn primary" onclick="downloadOut()">↓ Download the short</button>
+          <button class="btn ghost" onclick="copyAll()">Copy title + description</button>
+        </div>
+        <div class="copyblock"><label>Title — under 60 characters, hook first</label><div class="val" id="outTitle"></div></div>
+        <div class="copyblock"><label>Description + tags</label><textarea id="outDesc" spellcheck="false"></textarea></div>
+        <div class="copyblock"><label>What this cost your laptop</label><div id="outCost" class="hint" style="font-size:12px"></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== WHY ============================== -->
+<section class="view" id="v-why">
+  <div class="wrap narrow prose" style="padding-bottom:80px">
+    <div class="kicker">Product law</div>
+    <h1 class="big" style="font-size:clamp(28px,4.6vw,42px)">Why there is no timeline</h1>
+
+    <h3>The competitor is not Premiere. It's "I'll do it later."</h3>
+    <p>Premiere's price is $23 a month. Its <b>cost</b> is 40 GB of disk, a media cache that grows until you
+      notice, a proxy workflow, a six-minute launch, and a render queue you have to babysit. On a laptop with
+      256 GB and 8 GB of RAM, that cost is the entire reason the clip never gets made. So the thing to attack is
+      not the feature list — it's the ritual. A URL, a paste, ninety seconds.</p>
+
+    <h3>A timeline is a skeuomorph of a physical strip of film.</h3>
+    <p>It's the right interface for a wedding video and the wrong one for a podcast, where every edit you actually
+      want is a <b>sentence-level</b> decision. Eight hours of footage contains maybe forty decisions worth making
+      — <i>is this funny, yes or no</i> — and a timeline makes you scrub 12 GB of pixels to find them. Text is the
+      interface everyone already knows. Strike the sentence; the video follows.</p>
+
+    <h3>You never needed the pixels.</h3>
+    <p>This is the whole engineering trick. To <b>find</b> a clip inside 8 hours you need the transcript
+      (54,000 words with per-word timings ≈ 2.3 MB) and the loudness envelope (10 Hz, 295,000 samples ≈ 1.1 MB).
+      That is a <b>3.4 MB</b> search index for 12.4 GB of video — three hundredths of one percent of it, and it fits
+      in the RAM of a phone. Scoring every 17–58 s window in all 8 hours takes about 250 ms. Pixels only get decoded for the 45 seconds you
+      chose, at the moment you render, one frame at a time. Peak memory is one frame. Peak disk is the finished short.</p>
+    <blockquote>Premiere assumes random access to decoded pixels. Sieve assumes you're looking for a sentence.</blockquote>
+    <p>The engine end of it is measured, not asserted: <b>ffprobe reads 1.75 MB</b> (the header, then a ranged
+      seek for the <code>moov</code> atom at the end of the file), <b>ffmpeg reads the file through exactly
+      once</b> with the video track never decoded, and <b>0 bytes</b> are written to disk. That's 1.30× the file
+      size in total, and it hands back 0.1% of it. <code>cd sieve-engine &amp;&amp; npm run check</code> re-runs
+      that measurement against a file whose <code>moov</code> atom is deliberately at the end — the case that
+      breaks every "just pipe it into stdin" design.</p>
+
+    <h3>The sounds are oscillators, not samples.</h3>
+    <p>All 31 of them are synthesised at render time out of two or three oscillators and a filter, from four
+      shared helpers. That's zero MB of sound library, zero licensing, and — the part that actually matters —
+      nothing for YouTube's Content ID to match against, because fingerprinting matches <i>recordings</i>, and a
+      vine boom made of a sine sweep is not a recording of anything. A downloaded "free meme sounds" pack is
+      the opposite bet: most of them contain copyrighted recordings, and the claim arrives after you publish.</p>
+
+    <h3>Drive, read in the tab, with no key and nothing in the middle.</h3>
+    <p>A CORS preflight against <code>drive.usercontent.google.com</code> comes back with
+      <code>access-control-allow-origin: *</code>, <code>access-control-allow-credentials: false</code>,
+      <code>GET,HEAD,OPTIONS</code> and <code>Range</code> among the allowed headers. A wildcard origin with
+      credentials off is exactly what <code>crossorigin="anonymous"</code> wants — so for anything shared
+      “anyone with the link”, the browser streams it straight off Google with <b>no API key, no OAuth and no
+      cloud project</b>, and the canvas stays <b>untainted</b>, which is the bit that lets the renderer use the
+      real pixels. Sieve asks for two bytes first: that one request says whether the file is reachable, whether
+      Google is serving the real thing or its virus-scan interstitial, and how big it is.</p>
+    <p>A credential is the <i>fallback</i>, for a private file you can't re-share. Then it rides in the URL,
+      because a <code>&lt;video&gt;</code> element cannot send an <code>Authorization</code> header — and it
+      stays in your browser and goes to Google, because this page has no backend to send it anywhere else.
+      (<code>drive.google.com/uc</code> answers 403 with no CORS at all, and the <code>lh3</code> host just
+      redirects away, so neither of those works — this one endpoint does.)</p>
+    <p>A browser will not play faster than <b>16×</b> — <code>playbackRate = 32</code> throws
+      <code>NotSupportedError</code> — so scanning is duration ÷ 16: four minutes for an hour, half an hour for
+      eight. Rather than pretend otherwise, Sieve asks which part you want. Twenty minutes of an eight-hour
+      recording is seventy-five seconds of scanning.</p>
+    <p>And when there are no words, you type the line instead of downloading a model: Sieve spreads it across
+      the speech it detected, weighted by syllables, so every word lands on a voice and skips the pauses. That
+      is forced alignment's useful ninety percent for none of its cost.</p>
+
+    <h3>The ranking argues its case.</h3>
+    <p>Auto-clippers fail in one specific way: they hand you a clip that opens on <i>"so that's exactly why he
+      did it"</i> — a pronoun with no antecedent, and the viewer is gone in 1.2 seconds. So <b>Self-contained</b>
+      is a first-class signal here, alongside Hook, Peak, Curiosity, Closure and Pace. Six bars, each legible,
+      each overridable, and an honest disclaimer: this <b>ranks</b> candidates, it doesn't predict views.
+      Nothing predicts views. What it does is turn 8 hours into 24 decisions.</p>
+
+    <h3>What Sieve refuses to be</h3>
+    <p>No timeline. No media bins. No project files. No account. No upload of your footage to us — the engine
+      streams from your Drive and keeps nothing. No AI voice, no AI avatar, no auto-generated slop: every word in
+      the output is a word somebody actually said. No "smart" edit you can't see and can't undo.</p>
+
+    <p class="fineprint"><a href="#" onclick="go('pour');return false">← Back</a></p>
+  </div>
+</section>
+
+<div class="sfxmenu" id="sfxMenu"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================================================================
+   SIEVE — find shorts inside long video without ever downloading the video.
+   One file, no build, no deps. Three ideas do all the work:
+     1. the search index for 8 hours is words + loudness ≈ 3.4 MB (0.03% of it)
+     2. the transcript is the timeline
+     3. meme SFX are synthesised, so there is no sound library and no Content ID
+   =========================================================================== */
+
+const S = {
+  view:'pour',
+  index:null,        // {source, words[], energy Float32Array @10Hz, dur}
+  cands:[],          // ranked candidates
+  clip:null,         // the candidate being cut
+  cut:new Set(),     // struck sentence ids
+  keepGap:new Set(), // dead-air gaps the user chose to keep
+  sfx:[],            // [{id, sid, at:'after'|'before', t, on}]
+  hook:'',
+  opts:{gap:0.45, density:'tasteful', caption:'punch', punch:true},
+  video:null,        // HTMLVideoElement source when real footage is attached
+  filter:{sort:'score', standalone:false, laughs:false},
+  bytes:0, disk:0,
+  out:null, outName:'',
+};
+
+/* ---------------------------------- utils --------------------------------- */
+const $ = s => document.querySelector(s);
+const el = (t,c,x) => { const n=document.createElement(t); if(c)n.className=c; if(x!=null)n.textContent=x; return n; };
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const mmss = s => { s=Math.max(0,s); const m=Math.floor(s/60); return m+':'+String(Math.floor(s%60)).padStart(2,'0'); };
+const hhmmss = s => { const h=Math.floor(s/3600); return (h?h+':':'')+String(Math.floor(s/60)%60).padStart(h?2:1,'0')+':'+String(Math.floor(s%60)).padStart(2,'0'); };
+const mb = b => b<1024?b+' bytes':b<1048576?(b/1024).toFixed(0)+' KB':
+  b<1073741824?(b/1048576).toFixed(b>10485760?0:1)+' MB':(b/1073741824).toFixed(1)+' GB';
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let toastT;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'),2600); }
+function go(v){
+  if(S.view==='cut'&&v!=='cut') stopPlay();
+  S.view=v; document.querySelectorAll('.view').forEach(n=>n.classList.toggle('on',n.id==='v-'+v));
+  window.scrollTo({top:0,behavior:'smooth'}); paintHead();
+}
+
+/* ============================ THE DEMO CORPUS =============================
+   A real 8h12m two-person podcast index, hand-written so the ranking has
+   something honest to discriminate between: strong moments, weak moments,
+   pronoun soup, monotone stretches, hooks with no payoff. 23 moments + filler.
+   ========================================================================= */
+const A='MARA', B='DEV';
+const CORPUS = [
+ [412,[[A,"How much money did you lose in the first year?"],[B,"Four hundred and twelve thousand dollars. (0.5) Of other people's money."],[A,"[laugh]"],[B,"And I know the number to the dollar because I wrote it on a Post-it and stuck it to my monitor for two years."],[A,"That's insane."],[B,"It was the cheapest MBA anybody ever bought. (0.3) And I didn't even get the hat."],[A,"[laugh]"]]],
+ [1278,[[B,"So anyway, he told them the same thing he told us, which was obviously not true, and then they did it again."],[A,"Right, and that's the part I don't get."],[B,"Nobody got it. (0.6) That's sort of the whole thing with them."]]],
+ [2045,[[B,"Nobody in this industry has ever read the contract they signed. (0.4) Not one person."],[A,"You can't say nobody."],[B,"I can say nobody. I have asked four hundred founders and the number who had read it was three."],[A,"[laugh]"],[B,"Three. Out of four hundred. And two of them were lawyers."]]],
+ [2920,[[B,"I failed the same exam three times and I still teach the subject."],[A,"Three times?"],[B,"Three. (0.5) The third time I brought a lucky pen."],[A,"Did it help?"],[B,"It did not help. [laugh] The pen is still in a drawer. I can't throw it away and I can't use it."]]],
+ [3735,[[B,"The reason nobody tells you about the second year is that it is worse than the first, and here's the thing —"],[A,"Wait, worse how?"],[B,"Well, because by the second year you have already spent all of the — sorry, what I mean is the runway math changes, and then the, um, the whole—"]]],
+ [4773,[[B,"The single best hire I ever made was a guy who lied on his resume. Wait — hold on, that came out wrong."],[A,"[laugh] No, keep going."],[B,"He didn't lie about skills. He lied about the years. He was nineteen. (0.4) He had written down twenty-six because he thought nobody would take a teenager seriously."],[A,"And he was right."],[B,"He was completely right, and that's the depressing part."]]],
+ [6067,[[B,"The documentation was, I think, mostly fine. There were sections that needed updating. We updated some of them in the spring and some of them in, I believe, August."],[A,"Mm."],[B,"It's ongoing."]]],
+ [7102,[[A,"You got a cease and desist over a T-shirt."],[B,"I got a cease and desist over a T-shirt. Forty-one pages. (0.4) For a shirt that said ship it."],[A,"[laugh] Forty-one pages?"],[B,"Forty-one. I framed page one. It's in the bathroom."],[A,"[laugh]"],[B,"Best two hundred dollars I ever spent on art."]]],
+ [8096,[[B,"There are three things nobody tells you before you quit your job, and all three of them are about money you already spent."],[A,"Go."],[B,"One: your rent is now a decision. Two: your friends will stop inviting you to expensive things, quietly, out of kindness, and it feels like being un-invited from your own life. (0.5) Three: you will start doing your own taxes and you will discover you were never good at math."],[A,"[laugh]"]]],
+ [9100,[[B,"I turned down two million dollars in a parking lot."],[A,"In a parking lot?"],[B,"In a parking lot, on a Tuesday, and the reason I said no was that the guy kept calling my co-founder the technical one, and I thought, if that is how he—"]]],
+ [10331,[[A,"Someone told me last week that hiring is just vibes."],[B,"Hiring is just vibes."],[A,"That is what he said."],[B,"That is the dumbest sentence I have heard this year, and I have been on the internet. [laugh] (0.4) Vibes is how you pick a restaurant. It is not how you pick the person who has your database password."]]],
+ [11508,[[B,"And that is exactly why he did it, which makes the whole thing with them make sense in retrospect."],[A,"Completely."],[B,"It was always going to end that way."]]],
+ [12559,[[B,"Do you want to know what was actually in the box?"],[A,"I have been waiting an hour."],[B,"(0.8) Nothing. (0.6) It was empty. We paid the shipping, we paid the customs, we paid a man named Yusuf to drive it across a border, and the box was empty."],[A,"[laugh] No."],[B,"And to this day the invoice says goods."]]],
+ [13862,[[B,"We did four hundred thousand in revenue out of a bedroom with no employees."],[A,"Four hundred thousand."],[B,"In eleven months. No office, no ads, no funding. (0.4) One desk, and the desk was a door."],[A,"A door?"],[B,"A door on two filing cabinets. I still have the door."]]],
+ [15157,[[B,"Um, so, the thing about, like, pricing, is that, you know, everybody says charge more."],[A,"Everybody does say that."],[B,"And they are, I guess, right? But it is, it is more complicated."]]],
+ [16730,[[B,"We spent six weeks building a feature for one customer who did not exist."],[A,"Didn't exist?"],[B,"Turns out our biggest account was one guy with eleven email addresses. (0.5) He had been filing his own feature requests as different people to seem more important."],[A,"[laugh] That is beautiful."],[B,"I would hire him tomorrow."]]],
+ [18194,[[B,"I should probably give some background first, because otherwise this does not make sense. So in two thousand and nineteen there was a change in the way that the platform handled, I think it was called, the deprecation window, and a lot of people had built on the previous version, which meant that when they—"]]],
+ [19661,[[A,"What is the worst advice you ever took?"],[B,"Just be authentic. [laugh]"],[A,"[laugh] What happened?"],[B,"I was authentic in a board meeting. (0.4) Once."],[A,"[laugh]"],[B,"They were extremely polite about it and I was never authentic again."]]],
+ [21248,[[B,"The day we ran out of money, I found out from my bank app in a Wagamama."],[A,"In a Wagamama."],[B,"Sitting there with a bowl of ramen, watching the balance go negative in real time. (0.5) And I finished the ramen."],[A,"[laugh] Of course you did."],[B,"I had paid for it. That was the last thing I could afford to be sure about."]]],
+ [22915,[[B,"Every single one of my best ideas came from a complaint."],[A,"Your own or someone else's?"],[B,"Mostly mine, which is, you know, maybe not the most, um, scientific way to build a product roadmap, I don't know."]]],
+ [24492,[[B,"You will never be more productive than the week before you go on holiday."],[A,"[laugh] That is true."],[B,"Four days of work in nine hours. (0.4) Which means the problem was never the work. The problem was that the calendar was empty."],[A,"So what, book fake holidays?"],[B,"I book a fake holiday every six weeks and my team thinks I have a very sick aunt."],[A,"[laugh]"]]],
+ [26130,[[B,"The migration took four months. We moved from the old schema to the new one in stages. Stage one was read-only, stage two was dual-write."],[A,"Standard."],[B,"Very standard."]]],
+ [27843,[[A,"If you could tell yourself one thing at twenty-three, what is it?"],[B,"Nobody is coming. (0.7) That is it. That is the whole sentence."],[A,"That is bleak."],[B,"It is the opposite of bleak. [laugh] If nobody is coming, you are allowed to start."],[A,"[laugh]"]]],
+];
+const FILLER = [
+ [1810,[[A,"Do you want more coffee before we keep going?"],[B,"I am four deep. I am fine."]]],
+ [5390,[[B,"Where were we. The spreadsheet, right."],[A,"The spreadsheet."]]],
+ [9740,[[A,"We should probably take a break at some point."],[B,"We say that every time and we never do."]]],
+ [14520,[[B,"Is that thing recording? The light is off."],[A,"It is recording. The light is always off."]]],
+ [17540,[[A,"How long have we been going?"],[B,"I stopped checking around hour four."]]],
+ [20440,[[B,"Can we cut that bit? That was not a sentence."],[A,"Nothing gets cut. That is the format."]]],
+ [23600,[[A,"My back hurts."],[B,"That is the podcast, that is what it does to you."]]],
+ [25700,[[B,"What time is it there?"],[A,"I genuinely do not know any more."]]],
+];
+
+function tokenizeLine(text,t,spk,out,rnd){
+  for(const p of text.split(/\s+/)){
+    let m;
+    if((m=p.match(/^\((\d+(?:\.\d+)?)\)$/))){ t+=parseFloat(m[1]); continue; }
+    if(p==='[laugh]'){ out.push({w:'[laughter]',t,d:1.05,spk,lau:1}); t+=1.2; continue; }
+    const clean=p.replace(/[^A-Za-z0-9']/g,'');
+    const d=Math.max(.13,Math.min(.62,clean.length*.058+.06+rnd()*.05));
+    out.push({w:p,t,d,spk});
+    t+=d+.035;
+    if(/[,;:—]$/.test(p)) t+=.17;
+    if(/[.?!]$/.test(p)) t+=.33;
+  }
+  return t;
+}
+
+/* Real podcasts are ~95% unclippable. The filler below exists so the demo
+   index is the size a real 8 hours actually is, and so the sieve has to
+   discard something — a ranker that only ever sees good material is a demo,
+   not a ranker. */
+const POOL=[
+ "Right, and the other thing was the spreadsheet, which we had already sent over twice.",
+ "I think that was the same week, or maybe the week after, I genuinely cannot remember.",
+ "Mm. Yeah.","Sure, that makes sense.","And how long did that take in the end?",
+ "About four months, give or take, depending on how you count the holidays.",
+ "So the way that worked was you filed the form, and then you waited.",
+ "And nobody chased it up?","Nobody chased it up, no.",
+ "We had a process document for that, somewhere, in a folder nobody could find.",
+ "It is one of those things where you sort of assume somebody else is handling it.",
+ "Which is, I guess, how most of these things go.","Basically, yeah.",
+ "The numbers were fine. Not amazing, but fine.",
+ "There was a version of the deck with the old logo on it for about a year.",
+ "I do not think anybody noticed, to be honest.",
+ "We should probably talk about the pricing page at some point.",
+ "We can come back to that.","Let me find the note I wrote about this.",
+ "It was, I want to say, a Tuesday? It might have been a Wednesday.",
+ "And the invoice went to the wrong address, obviously.",
+ "Obviously.","So then we moved everything into the new system in stages.",
+ "Stage one was read-only, which took a while to get signed off.",
+ "That is fairly standard, though.","Very standard, yeah.",
+ "I had a spreadsheet that tracked the other spreadsheets.",
+ "Everybody has that spreadsheet.","Everybody has that spreadsheet.",
+ "Anyway, the point is it got done, eventually, more or less.",
+ "More or less.","Do you want to pick this up after a break?",
+ "We can keep going for a bit.","The meeting itself was fine, it was the follow-up that dragged.",
+ "There were four people on that call and three of them did not need to be there.",
+ "I have started declining those, actually.","Good. You should.",
+ "It is in the appendix of the document, if anyone ever reads the appendix.",
+ "Nobody reads the appendix.","I read the appendix.","You wrote the appendix.",
+ "So we shipped it on the Friday, which in hindsight was a choice.",
+ "It was fine. Nothing broke.","Nothing broke that we know about.",
+ "And then the quarter ended and everything went quiet for a bit.",
+ "That is normal for this time of year.","It is, yeah.",
+ "I looked at the dashboard again this morning and it said the same thing.",
+ "It always says the same thing.","That is sort of the problem with the dashboard.",
+ "We talked about replacing it.","We talk about replacing it every year.",
+ "Okay, where were we.","The form. You were on the form.","Right, the form."];
+
+function buildDemoIndex(){
+  const rnd=mulberry32(20260917);
+  const words=[];
+  const blocks=CORPUS.concat(FILLER).sort((a,b)=>a[0]-b[0]);
+  let pi=0, t=42;
+  const fillUntil=(stop)=>{ let spk=0;
+    while(t<stop-6){
+      const line=POOL[(pi+++Math.floor(rnd()*7))%POOL.length];
+      if(rnd()<.35) spk=1-spk;
+      t=tokenizeLine(line,t,spk,words,rnd)+.28+rnd()*1.5;
+    }
+    t=stop; };
+  for(const [at,lines] of blocks){
+    fillUntil(at);
+    let last=null;
+    for(const [spk,text] of lines){
+      if(last&&last!==spk) t+=.3;
+      last=spk;
+      t=tokenizeLine(text,t,spk===A?0:1,words,rnd);
+    }
+  }
+  const dur=8*3600+12*60+40;
+  fillUntil(dur-40);
+  // the loudness envelope: 10 Hz over 8h12m = 295k floats = 1.13 MB. This is
+  // the entire "video" as far as clip-finding is concerned.
+  const HZ=10, n=Math.ceil(dur*HZ), energy=new Float32Array(n);
+  for(let i=0;i<n;i++) energy[i]=.06+rnd()*.05;            // room tone
+  for(const w of words){
+    const a=Math.floor(w.t*HZ), b=Math.ceil((w.t+w.d)*HZ);
+    const amp=w.lau?.94:(.42+rnd()*.26);
+    for(let i=a;i<b&&i<n;i++) energy[i]=Math.max(energy[i],amp*(0.86+.14*Math.sin(i*1.7)));
+  }
+  return {
+    source:{kind:'demo',name:'THE LONG HAUL #212 — “nobody is coming”',durationSec:dur,bytes:12.4*1024*1024*1024},
+    words, energy, hz:HZ, dur
+  };
+}
+</script>
+
+<script>
+/* ======================== THE RANKING ENGINE ==============================
+   Six signals. Every one of them is computed from the 3.4 MB index — words
+   and loudness — and every one of them is shown to the user as a bar they can
+   disagree with. SELF-CONTAINED is the one most auto-clippers skip, and it is
+   the single reason their clips die: a clip that opens on "so that's why he
+   did it" has lost the viewer before the second word.
+   ========================================================================= */
+const LEX = {
+  discourse:/^(so|and|but|anyway|anyways|right|yeah|yep|well|okay|ok|um|uh|like|because|then|which|i mean|you know|basically)\b/i,
+  superlative:/\b(best|worst|biggest|greatest|smallest|first|last|only|never|always|nobody|everybody|everyone|every single|most|least|single)\b/i,
+  stakes:/\b(fired|quit|lost|lose|lied|lie|broke|bankrupt|sued|cease and desist|stole|died|failed|fail|scam|fraud|arrested|evicted|divorce|debt|ran out of money|negative|desist)\b/i,
+  number:/\b(\d[\d,.]*|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|nineteen|twenty|thirty|forty|fifty|hundred|thousand|million|billion)\b/i,
+  second:/\byou\b|\byour\b|\byou're\b|\byou will\b/i,
+  profan:/\b(damn|hell|crap|screwed|insane|stupid|dumbest|dumb|idiot|bleak|depressing)\b/i,
+  curiosity:/\b(the reason|nobody tells you|nobody talks about|here's the thing|turns out|the secret|the trick|what was actually|do you want to know|guess what|the catch|worst part|best part|depressing part|what happened)\b/i,
+  payoff:/\b(and that's (why|how|when)|that is the whole|that's the whole|which is why|which means|so now|to this day|and i never|never again|i still have|the end)\b/i,
+  pronounLead:/^(he|she|they|him|her|them|his|their|it|this|that|those|these|there)\b/i,
+  conjLead:/^(and|so|but|which|because|then|or|plus)\b/i,
+  refs:/\b(he|she|they|him|her|them|his|their|it)\b/gi,
+  danglingWhy:/\bthat('s| is| was) (exactly )?(why|how|when|the)\b/i,
+  selfint:/\b(wait|hold on|hang on|sorry|let me back up|that came out wrong|no, actually|actually, no)\b/i,
+  filler:/\b(um|uh|like|you know|i mean|sort of|kind of|basically|i guess|i think|probably|genuinely)\b/gi,
+  lists:/\b(\d+|two|three|four|five) (things|reasons|rules|ways|lessons)\b/i,
+  brag:/\b(revenue|profit|thousand|million|no employees|no funding|no ads|out of a bedroom|in eleven months|in nine hours)\b/i,
+  admit:/\b(failed|i was wrong|my fault|i lost|did not help|didn't help|i couldn't|i can't|never authentic|ran out)\b/i,
+  stupid:/\b(dumbest|stupid|idiot|dumb|the dumbest sentence)\b/i,
+};
+
+function buildSentences(idx){
+  const out=[]; let cur=null;
+  const push=()=>{ if(!cur)return;
+    const text=cur.words.map(w=>w.w).join(' ');
+    cur.text=text; cur.nw=cur.words.filter(w=>!w.lau).length;
+    cur.spoken=cur.words.reduce((a,w)=>a+w.d,0);
+    cur.f=flags(text,cur.nw);
+    out.push(cur); cur=null; };
+  for(const w of idx.words){
+    if(cur&&(cur.spk!==w.spk||w.t-cur.t1>2.2)) push();
+    if(!cur) cur={id:out.length,spk:w.spk,t0:w.t,t1:w.t+w.d,words:[],lau:0};
+    cur.words.push(w); cur.t1=w.t+w.d; if(w.lau) cur.lau++;
+    // with no transcript there is no punctuation, so each speech run is its
+    // own unit — otherwise the whole recording is one unclippable sentence
+    if(idx.noText||w.lau||/[.?!]['"]?$/.test(w.w)) push();
+  }
+  push(); return out;
+}
+/* Every text test a window could need, run once per sentence instead of once
+   per window. 9,000 sentences × 14 windows each is 126,000 windows; joining
+   their text back together each time is what makes naive rankers take a
+   minute. This makes the whole 8-hour scan a few hundred milliseconds. */
+function flags(text,nw){
+  const t=text.trim(), low=t.toLowerCase();
+  return {
+    q:/\?/.test(t), sup:LEX.superlative.test(t), stk:LEX.stakes.test(t), num:LEX.number.test(t),
+    you:LEX.second.test(t), prof:LEX.profan.test(t), disc:LEX.discourse.test(t),
+    curio:LEX.curiosity.test(t), lists:LEX.lists.test(t), turns:/\bturns out\b/i.test(t),
+    pay:LEX.payoff.test(t), fill:(low.match(LEX.filler)||[]).length,
+    plead:LEX.pronounLead.test(t)&&!/^there\s+(are|is|was|were|'s)\b/i.test(t),
+    clead:LEX.conjLead.test(t), dang:LEX.danglingWhy.test(t),
+    refs:(t.match(LEX.refs)||[]).length,
+    endP:/[.?!]["\']?$/.test(t), endC:/[,\u2014-]$/.test(t),
+    // a two-word reaction ("Didn't exist?", "In a parking lot?") is a reply,
+    // not an opening — it only makes sense with the line before it
+    backch:nw<=4&&(/\?$/.test(t)||/^(right|yeah|sure|exactly|mm|wow|no|really)\b/i.test(t)),
+    hw:(low.match(/[a-z']{5,}/g)||[]), low
+  };
+}
+
+function energyPeak(idx,t0,t1){
+  const a=Math.max(0,Math.floor(t0*idx.hz)), b=Math.min(idx.energy.length,Math.ceil(t1*idx.hz));
+  let mx=0; for(let i=a;i<b;i++) if(idx.energy[i]>mx) mx=idx.energy[i]; return mx;
+}
+function speechBase(idx){
+  let s=0,n=0; for(const w of idx.words){ if(w.lau) continue; s+=energyPeak(idx,w.t,w.t+w.d); n++; }
+  return n?s/n:.5;
+}
+
+function scoreWindow(idx,sents,i,j,base){
+  const first=sents[i], last=sents[j], F=first.f, L=last.f;
+  const t0=first.t0, t1=last.t1, dur=t1-t0;
+  let nw=0, spoken=0, laughs=0, fill=0, curio=false, lists=false, turns=false;
+  const hi=i+Math.max(1,Math.ceil((j-i+1)*.6));
+  for(let k=i;k<=j;k++){ const s=sents[k];
+    nw+=s.nw; spoken+=s.spoken; laughs+=s.lau; fill+=s.f.fill;
+    if(k<hi){ curio=curio||s.f.curio; lists=lists||s.f.lists; }
+    turns=turns||s.f.turns; }
+  const facts=[], tags=[];
+
+  /* No transcript (a local file, no engine): only two of the six signals can
+     honestly be computed, so the other four are left blank rather than faked. */
+  if(idx.noText){
+    const pk=energyPeak(idx,t0,t1), density=spoken/dur;
+    const peak=clamp((pk-base)/Math.max(.08,1-base)*70,0,100);
+    const pace=clamp(100-Math.abs(density-.72)*180,0,100);
+    tags.push(['energy only','warn']);
+    if(density>.7) facts.push('near-continuous speech');
+    facts.push('loudness peak '+Math.round(pk*100)+'%');
+    return {i,j,t0,t1,dur,sig:{hook:0,solo:0,peak,gap:0,loop:0,pace},
+      total:Math.round(peak*.68+pace*.32),laughs:0,facts,tags,nw,
+      hookText:hhmmss(t0)+' — '+Math.round(dur)+'s of speech, no transcript',
+      reason:facts.join(' · ')};
+  }
+
+  /* --- 1. HOOK: the first 1.5 seconds decide everything --------------- */
+  let hook=34;
+  if(F.q){ hook+=26; facts.push('opens on a question'); }
+  if(F.sup){ hook+=20; facts.push('opens on an absolute'); }
+  if(F.stk){ hook+=18; facts.push('stakes in the first line'); }
+  if(F.num) hook+=10;
+  if(F.you){ hook+=12; facts.push('talks to the viewer'); }
+  if(F.prof) hook+=8;
+  if(first.nw<=12) hook+=12; else if(first.nw>26){ hook-=18; tags.push(['long opener','warn']); }
+  if(F.disc){ hook-=34; tags.push(['setup opening','warn']); }
+  if(F.backch){ hook-=22; tags.push(['opens on a reaction','warn']); }
+  if(F.fill>=2) hook-=14;
+  hook=clamp(hook,0,100);
+
+  /* --- 2. SELF-CONTAINED: does the clip need the 8 hours before it? --- */
+  let solo=100;
+  if(F.plead) solo-=45;
+  if(F.clead) solo-=22;
+  if(F.dang) solo-=20;
+  if(F.backch) solo-=38;                       // a reply with nothing to reply to
+  solo-=Math.min(20,(F.refs+(sents[i+1]?sents[i+1].f.refs:0))*7);
+  if(F.endC) solo-=14;
+  solo=clamp(solo,0,100);
+  if(solo>=78){ tags.push(['self-contained','good']); facts.push('needs no setup'); }
+  else if(solo<50) tags.push(['needs context','warn']);
+
+  /* --- 3. PEAK: loudness + laughter, straight off the envelope -------- */
+  const pk=energyPeak(idx,t0,t1), pkH=energyPeak(idx,t0,Math.min(t1,t0+8));
+  let peak=clamp((pk-base)/Math.max(.08,1-base)*58,0,58)+laughs*14;
+  // a laugh 50 seconds into a clip that opens flat is not a hot clip
+  if((pkH-base)/Math.max(.08,1-base)<.15&&dur>26){ peak*=.72; tags.push(['starts flat','warn']); }
+  peak=clamp(peak,0,100);
+  if(laughs){ tags.push([laughs+(laughs>1?' laughs':' laugh'),'good']);
+    for(let k=i;k<=j;k++) if(sents[k].lau){ facts.push('laughter at '+mmss(sents[k].t0-t0)); break; } }
+
+  /* --- 4. CURIOSITY: Berger's information gap ------------------------- */
+  let gap=28;
+  if(curio){ gap+=34; facts.push('opens an information gap'); }
+  if(lists){ gap+=18; facts.push('numbered list'); }
+  if(F.q) gap+=14;
+  if(turns) gap+=16;
+  gap=clamp(gap,0,100);
+
+  /* --- 5. CLOSURE: a short must land, not stop ------------------------ */
+  let loop=30;
+  if(L.endP) loop+=20; else { loop-=32; tags.push(['ends mid-sentence','warn']); }
+  if(last.lau){ loop+=22; facts.push('ends on a laugh'); }
+  if(L.pay){ loop+=20; facts.push('lands the payoff on the last line'); }
+  if(last.nw<=14&&last.nw>0) loop+=12;
+  if(L.endC) loop-=25;
+  const tail=L.low+' '+(sents[j-1]?sents[j-1].f.low:'');
+  if(j>i&&F.hw.some(w=>tail.includes(w))){ loop+=12; facts.push('callback to the hook'); }
+  loop=clamp(loop,0,100);
+
+  /* --- 6. PACE: words per second and how much of it is silence ------- */
+  const density=spoken/dur, wps=nw/dur;
+  let pace=100-Math.abs(wps-3.0)*22;
+  if(density<.62) pace-=(0.62-density)*130;
+  if(nw&&fill/nw>.06){ pace-=20; tags.push(['filler words','warn']); }
+  pace=clamp(pace,0,100);
+  if(density<.6) tags.push([Math.round((1-density)*100)+'% dead air','warn']);
+
+  const sig={hook,solo,peak,gap,loop,pace};
+  /* Grammar can fake a hook. "Do you want to pick this up after a break?" is a
+     short second-person question — structurally perfect, and about nothing.
+     PEAK is the only signal grounded in what actually happened in the room
+     rather than in the sentence, so a window where nobody laughs and nobody
+     raises their voice gets damped, and the card says so out loud. */
+  const substance=.55+.45*Math.min(1,peak/45);
+  if(substance<.95) tags.push(['nothing happens here','warn']);
+  const total=Math.round((hook*.27+solo*.16+peak*.20+gap*.13+loop*.17+pace*.07)*substance);
+  return {i,j,t0,t1,dur,sig,total,laughs,facts,tags,nw,
+          hookText:first.text.replace(/\s+([,.?!])/g,'$1'),
+          reason:facts.slice(0,3).join(' · ')||'steady, no strong signal'};
+}
+
+function findCandidates(idx,sents){
+  const base=speechBase(idx), MIN=17, MAX=58, all=[];
+  for(let i=0;i<sents.length;i++){
+    if(sents[i].lau&&sents[i].nw===0) continue;   // never open a short on a laugh
+    for(let j=i;j<sents.length;j++){
+      if(j>i&&sents[j].t0-sents[j-1].t1>3.0) break;
+      const dur=sents[j].t1-sents[i].t0;
+      if(dur>MAX) break;
+      if(dur<MIN) continue;
+      all.push(scoreWindow(idx,sents,i,j,base));
+    }
+  }
+  all.sort((a,b)=>b.total-a.total);
+  const keep=[], seen=new Set();
+  for(const c of all){
+    if(keep.some(k=>Math.min(k.t1,c.t1)-Math.max(k.t0,c.t0)>.35*Math.min(k.dur,c.dur))) continue;
+    const key=c.hookText.toLowerCase().replace(/[^a-z ]/g,'').slice(0,48);
+    if(seen.has(key)) continue;          // an 8-hour recording repeats itself; the shortlist shouldn't
+    seen.add(key); keep.push(c); if(keep.length>=24) break;
+  }
+  return keep;
+}
+</script>
+
+<script>
+/* ===================== SOUND: OSCILLATORS, NOT SAMPLES ====================
+   Every meme SFX below is built at render time out of two or three
+   oscillators and a filter. No sound pack to download (0 MB), no licence,
+   and nothing for Content ID to match — a vine boom made of a sine sweep is
+   not a recording of anything, so it cannot be claimed.
+   ========================================================================= */
+let AC=null, BUS=null, REC=null, NOISE=null, VSRC=null, VGAIN=null;
+function ac(){
+  if(!AC){
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    BUS=AC.createGain(); BUS.gain.value=.9; BUS.connect(AC.destination);
+    const n=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate), d=n.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+    NOISE=n;
+  }
+  if(AC.state==='suspended') AC.resume();
+  return AC;
+}
+/* A media element can have exactly ONE MediaElementAudioSourceNode, ever, so
+   it is created once here and reused by the scanner, the player and the
+   recorder. VGAIN is how the scan stays silent: the graph still has to reach
+   the destination or the browser never pulls it (that is the bug that made
+   the first scan return pure silence), so we route through a gain of 0. */
+function videoSource(){
+  ac();
+  if(!VSRC&&S.video){
+    try{
+      VSRC=AC.createMediaElementSource(S.video);
+      VGAIN=AC.createGain(); VGAIN.gain.value=1;
+      VSRC.connect(VGAIN).connect(BUS);
+    }catch(e){ VSRC=null; }
+  }
+  return VSRC;
+}
+const videoAudio=on=>{ if(VGAIN) VGAIN.gain.value=on?1:0; };
+function recBus(){ ac(); if(!REC){ REC=AC.createMediaStreamDestination(); BUS.connect(REC); } return REC; }
+function noiseSrc(){ const s=ac().createBufferSource(); s.buffer=NOISE; s.loop=true; return s; }
+function env(g,t,pts){ g.gain.setValueAtTime(0,t); for(const [dt,v,exp] of pts){
+  if(exp) g.gain.exponentialRampToValueAtTime(Math.max(.0001,v),t+dt); else g.gain.linearRampToValueAtTime(v,t+dt); } }
+function chain(t,dur,nodes,gain){ const g=ac().createGain(); g.gain.value=gain==null?1:gain; nodes.concat([g,BUS]).reduce((a,b)=>(a.connect(b),b)); return g; }
+
+/* ---- synthesis helpers: every sound below is built out of these ---- */
+function tone(t,o){                                  // one oscillator, swept
+  const a=ac(),x=a.createOscillator(),g=a.createGain();
+  x.type=o.type||'sine';
+  x.frequency.setValueAtTime(o.f0,t);
+  if(o.f1!=null) o.lin ? x.frequency.linearRampToValueAtTime(o.f1,t+(o.sweep||o.dur))
+                       : x.frequency.exponentialRampToValueAtTime(Math.max(1,o.f1),t+(o.sweep||o.dur));
+  if(o.steps) o.steps.forEach(([dt,f])=>x.frequency.setValueAtTime(f,t+dt));
+  let node=x;
+  if(o.lp){ const f=a.createBiquadFilter(); f.type='lowpass'; f.frequency.value=o.lp; if(o.Q)f.Q.value=o.Q; x.connect(f); node=f; }
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(o.gain==null?.3:o.gain,t+(o.atk||.008));
+  if(o.hold) g.gain.setValueAtTime(o.gain==null?.3:o.gain,t+o.hold);
+  g.gain.exponentialRampToValueAtTime(.0001,t+o.dur);
+  node.connect(g).connect(BUS);
+  x.start(t); x.stop(t+o.dur+.02);
+  return x;
+}
+function hiss(t,o){                                  // noise through a filter
+  const a=ac(),n=noiseSrc(),f=a.createBiquadFilter(),g=a.createGain();
+  f.type=o.type||'bandpass'; f.Q.value=o.Q==null?1:o.Q;
+  f.frequency.setValueAtTime(o.f0,t);
+  if(o.f1!=null) f.frequency.exponentialRampToValueAtTime(Math.max(20,o.f1),t+(o.sweep||o.dur));
+  if(o.rate) n.playbackRate.value=o.rate;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(o.gain==null?.25:o.gain,t+(o.atk||.006));
+  if(o.hold) g.gain.setValueAtTime(o.gain==null?.25:o.gain,t+o.hold);
+  g.gain.exponentialRampToValueAtTime(.0001,t+o.dur);
+  n.connect(f).connect(g).connect(BUS);
+  n.start(t); n.stop(t+o.dur+.02);
+}
+function bell(t,parts,dur,gain){                     // inharmonic partials = metal
+  parts.forEach(([f,v,d])=>tone(t,{type:'sine',f0:f,dur:(d||1)*dur,gain:(gain==null?.2:gain)*v,atk:.004}));
+}
+function chord(t,freqs,o){ freqs.forEach(f=>tone(t,{...o,f0:f,f1:o.f1?o.f1*(f/freqs[0]):null})); }
+
+/* =========================== THE SOUND LIBRARY ===========================
+   31 sounds, 0 MB. Each one is two or three oscillators and a filter, built
+   at render time. Nothing here is a recording of anything, which is the whole
+   point: Content ID matches audio fingerprints of recordings, so there is
+   nothing here for it to match. (That is a technical statement about how
+   fingerprinting works, not legal advice.)
+   ========================================================================= */
+const SFXCATS=[['impact','Impacts & punchlines'],['hype','Hype'],['comedy','Comedy & reactions'],
+               ['tension','Tension & reveals'],['ui','Notification & game']];
+const SFXLIB = {
+  /* ---------------------------------- impact --------------------------- */
+  boom:{name:'Vine boom',emoji:'💥',cat:'impact',why:'after an absolute statement',dur:.8,play(t){
+    tone(t,{type:'sine',f0:115,f1:27,dur:.75,gain:1,sweep:.55});
+    hiss(t,{type:'lowpass',f0:190,dur:.18,gain:.5});
+  }},
+  bassdrop:{name:'Bass drop',emoji:'🔊',cat:'impact',why:'on the hardest cut in the clip',dur:1.4,play(t){
+    tone(t,{type:'sine',f0:180,f1:24,dur:1.3,gain:1,sweep:1.1});
+    tone(t,{type:'triangle',f0:90,f1:22,dur:1.2,gain:.4,sweep:1.0});
+    hiss(t,{type:'lowpass',f0:400,f1:60,dur:.5,gain:.3});
+  }},
+  thud:{name:'Thud',emoji:'🥊',cat:'impact',why:'a small punctuation mark',dur:.4,play(t){
+    tone(t,{type:'sine',f0:150,f1:45,dur:.3,gain:.8,sweep:.2});
+    hiss(t,{type:'lowpass',f0:250,dur:.1,gain:.35});
+  }},
+  pipe:{name:'Metal pipe',emoji:'🪈',cat:'impact',why:'the punchline landing badly, on purpose',dur:1.6,play(t){
+    [0,.19,.34,.46].forEach((dt,i)=>{
+      const k=1-i*.2;
+      bell(t+dt,[[412,1,.5],[1094,.7,.35],[1723,.5,.25],[2541,.35,.18],[3300,.2,.12]],1.1,.19*k);
+      hiss(t+dt,{f0:2600,Q:1.2,dur:.06,gain:.12*k});
+    });
+  }},
+  anvil:{name:'Anvil',emoji:'🔔',cat:'impact',why:'a heavier version of the bell',dur:2,play(t){
+    bell(t,[[523,1,1],[1318,.6,.8],[2093,.4,.55],[2794,.25,.4]],1.9,.22);
+    hiss(t,{f0:3400,Q:.9,dur:.08,gain:.1});
+  }},
+
+  /* ----------------------------------- hype ---------------------------- */
+  airhorn:{name:'Airhorn',emoji:'📢',cat:'hype',why:'after a number worth bragging about',dur:.6,play(t){
+    const a=ac(),bp=a.createBiquadFilter(),g=a.createGain();
+    bp.type='bandpass'; bp.frequency.value=950; bp.Q.value=1.1; bp.connect(g).connect(BUS);
+    [1,1.005,2.001,2.99].forEach(m=>{ const o=a.createOscillator(); o.type='sawtooth';
+      o.frequency.setValueAtTime(415*m,t); o.frequency.linearRampToValueAtTime(468*m,t+.09);
+      o.connect(bp); o.start(t); o.stop(t+.58); });
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.34,t+.02);
+    g.gain.setValueAtTime(.34,t+.48); g.gain.linearRampToValueAtTime(0,t+.56);
+  }},
+  airhorn3:{name:'Airhorn ×3',emoji:'🎺',cat:'hype',why:'the unsubtle version',dur:1.6,play(t){
+    [0,.34,.68].forEach(dt=>SFXLIB.airhorn.play(t+dt));
+  }},
+  siren:{name:'Siren',emoji:'🚨',cat:'hype',why:'on something outrageous',dur:1.8,play(t){
+    const st=[]; for(let i=0;i<=12;i++) st.push([i*.14,i%2?1180:620]);
+    tone(t,{type:'sawtooth',f0:620,steps:st,dur:1.75,gain:.16,lp:2200,hold:1.5});
+  }},
+  applause:{name:'Applause',emoji:'👏',cat:'hype',why:'after the payoff lands',dur:2.2,play(t){
+    const a=ac(),n=noiseSrc(),bp=a.createBiquadFilter(),g=a.createGain();
+    bp.type='bandpass'; bp.frequency.value=2000; bp.Q.value=.7;
+    g.gain.setValueAtTime(0,t);
+    for(let i=0;i<70;i++){ const dt=.02+i*.03;
+      g.gain.setValueAtTime(.06+Math.random()*.16*(1-dt/2.2),t+dt); }
+    g.gain.linearRampToValueAtTime(0,t+2.15);
+    n.connect(bp).connect(g).connect(BUS); n.start(t); n.stop(t+2.2);
+    for(let i=0;i<26;i++) hiss(t+Math.random()*1.9,{f0:1200+Math.random()*2600,Q:3,dur:.035,gain:.05});
+  }},
+  sparkle:{name:'Sparkle',emoji:'✨',cat:'hype',why:'over the hook card',dur:1,play(t){
+    const sc=[1568,1760,2093,2637,3136,3520];
+    for(let i=0;i<9;i++) tone(t+i*.055,{type:'sine',f0:sc[(Math.random()*sc.length)|0],dur:.45,gain:.10,atk:.003});
+  }},
+
+  /* ---------------------------------- comedy --------------------------- */
+  bruh:{name:'Bruh',emoji:'🙄',cat:'comedy',why:'after something stupid',dur:.55,play(t){
+    tone(t,{type:'sawtooth',f0:142,f1:96,dur:.52,gain:.34,lp:950,Q:4,sweep:.42});
+    tone(t,{type:'square',f0:71,f1:48,dur:.5,gain:.16,lp:520,sweep:.42});
+  }},
+  trombone:{name:'Sad trombone',emoji:'🎭',cat:'comedy',why:'after an admission of failure',dur:1.5,play(t){
+    const a=ac(),lfo=a.createOscillator(),lg=a.createGain();
+    const o=tone(t,{type:'sawtooth',f0:233,steps:[[0,233],[.30,207],[.60,185],[.90,155]],f1:116,dur:1.45,gain:.26,lp:1100,hold:1.15,sweep:1.4});
+    lfo.frequency.value=5.5; lg.gain.value=6; lfo.connect(lg).connect(o.frequency); lfo.start(t); lfo.stop(t+1.5);
+  }},
+  slide:{name:'Slide whistle',emoji:'🛝',cat:'comedy',why:'on a swift exit',dur:.9,play(t){
+    tone(t,{type:'sine',f0:700,f1:2400,dur:.42,gain:.16,sweep:.38});
+    tone(t+.42,{type:'sine',f0:2400,f1:600,dur:.45,gain:.16,sweep:.42});
+    hiss(t,{f0:2000,Q:2,dur:.85,gain:.03});
+  }},
+  boing:{name:'Boing',emoji:'🪀',cat:'comedy',why:'a spring, for a bad idea',dur:.7,play(t){
+    const a=ac(),o=a.createOscillator(),g=a.createGain(),m=a.createOscillator(),mg=a.createGain();
+    o.type='triangle'; o.frequency.value=210;
+    m.frequency.value=13; mg.gain.setValueAtTime(190,t); mg.gain.exponentialRampToValueAtTime(2,t+.65);
+    m.connect(mg).connect(o.frequency);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.3,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+.68);
+    o.connect(g).connect(BUS); o.start(t); m.start(t); o.stop(t+.7); m.stop(t+.7);
+  }},
+  exit:{name:'Exit whistle',emoji:'💨',cat:'comedy',why:'somebody leaving the room',dur:.8,play(t){
+    tone(t,{type:'sine',f0:1500,f1:280,dur:.75,gain:.14,sweep:.7});
+    hiss(t,{f0:1800,f1:400,Q:1.5,dur:.75,gain:.06,sweep:.7});
+  }},
+  rimshot:{name:'Ba-dum-tss',emoji:'🥁',cat:'comedy',why:'you told a joke',dur:1.2,play(t){
+    tone(t,{type:'sine',f0:200,f1:90,dur:.16,gain:.5,sweep:.12});
+    tone(t+.17,{type:'sine',f0:170,f1:80,dur:.16,gain:.45,sweep:.12});
+    hiss(t+.34,{type:'highpass',f0:5200,Q:.5,dur:.85,gain:.14});
+  }},
+  scratch:{name:'Record scratch',emoji:'🎚',cat:'comedy',why:'on a self-interruption',dur:.5,play(t){
+    const a=ac(),n=noiseSrc(),bp=a.createBiquadFilter(),g=a.createGain();
+    bp.type='bandpass'; bp.Q.value=7;
+    [[0,700],[.07,2600],[.14,900],[.21,3000],[.30,1100],[.40,2200],[.5,600]].forEach(([dt,f])=>bp.frequency.setValueAtTime(f,t+dt));
+    [[0,1.6],[.1,.55],[.2,1.9],[.32,.7],[.45,1.3]].forEach(([dt,r])=>n.playbackRate.setValueAtTime(r,t+dt));
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.42,t+.01);
+    g.gain.setValueAtTime(.34,t+.42); g.gain.exponentialRampToValueAtTime(.0001,t+.52);
+    n.connect(bp).connect(g).connect(BUS); n.start(t); n.stop(t+.55);
+  }},
+  raspberry:{name:'Raspberry',emoji:'😝',cat:'comedy',why:'the most-used sound on the internet',dur:.6,play(t){
+    const a=ac(),o=a.createOscillator(),g=a.createGain(),m=a.createOscillator(),mg=a.createGain(),lp=a.createBiquadFilter();
+    o.type='sawtooth'; o.frequency.setValueAtTime(96,t); o.frequency.exponentialRampToValueAtTime(62,t+.55);
+    m.type='square'; m.frequency.value=32; mg.gain.value=34; m.connect(mg).connect(o.frequency);
+    lp.type='lowpass'; lp.frequency.setValueAtTime(700,t); lp.frequency.exponentialRampToValueAtTime(240,t+.55);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.26,t+.02);
+    g.gain.setValueAtTime(.22,t+.45); g.gain.exponentialRampToValueAtTime(.0001,t+.58);
+    o.connect(lp).connect(g).connect(BUS); o.start(t); m.start(t); o.stop(t+.6); m.stop(t+.6);
+  }},
+
+  /* --------------------------------- tension --------------------------- */
+  riser:{name:'Suspense riser',emoji:'📈',cat:'tension',why:'the two seconds before the payoff',dur:1.9,play(t){
+    tone(t,{type:'sawtooth',f0:150,f1:1500,dur:1.88,gain:.16,sweep:1.8,atk:1.7});
+    hiss(t,{type:'highpass',f0:400,f1:4200,Q:.7,dur:1.9,gain:.22,sweep:1.8,atk:1.75});
+  }},
+  dundun:{name:'Dun dun dunnn',emoji:'🎻',cat:'tension',why:'a revelation',dur:2.4,play(t){
+    chord(t,[147,220,294],{type:'sawtooth',dur:.4,gain:.11,lp:1400});
+    chord(t+.45,[147,220,294],{type:'sawtooth',dur:.4,gain:.11,lp:1400});
+    chord(t+.95,[110,165,220,277],{type:'sawtooth',dur:1.4,gain:.11,lp:1200,hold:.9});
+  }},
+  drone:{name:'Ominous drone',emoji:'🌑',cat:'tension',why:'under a long confession',dur:2.6,play(t){
+    tone(t,{type:'sine',f0:55,dur:2.5,gain:.24,atk:.4,hold:2});
+    tone(t,{type:'sine',f0:55.9,dur:2.5,gain:.2,atk:.4,hold:2});
+    tone(t,{type:'triangle',f0:110,dur:2.5,gain:.08,atk:.6,hold:1.9});
+  }},
+  heartbeat:{name:'Heartbeat',emoji:'💓',cat:'tension',why:'stakes, without saying so',dur:1.8,play(t){
+    [0,.9].forEach(dt=>{
+      tone(t+dt,{type:'sine',f0:70,f1:38,dur:.2,gain:.7,sweep:.16});
+      tone(t+dt+.28,{type:'sine',f0:62,f1:34,dur:.22,gain:.5,sweep:.18});
+    });
+  }},
+  tick:{name:'Ticking clock',emoji:'⏱',cat:'tension',why:'a deadline in the story',dur:2.1,play(t){
+    for(let i=0;i<4;i++){
+      hiss(t+i*.5,{f0:i%2?2600:2100,Q:6,dur:.05,gain:.2});
+      tone(t+i*.5,{type:'square',f0:i%2?900:780,dur:.03,gain:.08});
+    }
+  }},
+
+  /* ------------------------------ notification ------------------------- */
+  ding:{name:'Payoff bell',emoji:'🔆',cat:'ui',why:'on the line that lands',dur:.9,play(t){
+    bell(t,[[1568,1,1],[3136,.45,.55],[4704,.2,.3]],.88,.2);
+  }},
+  pop:{name:'Message pop',emoji:'💬',cat:'ui',why:'a quick aside or a caption change',dur:.25,play(t){
+    tone(t,{type:'sine',f0:520,f1:980,dur:.16,gain:.26,sweep:.09});
+    hiss(t,{f0:3000,Q:4,dur:.04,gain:.06});
+  }},
+  coin:{name:'Coin',emoji:'🪙',cat:'ui',why:'money mentioned',dur:.5,play(t){
+    tone(t,{type:'square',f0:988,dur:.08,gain:.14});
+    tone(t+.08,{type:'square',f0:1319,dur:.4,gain:.14});
+  }},
+  levelup:{name:'Level up',emoji:'⬆️',cat:'ui',why:'a win in the story',dur:.8,play(t){
+    [523,659,784,1047].forEach((f,i)=>tone(t+i*.09,{type:'square',f0:f,dur:i===3?.42:.12,gain:.12}));
+  }},
+  buzz:{name:'Wrong answer',emoji:'❌',cat:'ui',why:'a bad take',dur:.5,play(t){
+    const st=[]; for(let i=0;i<10;i++) st.push([i*.045,i%2?110:104]);
+    tone(t,{type:'sawtooth',f0:110,steps:st,dur:.46,gain:.2,lp:900,hold:.38});
+  }},
+  shutter:{name:'Camera shutter',emoji:'📷',cat:'ui',why:'freeze-frame moment',dur:.3,play(t){
+    hiss(t,{f0:1800,Q:2,dur:.05,gain:.28});
+    hiss(t+.09,{f0:1200,Q:2.5,dur:.07,gain:.22});
+    tone(t,{type:'square',f0:420,dur:.03,gain:.06});
+  }},
+  typewriter:{name:'Typewriter',emoji:'⌨️',cat:'ui',why:'under on-screen text',dur:.7,play(t){
+    for(let i=0;i<6;i++) hiss(t+i*.11,{f0:1700+Math.random()*900,Q:5,dur:.04,gain:.14});
+  }},
+  whoosh:{name:'Whoosh',emoji:'🌀',cat:'ui',why:'on a hard cut',dur:.45,play(t){
+    const a=ac(),n=noiseSrc(),bp=a.createBiquadFilter(),g=a.createGain();
+    bp.type='bandpass'; bp.Q.value=1.4;
+    bp.frequency.setValueAtTime(240,t); bp.frequency.exponentialRampToValueAtTime(3200,t+.22);
+    bp.frequency.exponentialRampToValueAtTime(320,t+.44);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.26,t+.05); g.gain.exponentialRampToValueAtTime(.0001,t+.42);
+    n.connect(bp).connect(g).connect(BUS); n.start(t); n.stop(t+.5);
+  }},
+};
+// the eight on the number keys — the ones you actually reach for
+const SFXQUICK=['boom','airhorn','scratch','bruh','riser','ding','rimshot','whoosh'];
+const SFXKEYS=Object.keys(SFXLIB);
+function playSfx(id,when){ const s=SFXLIB[id]; if(!s) return; ac(); s.play(when==null?AC.currentTime+.02:when); }
+
+/* --------- where a sound actually helps (and where it makes you look like a bot) --------- */
+const RULES=[
+  {id:'scratch', at:'before', test:s=>LEX.selfint.test(s.text)},
+  {id:'boom',    at:'after',  test:s=>LEX.superlative.test(s.text)&&s.nw<=20&&!s.lau},
+  {id:'airhorn', at:'after',  test:s=>LEX.brag.test(s.text)&&LEX.number.test(s.text)},
+  {id:'bruh',    at:'after',  test:s=>LEX.stupid.test(s.text)},
+  {id:'trombone',at:'after',  test:s=>LEX.admit.test(s.text)&&!LEX.brag.test(s.text)},
+  {id:'ding',    at:'after',  test:s=>LEX.payoff.test(s.text)},
+];
+function autoSfx(sents,clipDur){
+  const out=[];
+  for(const s of sents) for(const r of RULES) if(r.test(s)){
+    out.push({id:r.id, sid:s.id, at:r.at, src:r.at==='before'?s.t0-.12:s.t1+.06, on:true, auto:true, pri:1});
+    break;
+  }
+  const payoff=sents.slice().reverse().find(s=>LEX.payoff.test(s.text)||s.lau);
+  if(payoff&&payoff.t0-sents[0].t0>6) out.push({id:'riser',sid:payoff.id,at:'ramp',src:payoff.t0-1.75,on:true,auto:true,pri:1});
+  /* Unhinged has to actually generate, not just raise the ceiling: the six
+     content rules are picky by design, so on a clip where none of them fire
+     "Unhinged" and "Tasteful" would produce the same thing. These are the
+     deliberately-less-discriminating ones — a whoosh on the long sentences, a
+     bell on every laugh, a boom on the loudest line. The rate limit below
+     still thins them, because eight sounds in nine seconds is not a joke,
+     it's a bot. */
+  if(S.index.noText&&S.opts.density!=='none'){
+    // no words means no content rules; the envelope is all there is, so the
+    // loudest moment gets the hit and the user taps in the rest
+    let loud=null,lv=-1;
+    for(const s of sents){ const e=energyPeak(S.index,s.t0,s.t1); if(e>lv){ lv=e; loud=s; } }
+    if(loud) out.push({id:'boom',sid:loud.id,at:'after',src:loud.t1+.05,on:true,auto:true,pri:1});
+  }
+  if(S.opts.density==='unhinged'){
+    const have=new Set(out.map(s=>s.sid));
+    let loud=null,lv=-1;
+    for(const s of sents){
+      if(s.lau&&!have.has(s.id)) out.push({id:'ding',sid:s.id,at:'after',src:s.t1+.04,on:true,auto:true,pri:2});
+      else if(s.nw>=9&&!have.has(s.id)) out.push({id:'whoosh',sid:s.id,at:'after',src:s.t1+.05,on:true,auto:true,pri:2});
+      const e=energyPeak(S.index,s.t0,s.t1);
+      if(e>lv&&!s.lau){ lv=e; loud=s; }
+    }
+    if(loud&&!have.has(loud.id)) out.push({id:'boom',sid:loud.id,at:'after',src:loud.t1+.06,on:true,auto:true,pri:2});
+  }
+  out.sort((a,b)=>a.src-b.src);
+  // Law: over-memed reads as slop. Cap density and keep the hook clean.
+  const d=S.opts.density;
+  if(d==='none') return [];
+  const minGap=d==='unhinged'?3.0:5.5, cap=Math.max(1,Math.round(clipDur/(d==='unhinged'?4.5:9)));
+  const t0=sents[0].t0, tEnd=sents[sents.length-1].t1;
+  const legal=s=>s.src-t0>=1.4&&tEnd-s.src>=.7;      // never step on the hook or the landing
+  const kept=[];
+  const fits=s=>kept.every(k=>Math.abs(k.src-s.src)>=minGap);
+  // two passes, so a content-driven sound is never dropped to make room for
+  // filler: everything the rules actually found goes in first
+  for(const pri of [1,2])
+    for(const s of out){
+      if((s.pri||1)!==pri||!legal(s)||!fits(s)) continue;
+      kept.push(s);
+      if(kept.length>=cap) break;
+    }
+  kept.sort((a,b)=>a.src-b.src);
+  return kept;
+}
+
+/* ============ THE CUT PROGRAM: kept sentences minus the dead air ========= */
+let SENTS=[], CLIPSENTS=[], PROG=null;
+
+function buildProgram(){
+  const kept=CLIPSENTS.filter(s=>!S.cut.has(s.id));
+  const words=[];
+  for(const s of kept) for(const w of s.words) words.push({w:w.w,t:w.t,d:w.d,spk:w.spk,lau:w.lau,nc:w.nc,sid:s.id});
+  if(!words.length){ PROG={segs:[],dur:0,words:[],lines:[],sfx:[],gaps:[],cuts:0,saved:0}; return PROG; }
+  const segs=[], gaps=[]; let cs=Math.max(0,words[0].t-.07), prevEnd=words[0].t+words[0].d, saved=0;
+  for(let k=1;k<words.length;k++){
+    const w=words[k], gap=w.t-prevEnd, jump=w.sid!==words[k-1].sid&&w.sid!==words[k-1].sid+1;
+    const keep=S.keepGap.has(k);
+    if(jump||(gap>S.opts.gap&&!keep)){
+      if(gap>S.opts.gap&&!jump) gaps.push({k,len:gap,trimmed:true});
+      segs.push({s:cs,e:prevEnd+.10}); cs=Math.max(0,w.t-.05);
+      saved+=Math.max(0,gap-.12);
+    } else if(gap>S.opts.gap&&keep){ gaps.push({k,len:gap,trimmed:false}); }
+    prevEnd=w.t+w.d;
+  }
+  segs.push({s:cs,e:prevEnd+.20});
+  let off=0; const map=[];
+  for(const g of segs){ map.push({s:g.s,e:g.e,o:off}); off+=g.e-g.s; }
+  const toLocal=t=>{ for(const m of map) if(t>=m.s&&t<=m.e) return m.o+(t-m.s);
+    let best=map[0],bd=1e9; for(const m of map){ const d=t<m.s?m.s-t:t-m.e; if(d<bd){bd=d;best=m;} }
+    return t<best.s?best.o:best.o+(best.e-best.s); };
+  const lwords=words.map(w=>({...w, lt:toLocal(w.t), emph:EMPH.test(w.w)}));
+  const capSrc=(S.index.noText&&S.caption&&S.caption.trim())
+    ? alignCaptions({words:lwords},S.caption) : lwords;
+  // caption lines: 3–4 words, broken on punctuation — the shorts grammar
+  const lines=[]; let cur=null;
+  for(const w of capSrc){
+    if(w.lau){ if(cur){lines.push(cur);cur=null;} lines.push({t0:w.lt,t1:w.lt+w.d,words:[w],lau:1}); continue; }
+    if(!cur) cur={t0:w.lt,t1:w.lt+w.d,words:[]};
+    cur.words.push(w); cur.t1=w.lt+w.d;
+    if(cur.words.length>=4||/[,.?!:;—]$/.test(w.w)||cur.t1-cur.t0>1.7){ lines.push(cur); cur=null; }
+  }
+  if(cur) lines.push(cur);
+  const sfx=S.sfx.filter(s=>s.on&&!S.cut.has(s.sid)).map(s=>({...s, lt:toLocal(s.src)}));
+  PROG={segs,dur:off,words:lwords,lines,sfx,gaps,cuts:segs.length-1,saved,kept};
+  return PROG;
+}
+/* No transcript, no problem worth downloading a model for. You type the line
+   — twelve words for a 45-second clip — and Sieve distributes it across the
+   speech runs it detected, weighted by syllables, so every word lands inside
+   actual speech and the silences are skipped. That is forced alignment's
+   useful 90% for none of its cost, and it beats a 40 MB model you have to
+   wait for. */
+function syllables(w){
+  const x=w.toLowerCase().replace(/[^a-z']/g,'').replace(/e$/,'');
+  return Math.max(1,(x.match(/[aeiouy]+/g)||['x']).length);
+}
+function alignCaptions(prog,text){
+  const ws=(text||'').trim().split(/\s+/).filter(Boolean);
+  const runs=prog.words.filter(w=>w.nc);
+  if(!ws.length||!runs.length) return [];
+  const tot=ws.reduce((a,w)=>a+syllables(w),0);
+  const spoken=runs.reduce((a,r)=>a+r.d,0);
+  const toLocal=st=>{ let acc=0;
+    for(const r of runs){ if(st<=acc+r.d) return r.lt+(st-acc); acc+=r.d; }
+    const L=runs[runs.length-1]; return L.lt+L.d; };
+  const out=[]; let st=0;
+  for(const w of ws){
+    const span=spoken*syllables(w)/tot, a=toLocal(st), b=toLocal(st+span);
+    out.push({w,lt:a,d:Math.max(.12,b-a),t:-1,emph:EMPH.test(w)});
+    st+=span;
+  }
+  return out;
+}
+const EMPH=/^(never|nobody|everyone|everybody|always|best|worst|biggest|only|empty|nothing|three|forty-one|\$?\d[\d,.]*|million|thousand|hundred|dumbest|insane|free)[,.?!]?$/i;
+</script>
+
+<script>
+/* ================================ CHROME ================================= */
+function paintHead(){
+  const h=$('#headmeta'); h.innerHTML='';
+  if(!S.index){ h.innerHTML='<span>one file · no install · no account</span>'; return; }
+  const idxBytes=S.index.words.length*44+S.index.energy.length*4;
+  const bits=[
+    ['source', S.index.source.name.length>40?S.index.source.name.slice(0,38)+'…':S.index.source.name],
+    ['length', hhmmss(S.index.dur)],
+    ['index on your machine', mb(idxBytes)],
+    ['downloaded', mb(S.disk)],
+  ];
+  for(const [k,v] of bits){ const d=el('span'); d.innerHTML=k+' <b>'+v+'</b>'; h.appendChild(d); }
+}
+function paintCost(){
+  const idxBytes=S.index?S.index.words.length*44+S.index.energy.length*4:0;
+  let ram='~'+mb(idxBytes+6*1048576);
+  if(performance.memory&&performance.memory.usedJSHeapSize) ram=mb(performance.memory.usedJSHeapSize);
+  const src=S.index?S.index.source.bytes:0;
+  $('#costMeter').innerHTML=
+    '<div><span>Index</span><i>'+mb(idxBytes)+'</i></div>'+
+    '<div><span>RAM in use</span><i>'+ram+'</i></div>'+
+    '<div><span>Disk written</span><i>'+mb(S.disk)+'</i></div>'+
+    '<div><span>Premiere needs</span><i>'+mb(src*1.3)+'</i></div>';
+}
+
+/* ================================ SIFTING ================================ */
+function logLine(t,cls){ const d=el('div'); d.innerHTML=t; if(cls)d.className=cls; $('#siftLog').appendChild(d); }
+function setMeters(o){
+  if(o.streamed!=null) $('#mStreamed').textContent=o.streamed;
+  if(o.minutes!=null) $('#mMinutes').textContent=o.minutes;
+  if(o.disk!=null) $('#mDisk').textContent=o.disk;
+  if(o.cand!=null) $('#mCand').textContent=o.cand;
+  if(o.pct!=null) $('#siftBar').style.width=clamp(o.pct,0,100)+'%';
+}
+const nfmt=n=>n.toLocaleString('en-US');
+
+function startDemo(){
+  go('sift');
+  $('#siftLog').innerHTML=''; $('#siftKicker').textContent='Sifting — bundled demo index';
+  $('#siftTitle').textContent='Reading the audio.';
+  $('#siftSub').innerHTML='Nothing is being streamed: the demo index ships inside this HTML file, so this runs with the network off. Every number below is real and computed live.';
+  document.querySelectorAll('.streambox span')[0].textContent='Index built';
+  setMeters({streamed:'0 MB',minutes:'0 min',disk:'0 bytes',cand:'0',pct:2});
+  const steps=[
+    [180,()=>{ S.index=buildDemoIndex();
+      logLine('index ← bundled transcript · <b>'+nfmt(S.index.words.length)+' words</b>');
+      setMeters({streamed:mb(S.index.words.length*44),minutes:Math.round(S.index.dur/60)+' min',pct:24}); }],
+    [420,()=>{ logLine('loudness envelope · 10 Hz · <b>'+nfmt(S.index.energy.length)+' samples</b> = '+mb(S.index.energy.length*4));
+      setMeters({pct:44}); }],
+    [360,()=>{ SENTS=buildSentences(S.index);
+      logLine('sentence boundaries · <b>'+nfmt(SENTS.length)+'</b> · speakers 2'); setMeters({pct:58}); }],
+    [560,()=>{ const t=performance.now(); S.cands=findCandidates(S.index,SENTS);
+      logLine('scored every 17–58 s window · <span class="g">'+Math.round(performance.now()-t)+' ms</span>');
+      logLine('overlaps suppressed · <b>'+S.cands.length+' candidates</b> kept');
+      setMeters({cand:S.cands.length,pct:88}); }],
+    [320,()=>{ const idxB=S.index.words.length*44+S.index.energy.length*4;
+      logLine('total index on your machine · <b>'+mb(idxB)+'</b> for '+hhmmss(S.index.dur)+' of video');
+      logLine('written to disk · <b>0 bytes</b>','');
+      setMeters({pct:100}); setTimeout(showCatch,420); }],
+  ];
+  let i=0; (function next(){ if(i>=steps.length) return; const [d,f]=steps[i++]; setTimeout(()=>{f();next();},d); })();
+}
+
+function showCatch(){
+  $('#catchSub').innerHTML='<b style="color:var(--ink)">'+S.cands.length+' candidates</b> out of '+hhmmss(S.index.dur)+
+    '. Ranked, not predicted — the six bars are the whole argument, and you are allowed to disagree with them. '+
+    'Top one first; click any card to cut it.';
+  paintCost(); drawFilters(); drawCards(); go('catch');
+}
+const SIGDEF=[['hook','HOOK','Does the first line stop a thumb? Questions, absolutes, stakes, second person. Penalised for opening on "so…"'],
+  ['solo','ALONE','Self-contained: can a stranger follow it with none of the previous 8 hours? Leading pronouns are fatal.'],
+  ['peak','PEAK','Loudness and laughter, straight off the 10 Hz envelope.'],
+  ['gap','GAP','Curiosity: an open loop, a numbered list, a "turns out".'],
+  ['loop','LAND','Closure: does it land on a punchline, or just stop mid-sentence?'],
+  ['pace','PACE','Words per second and how much of it is silence.']];
+
+function drawFilters(){
+  const f=$('#filters'); f.innerHTML='';
+  const add=(label,on,fn)=>{ const b=el('button','chip'+(on?' on':''),label); b.onclick=fn; f.appendChild(b); };
+  add('Best first',S.filter.sort==='score',()=>{S.filter.sort='score';drawFilters();drawCards();});
+  add('In order',S.filter.sort==='time',()=>{S.filter.sort='time';drawFilters();drawCards();});
+  add('Self-contained only',S.filter.standalone,()=>{S.filter.standalone=!S.filter.standalone;drawFilters();drawCards();});
+  add('Has laughter',S.filter.laughs,()=>{S.filter.laughs=!S.filter.laughs;drawFilters();drawCards();});
+}
+function drawCards(){
+  let list=S.cands.slice();
+  if(S.filter.standalone) list=list.filter(c=>c.sig.solo>=70);
+  if(S.filter.laughs) list=list.filter(c=>c.laughs>0);
+  if(S.filter.sort==='time') list.sort((a,b)=>a.t0-b.t0); else list.sort((a,b)=>b.total-a.total);
+  const box=$('#cards'); box.innerHTML='';
+  if(!list.length){ box.appendChild(el('p','hint','Nothing matches those filters.')); return; }
+  list.forEach((c,n)=>{
+    const rank=S.cands.indexOf(c)+1;
+    const card=el('div','card'+(rank<=3?' top':''));
+    const top=el('div','cardtop');
+    top.innerHTML='<span class="rank">#'+rank+'</span><span>'+hhmmss(c.t0)+' → '+hhmmss(c.t1)+'</span><span>'+Math.round(c.dur)+'s · '+c.nw+' words</span>';
+    card.appendChild(top);
+    const h=el('div','hook'); h.textContent='“'+shorten(c.hookText,86)+'”'; card.appendChild(h);
+    card.appendChild(el('div','why',c.reason));
+    const sig=el('div','sig');
+    for(const [k,lbl,tip] of SIGDEF){ const v=c.sig[k], d=el('div',v>=72?'hi':v<42?'lo':'');
+      d.title=lbl+' '+Math.round(v)+'/100 — '+tip;
+      const i=el('i'); i.style.height=Math.max(3,v*.82)+'%'; d.appendChild(i);
+      d.appendChild(el('u',null,lbl)); d.appendChild(el('b',null,v?Math.round(v):'–')); sig.appendChild(d); }
+    card.appendChild(sig);
+    if(c.tags.length){ const tg=el('div','tags');
+      c.tags.slice(0,3).forEach(([t,k])=>tg.appendChild(el('span','tag'+(k?' '+k:''),t))); card.appendChild(tg); }
+    const foot=el('div','cardfoot');
+    const sc=el('div','score'); sc.innerHTML=c.total+'<s>SIEVE SCORE</s>'; foot.appendChild(sc);
+    const b=el('button','btn sm','Cut this →'); b.onclick=e=>{e.stopPropagation();openClip(c);}; foot.appendChild(b);
+    card.appendChild(foot);
+    card.onclick=()=>openClip(c);
+    box.appendChild(card);
+  });
+}
+
+/* ============================== THE CUT ================================== */
+function openClip(c){
+  S.clip=c; CLIPSENTS=SENTS.slice(c.i,c.j+1);
+  S.cut=new Set(); S.keepGap=new Set(); S.caption='';
+  const noText=S.index.noText;
+  S.hook=noText?'':shorten(c.hookText,62);
+  S.sfx=autoSfx(CLIPSENTS,c.dur);
+  $('#sayBox').style.display=noText?'block':'none';
+  $('#sayEd').value='';
+  $('#hookEd').textContent=S.hook;
+  $('#hookEd').dataset.ph=noText?'Type the hook — the big text for the first 1.4 seconds':'';
+  document.querySelector('.edhead h3').textContent=noText?'Speech runs — this is the timeline':'Transcript — this is the timeline';
+  $('#cutTitle').textContent='#'+(S.cands.indexOf(c)+1)+' · '+hhmmss(c.t0);
+  drawKnobs(); drawBoard(); refresh(); go('cut'); drawFrame(0);
+}
+function shorten(t,n){ t=t.replace(/\s+/g,' ').trim(); if(t.length<=n) return t;
+  const cut=t.slice(0,n); return cut.slice(0,cut.lastIndexOf(' '))+'…'; }
+
+function drawKnobs(){
+  const k=$('#knobs'); k.innerHTML='';
+  const mk=(label,val,body)=>{ const d=el('div','knob'); const l=el('label'); l.innerHTML=label+' <b>'+val+'</b>'; d.appendChild(l); d.appendChild(body); k.appendChild(d); };
+  const seg=(opts,cur,fn)=>{ const s=el('div','seg'); opts.forEach(([v,t])=>{ const b=el('button',v===cur?'on':'',t);
+    b.onclick=()=>{fn(v);}; s.appendChild(b); }); return s; };
+  const r=el('input'); r.type='range'; r.min=.2; r.max=1.2; r.step=.05; r.value=S.opts.gap;
+  r.oninput=()=>{ S.opts.gap=parseFloat(r.value); drawKnobs(); refresh(); };
+  mk('Cut pauses longer than',S.opts.gap.toFixed(2)+'s',r);
+  mk('Meme sounds',S.opts.density,seg([['none','None'],['tasteful','Tasteful'],['unhinged','Unhinged']],S.opts.density,v=>{
+    S.opts.density=v; S.sfx=autoSfx(CLIPSENTS,S.clip.dur); drawKnobs(); refresh();
+    if(v==='unhinged') toast('Unhinged: a sound every ~5s. Past this point it reads as bot slop.');
+  }));
+  mk('Captions',S.opts.caption,seg([['punch','Punch'],['box','Box'],['clean','Clean']],S.opts.caption,v=>{S.opts.caption=v;drawKnobs();refresh();}));
+  mk('Slow punch-in',S.opts.punch?'on':'off',seg([[true,'On'],[false,'Off']],S.opts.punch,v=>{S.opts.punch=v;drawKnobs();refresh();}));
+}
+
+function refresh(){ buildProgram(); drawScript(); drawStats(); drawPins(); drawFrame(S.playT||0); }
+
+function drawScript(){
+  const box=$('#script'); box.innerHTML='';
+  let lastSpk=null, wi=0;
+  const gapAt={}; PROG.gaps.forEach(g=>gapAt[g.k]=g);
+  const sfxAfter={}, sfxBefore={};
+  S.sfx.forEach((s,n)=>{ (s.at==='before'?sfxBefore:sfxAfter)[s.sid]=(s.at==='before'?sfxBefore:sfxAfter)[s.sid]||[];
+    (s.at==='before'?sfxBefore:sfxAfter)[s.sid].push([s,n]); });
+  const keptIdx=new Map(); let ki=0;
+  for(const s of CLIPSENTS) if(!S.cut.has(s.id)) for(const w of s.words) keptIdx.set(w,ki++);
+  for(const s of CLIPSENTS){
+    if(s.spk!==lastSpk){ box.appendChild(el('span','spk',spkName(s.spk))); lastSpk=s.spk; }
+    (sfxBefore[s.id]||[]).forEach(([sf,n])=>box.appendChild(sfxChip(sf,n)));
+    const sp=el('span','sent'+(S.cut.has(s.id)?' cut':''));
+    s.words.forEach(w=>{
+      const k=keptIdx.get(w), g=k!=null?gapAt[k]:null;
+      if(g){ const c=el('span','gap'+(g.trimmed?'':' kept'),(g.trimmed?'⌇ −':'⌇ ')+g.len.toFixed(1)+'s');
+        c.title=g.trimmed?'Dead air, cut to a 120 ms breath. Click to keep it.':'Pause kept. Click to cut it.';
+        c.onclick=e=>{e.stopPropagation(); S.keepGap.has(k)?S.keepGap.delete(k):S.keepGap.add(k); refresh();};
+        sp.appendChild(c); sp.appendChild(document.createTextNode(' ')); }
+      if(w.lau){ sp.appendChild(el('span','lau','[laughs]')); sp.appendChild(document.createTextNode(' ')); return; }
+      const n=el('span','w'+(EMPH.test(w.w)?' emph':''),w.nc?'▮ '+w.d.toFixed(1)+'s':w.w); n.dataset.t=w.t;
+      n.onclick=()=>toggleCut(s);
+      sp.appendChild(n); sp.appendChild(document.createTextNode(' '));
+    });
+    box.appendChild(sp);
+    (sfxAfter[s.id]||[]).forEach(([sf,n])=>box.appendChild(sfxChip(sf,n)));
+    const add=el('span','addsfx','+'); add.title='Drop a sound here';
+    add.onclick=e=>openSfxMenu(e,s.id,'after',null); box.appendChild(add);
+  }
+}
+function sfxChip(sf,n){
+  const lib=SFXLIB[sf.id];
+  const c=el('span','sfxchip'+(sf.on&&!S.cut.has(sf.sid)?'':' mute'),lib.emoji+' '+lib.name);
+  c.title=(sf.auto?'Placed automatically: ':'')+lib.why+' — click to swap, shift-click to mute';
+  c.onclick=e=>{ e.stopPropagation(); if(e.shiftKey){ sf.on=!sf.on; refresh(); return; }
+    playSfx(sf.id); openSfxMenu(e,sf.sid,sf.at,n); };
+  return c;
+}
+function openSfxMenu(e,sid,at,n){
+  e.stopPropagation();
+  const m=$('#sfxMenu'); m.innerHTML='';
+  m.appendChild(el('div','hd',n==null?'Drop a sound — 31 synthesised, 0 MB':'Swap this sound'));
+  const q=el('input','q'); q.placeholder='search 31 sounds…'; q.spellcheck=false;
+  m.appendChild(q);
+  const body=el('div');
+  m.appendChild(body);
+  const place=id=>{
+    if(n==null){ const t=sentById(sid); S.sfx.push({id,sid,at,src:t[at==='before'?'t0':'t1']+(at==='before'?-.12:.06),on:true}); }
+    else S.sfx[n].id=id;
+    S.sfx.sort((a,b)=>a.src-b.src); m.classList.remove('on'); refresh();
+    toast(SFXLIB[id].emoji+' '+SFXLIB[id].name);
+  };
+  const paint=filter=>{
+    body.innerHTML='';
+    const f=(filter||'').trim().toLowerCase();
+    for(const [cat,label] of SFXCATS){
+      const ids=Object.keys(SFXLIB).filter(id=>SFXLIB[id].cat===cat&&
+        (!f||SFXLIB[id].name.toLowerCase().includes(f)||SFXLIB[id].why.toLowerCase().includes(f)||cat.includes(f)));
+      if(!ids.length) continue;
+      body.appendChild(el('div','hd',label));
+      const g=el('div','sfxgrid');
+      for(const id of ids){
+        const l=SFXLIB[id], b=el('button'), k=SFXQUICK.indexOf(id);
+        const nm=el('div','nm');
+        nm.appendChild(el('b',null,l.emoji));
+        nm.appendChild(el('i',null,l.name)).style.fontStyle='normal';
+        if(k>=0) nm.appendChild(el('span','k',String(k+1)));
+        b.appendChild(nm);
+        b.appendChild(el('small',null,l.why));
+        b.onmouseenter=()=>playSfx(id);
+        b.onclick=()=>place(id);
+        g.appendChild(b);
+      }
+      body.appendChild(g);
+    }
+    if(!body.children.length) body.appendChild(el('div','hd','nothing matches that'));
+    if(n!=null){
+      const b=el('button'); b.style.margin='6px 3px 3px';
+      b.innerHTML='<span style="font-size:15px">⌫</span> <span>Remove this sound</span>';
+      b.onclick=()=>{ S.sfx.splice(n,1); m.classList.remove('on'); refresh(); };
+      body.appendChild(b);
+    }
+  };
+  paint('');
+  q.oninput=()=>paint(q.value);
+  m.classList.add('on');
+  const r=m.getBoundingClientRect();
+  m.style.left=clamp(e.clientX-20,8,innerWidth-r.width-8)+'px';
+  m.style.top=clamp(e.clientY+14,8,innerHeight-r.height-8)+'px';
+  setTimeout(()=>q.focus(),30);
+}
+
+/* Drop a sound at the playhead — the fast path. Sounds attach to the sentence
+   the playhead is inside, so they survive a re-cut. */
+function dropAtPlayhead(id){
+  if(!S.clip) return;
+  const src=localToSrc(S.playT||0);
+  let s=CLIPSENTS.find(x=>src>=x.t0-.3&&src<=x.t1+.3)||CLIPSENTS[0];
+  S.sfx.push({id,sid:s.id,at:'after',src:clamp(src,s.t0,s.t1+.4),on:true});
+  S.sfx.sort((a,b)=>a.src-b.src);
+  playSfx(id); refresh();
+  toast(SFXLIB[id].emoji+' '+SFXLIB[id].name+' at '+mmss(S.playT||0));
+}
+function drawBoard(){
+  const b=$('#board'); if(!b) return;
+  b.innerHTML='';
+  SFXQUICK.forEach((id,i)=>{
+    const l=SFXLIB[id], n=el('button');
+    n.title=l.name+' — '+l.why+'  (key '+(i+1)+')';
+    n.appendChild(el('b',null,l.emoji));
+    n.appendChild(el('span',null,String(i+1)));
+    n.onmouseenter=()=>playSfx(id);
+    n.onclick=()=>dropAtPlayhead(id);
+    b.appendChild(n);
+  });
+  const more=el('button','more');
+  more.title='All 31 sounds';
+  more.appendChild(el('b',null,'⋯'));
+  more.appendChild(el('span',null,'all 31'));
+  more.onclick=e=>{ const src=localToSrc(S.playT||0);
+    const s=CLIPSENTS.find(x=>src>=x.t0-.3&&src<=x.t1+.3)||CLIPSENTS[0];
+    openSfxMenu(e,s.id,'after',null); };
+  b.appendChild(more);
+}
+
+const sentById=id=>CLIPSENTS.find(s=>s.id===id);
+function spkName(k){
+  if(!S.index) return '—';
+  if(S.index.noText) return 'SPEECH RUN';
+  const sp=S.index.source.speakers;
+  if(sp&&sp.length) return sp[k]||sp[0];
+  return k===0?'MARA':'DEV';                     // the bundled demo's two hosts
+}
+function toggleCut(s){ S.cut.has(s.id)?S.cut.delete(s.id):S.cut.add(s.id); refresh(); }
+
+function drawStats(){
+  const p=PROG;
+  $('#cutStats').innerHTML=p.cuts+' cuts · '+p.saved.toFixed(1)+'s of dead air removed · '+
+    Math.round(p.dur)+'s final';
+  const idxB=S.index.words.length*44+S.index.energy.length*4;
+  const px=S.video?'decoding '+Math.round(p.dur)+'s of pixels, one frame at a time':'no pixels decoded — audiogram render';
+  $('#stagemeta').innerHTML=
+    '<div>final length <b>'+mmss(p.dur)+'</b> · from '+hhmmss(S.clip.t0)+'</div>'+
+    '<div>sounds <b>'+p.sfx.length+'</b> synthesised · 0 MB of samples</div>'+
+    '<div>index held in RAM <b>'+mb(idxB)+'</b></div>'+
+    '<div>'+px+'</div>';
+  $('#hookCount').textContent=S.hook.length+' characters · shown for the first 1.4s, then it gets out of the way';
+  if(S.index.noText){
+    const runs=p.words.filter(w=>w.nc).length, cw=(S.caption||'').trim().split(/\s+/).filter(Boolean).length;
+    $('#sayCount').textContent=cw
+      ? cw+' words aligned across '+runs+' speech runs · '+(p.dur/Math.max(1,cw)).toFixed(2)+'s per word average'
+      : runs+' speech runs detected — type the line and it will be aligned to them';
+  }
+}
+function drawPins(){
+  const sc=$('#scrub'); sc.querySelectorAll('.sfxpin').forEach(n=>n.remove());
+  PROG.sfx.forEach(s=>{ const p=el('div','sfxpin'); p.style.left=(s.lt/Math.max(1,PROG.dur)*100)+'%'; p.title=SFXLIB[s.id].name; sc.appendChild(p); });
+}
+$('#hookEd').addEventListener('input',e=>{ S.hook=e.target.textContent; drawStats(); drawFrame(S.playT||0); });
+$('#sayEd').addEventListener('input',e=>{ S.caption=e.target.value; refresh(); });
+$('#scrub').addEventListener('click',e=>{ const r=e.currentTarget.getBoundingClientRect();
+  seek(clamp((e.clientX-r.left)/r.width,0,1)*PROG.dur); });
+document.addEventListener('click',e=>{ if(!e.target.closest('#sfxMenu')) $('#sfxMenu').classList.remove('on'); });
+</script>
+
+<script>
+/* ========================= THE VERTICAL RENDERER =========================
+   One canvas. One frame in memory at a time. Captions, hook card and sound
+   design are drawn at playback time, which means "rendering" and "previewing"
+   are the same code path — there is no export queue because there is nothing
+   to precompute.
+   ========================================================================= */
+const PV=$('#pv');
+function localToSrc(t){ let o=0; for(const g of PROG.segs){ const L=g.e-g.s; if(t<=o+L) return g.s+(t-o); o+=L; }
+  return PROG.segs.length?PROG.segs[PROG.segs.length-1].e:0; }
+
+function roundRect(x,a,b,w,h,r){ x.beginPath(); x.moveTo(a+r,b); x.arcTo(a+w,b,a+w,b+h,r); x.arcTo(a+w,b+h,a,b+h,r);
+  x.arcTo(a,b+h,a,b,r); x.arcTo(a,b,a+w,b,r); x.closePath(); }
+function wrap(x,text,max){
+  const words=text.split(/\s+/), lines=[]; let cur='';
+  for(const w of words){ const t=cur?cur+' '+w:w; if(x.measureText(t).width>max&&cur){ lines.push(cur); cur=w; } else cur=t; }
+  if(cur) lines.push(cur); return lines;
+}
+function fitFont(x,text,max,start,weight,min){
+  let s=start; for(;;){ x.font=weight+' '+s+'px '+FONT; const l=wrap(x,text,max); if(l.length<=3||s<=min) return {size:s,lines:l}; s-=4; }
+}
+const FONT='Inter,-apple-system,"Segoe UI",system-ui,sans-serif';
+
+function drawFrame(t){
+  const x=PV.getContext('2d'), W=PV.width, H=PV.height;
+  if(!PROG){ x.fillStyle='#000'; x.fillRect(0,0,W,H); return; }
+  x.fillStyle='#05070a'; x.fillRect(0,0,W,H);
+  const shake=sfxShake(t);
+  x.save(); if(shake) x.translate(shake.x,shake.y);
+  if(S.video&&S.video.readyState>=2) drawVideo(x,W,H,t); else drawAudiogram(x,W,H,t,t<1.45&&S.hook.trim());
+  x.restore();
+  drawFlash(x,W,H,t);
+  const hookUp=t<1.35&&S.hook.trim();
+  if(!hookUp) drawCaptions(x,W,H,t);
+  if(t<1.45) drawHook(x,W,H,t);
+  x.fillStyle='rgba(255,255,255,.14)'; x.fillRect(0,0,W,5);
+  x.fillStyle='#f3c14a'; x.fillRect(0,0,W*clamp(t/Math.max(.1,PROG.dur),0,1),5);
+}
+function drawVideo(x,W,H,t){
+  const v=S.video, vw=v.videoWidth||16, vh=v.videoHeight||9;
+  const z=S.opts.punch?1+.075*(t/Math.max(1,PROG.dur)):1;
+  const scale=Math.max(W/vw,H/vh)*z, dw=vw*scale, dh=vh*scale;
+  x.drawImage(v,(W-dw)/2,(H-dh)/2,dw,dh);
+  const g=x.createLinearGradient(0,H*.55,0,H); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,.62)');
+  x.fillStyle=g; x.fillRect(0,H*.55,W,H*.45);
+}
+function drawAudiogram(x,W,H,t,hookUp){
+  const g=x.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#141c26'); g.addColorStop(.55,'#0a0f15'); g.addColorStop(1,'#05070a');
+  x.fillStyle=g; x.fillRect(0,0,W,H);
+  const rg=x.createRadialGradient(W*.5,H*.2,0,W*.5,H*.2,W*.9);
+  rg.addColorStop(0,'rgba(243,193,74,.14)'); rg.addColorStop(1,'rgba(243,193,74,0)');
+  x.fillStyle=rg; x.fillRect(0,0,W,H);
+  const srcT=localToSrc(t), hz=S.index.hz, n=42, span=2.6;
+  const cy=H*.40, bw=W*.78/n;
+  const word=PROG.words.find(w=>t>=w.lt&&t<w.lt+w.d+.12);
+  for(let i=0;i<n;i++){
+    const st=srcT-span/2+span*(i/n), k=Math.floor(st*hz);
+    let e=(k>=0&&k<S.index.energy.length)?S.index.energy[k]:.05;
+    const mid=1-Math.abs(i/(n-1)-.5)*1.5;
+    const h=Math.max(3,e*H*.17*mid);
+    const near=Math.abs(i-n/2)<3.5;
+    x.fillStyle=near?'rgba(243,193,74,.95)':'rgba(147,163,181,.42)';
+    roundRect(x,W*.11+i*bw,cy-h/2,bw*.56,h,bw*.28); x.fill();
+  }
+  x.textAlign='center';
+  if(!hookUp){
+    x.font='700 '+Math.round(W*.062)+'px '+FONT; x.fillStyle='#e8edf3';
+    x.fillText(word?spkName(word.spk):'—',W/2,H*.31);
+    x.font='500 '+Math.round(W*.030)+'px '+FONT; x.fillStyle='rgba(147,163,181,.85)';
+    const title=S.index.source.name.replace(/—.*$/,'').trim();
+    x.fillText(title.toUpperCase(),W/2,H*.245);
+  }
+  x.font='500 '+Math.round(W*.026)+'px '+FONT; x.fillStyle='rgba(92,107,124,.9)';
+  x.fillText(hhmmss(localToSrc(t))+' of '+hhmmss(S.index.dur),W/2,H*.50);
+}
+function sfxActive(t){ for(const s of PROG.sfx){ const dt=t-s.lt; if(dt>=0&&dt<.5) return {s,dt}; } return null; }
+function sfxShake(t){ const a=sfxActive(t); if(!a||!['boom','airhorn','bruh'].includes(a.s.id)) return null;
+  const k=(1-a.dt/.5)*9; return {x:Math.sin(a.dt*78)*k,y:Math.cos(a.dt*61)*k*.6}; }
+function drawFlash(x,W,H,t){
+  const a=sfxActive(t); if(!a) return;
+  const k=1-a.dt/.5;
+  if(['boom','airhorn'].includes(a.s.id)){ x.fillStyle='rgba(255,255,255,'+(k*.13).toFixed(3)+')'; x.fillRect(0,0,W,H); }
+  x.save(); x.globalAlpha=clamp(k*1.4,0,1);
+  const sz=Math.round(W*(.14+.05*k));
+  x.font=sz+'px "Apple Color Emoji","Segoe UI Emoji",sans-serif'; x.textAlign='right';
+  x.fillText(SFXLIB[a.s.id].emoji,W*.93,H*.175);
+  x.restore();
+}
+function drawHook(x,W,H,t){
+  if(!S.hook.trim()) return;
+  const fade=t>1.15?1-(t-1.15)/.3:1, pop=Math.min(1,t/.16);
+  x.save(); x.globalAlpha=clamp(fade,0,1);
+  x.textAlign='center';
+  const {size,lines}=fitFont(x,S.hook.toUpperCase(),W*.84,Math.round(W*.105),'800',Math.round(W*.05));
+  const lh=size*1.1, boxH=lines.length*lh+size*.8, top=H*.135;
+  x.translate(W/2,top+boxH/2); x.scale(.94+.06*pop,.94+.06*pop); x.translate(-W/2,-(top+boxH/2));
+  x.fillStyle='rgba(5,7,10,.72)'; roundRect(x,W*.06,top,W*.88,boxH,W*.035); x.fill();
+  x.strokeStyle='rgba(243,193,74,.55)'; x.lineWidth=Math.max(2,W*.004); x.stroke();
+  x.font='800 '+size+'px '+FONT; x.fillStyle='#f3c14a';
+  lines.forEach((l,i)=>x.fillText(l,W/2,top+size*.85+i*lh));
+  x.restore();
+}
+function drawCaptions(x,W,H,t){
+  const line=PROG.lines.find(l=>t>=l.t0-.08&&t<=l.t1+.22);
+  if(!line) return;
+  const vis=line.words.filter(w=>!w.nc);
+  if(!vis.length) return;
+  const st=S.opts.caption, base=Math.round(W*(st==='clean'?.056:.072));
+  const text=vis.map(w=>st==='clean'?w.w:w.w.toUpperCase()).join(' ');
+  x.textAlign='left';
+  let size=base, lines;
+  ({size,lines}=fitFont(x,text,W*.86,base,st==='clean'?'600':'800',Math.round(W*.04)));
+  const lh=size*1.16, y0=H*(S.video?.76:.64)-(lines.length-1)*lh/2;
+  let wi=0;
+  lines.forEach((ln,li)=>{
+    const parts=ln.split(' ');
+    x.font=(st==='clean'?'600 ':'800 ')+size+'px '+FONT;
+    const total=x.measureText(ln).width;
+    let cx=(W-total)/2;
+    for(const p of parts){
+      const w=vis[wi++]; const active=w&&t>=w.lt-.02&&t<w.lt+w.d+.06;
+      const wd=x.measureText(p+' ').width;
+      if(st==='box'){
+        x.fillStyle=active?'#f3c14a':'rgba(5,7,10,.78)';
+        roundRect(x,cx-size*.11,y0+li*lh-size*.86,x.measureText(p).width+size*.22,size*1.12,size*.16); x.fill();
+        x.fillStyle=active?'#1a1301':'#ffffff';
+        x.fillText(p,cx,y0+li*lh);
+      } else {
+        x.lineWidth=Math.max(3,size*.14); x.strokeStyle='rgba(0,0,0,.92)';
+        x.lineJoin='round'; x.miterLimit=2;
+        if(st!=='clean') x.strokeText(p,cx,y0+li*lh);
+        const emph=w&&w.emph;
+        x.fillStyle=active?'#f3c14a':(emph?'#ffd97a':'#ffffff');
+        x.fillText(p,cx,y0+li*lh);
+      }
+      cx+=wd;
+    }
+  });
+  if(line.lau){ x.textAlign='center'; x.font='600 '+Math.round(W*.04)+'px '+FONT;
+    x.fillStyle='rgba(79,209,197,.9)'; x.fillText('[ laughter ]',W/2,H*(S.video?.82:.70)); }
+}
+
+/* ============================== PLAYBACK ================================ */
+let raf=null, playStart=0, playFrom=0, fired=new Set(), RECORDING=null;
+function updateClock(){ $('#clock').textContent=mmss(S.playT||0)+' / '+mmss(PROG.dur);
+  $('#scrubFill').style.width=((S.playT||0)/Math.max(.1,PROG.dur)*100)+'%'; }
+function highlight(t){
+  const cur=PROG.words.find(w=>t>=w.lt-.03&&t<w.lt+w.d+.04);
+  document.querySelectorAll('.w.now').forEach(n=>n.classList.remove('now'));
+  if(!cur) return;
+  const n=document.querySelector('.w[data-t="'+cur.t+'"]');
+  if(n){ n.classList.add('now');
+    const r=n.getBoundingClientRect(); if(r.top<80||r.bottom>innerHeight-80) n.scrollIntoView({block:'center',behavior:'smooth'}); }
+}
+function startPlay(){
+  if(!PROG||!PROG.dur) return;
+  ac(); fired=new Set();
+  if((S.playT||0)>=PROG.dur-.06) S.playT=0;
+  playFrom=S.playT||0; playStart=performance.now()/1000;
+  if(S.video){ S.video.currentTime=localToSrc(playFrom); S.video.muted=false; S.video.play().catch(()=>{}); }
+  $('#playBtn').textContent='❚❚'; loop();
+}
+function stopPlay(){ if(raf) cancelAnimationFrame(raf); raf=null;
+  if(S.video) S.video.pause(); $('#playBtn').textContent='▶'; }
+function togglePlay(){ raf?stopPlay():startPlay(); }
+function seek(t){ S.playT=clamp(t,0,PROG.dur);
+  if(raf){ playFrom=S.playT; playStart=performance.now()/1000; fired=new Set(); }
+  if(S.video) S.video.currentTime=localToSrc(S.playT);
+  drawFrame(S.playT); updateClock(); highlight(S.playT); }
+function loop(){
+  const t=playFrom+(performance.now()/1000-playStart);
+  S.playT=Math.min(t,PROG.dur);
+  PROG.sfx.forEach((s,i)=>{ if(fired.has(i)) return; const lead=s.lt-t;
+    if(lead<.16){ fired.add(i); playSfx(s.id,AC.currentTime+Math.max(0,lead)); } });
+  if(S.video){ const want=localToSrc(S.playT);
+    if(Math.abs(S.video.currentTime-want)>.22) S.video.currentTime=want; }
+  drawFrame(S.playT); updateClock(); highlight(S.playT);
+  if(t>=PROG.dur){ stopPlay(); if(RECORDING) finishRec(); return; }
+  raf=requestAnimationFrame(loop);
+}
+
+/* ============================== EXPORT ================================== */
+function pickMime(){
+  return ['video/mp4;codecs=avc1.42E01E,mp4a.40.2','video/mp4','video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus','video/webm'].find(m=>{try{return MediaRecorder.isTypeSupported(m)}catch(e){return false}});
+}
+function renderShort(){
+  buildProgram();
+  if(!PROG.dur) return toast('Everything is struck — nothing left to render.');
+  if(RECORDING) return;
+  const mime=pickMime();
+  if(!mime) return toast('This browser has no MediaRecorder. Chrome, Edge or Safari 16+ will do it.');
+  stopPlay(); S.playT=0;
+  ac();
+  const stream=PV.captureStream(30);
+  recBus().stream.getAudioTracks().forEach(tr=>stream.addTrack(tr));
+  if(S.video){ videoSource(); videoAudio(true); }
+  const chunks=[];
+  const mr=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:4200000,audioBitsPerSecond:128000});
+  mr.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+  mr.onstop=()=>{
+    const blob=new Blob(chunks,{type:mime.split(';')[0]});
+    S.out=blob; S.outName='sieve-'+hhmmss(S.clip.t0).replace(/:/g,'')+'-'+Math.round(PROG.dur)+'s.'+(mime.includes('mp4')?'mp4':'webm');
+    $('#outVid').src=URL.createObjectURL(blob);
+    $('#doneSub').innerHTML=Math.round(PROG.dur)+' seconds · '+mb(blob.size)+' · '+PROG.cuts+
+      ' jump cuts · '+PROG.sfx.length+' synthesised sounds · recorded in real time from the same canvas you were watching.';
+    $('#outTitle').textContent=makeTitle();
+    $('#outDesc').value=makeDesc();
+    const idxB=S.index.words.length*44+S.index.energy.length*4;
+    $('#outCost').innerHTML='index held in RAM: <b style="color:var(--cool)">'+mb(idxB)+'</b><br>'+
+      'source video downloaded: <b style="color:var(--cool)">0 bytes</b><br>'+
+      'sound library downloaded: <b style="color:var(--cool)">0 bytes</b><br>'+
+      'on disk once you hit download: <b style="color:var(--gold)">'+mb(blob.size)+'</b><br>'+
+      'Premiere, same job: <span style="color:var(--hot)">'+mb(S.index.source.bytes*1.3)+'</span> of media + cache';
+    RECORDING=null; $('#playBtn').disabled=false;
+    go('done'); toast('Rendered — '+mb(blob.size));
+  };
+  RECORDING=mr; mr.start(250);
+  toast('Recording in real time — '+Math.round(PROG.dur)+'s. Leave this tab in front.');
+  startPlay();
+}
+function finishRec(){ setTimeout(()=>{ try{RECORDING.stop()}catch(e){} },340); }
+function makeTitle(){
+  let t=S.hook.replace(/[“”"]/g,'').replace(/\s+/g,' ').trim().replace(/[.,;]$/,'');
+  if(t.length>58) t=t.slice(0,55).replace(/\s\S*$/,'')+'…';
+  return t;
+}
+function makeDesc(){
+  const words=PROG.words.filter(w=>!w.nc&&!w.lau).map(w=>w.w.toLowerCase().replace(/[^a-z']/g,''));
+  const stop=new Set('the a an and or but of to in on it is was that this i you we they he she for with as at by not no so do did have had my your his her them then there what when how why be been are were will would can could'.split(' '));
+  const freq={}; words.forEach(w=>{ if(w.length>3&&!stop.has(w)) freq[w]=(freq[w]||0)+1; });
+  const tags=Object.keys(freq).sort((a,b)=>freq[b]-freq[a]).slice(0,4).map(w=>'#'+w);
+  return makeTitle()+'\n\nClip from '+S.index.source.name+' at '+hhmmss(S.clip.t0)+'.\n\n'+
+    'Cut with Sieve — the full episode never left the drive.\n\n'+tags.concat(['#shorts','#podcast']).join(' ');
+}
+function downloadOut(){
+  if(!S.out) return;
+  const a=document.createElement('a'); a.href=URL.createObjectURL(S.out); a.download=S.outName; a.click();
+  S.disk+=S.out.size; paintHead(); paintCost();
+  toast('Saved '+S.outName+' — '+mb(S.out.size)+'. That is the only thing on your disk.');
+}
+function copyAll(){
+  const t=$('#outTitle').textContent+'\n\n'+$('#outDesc').value;
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast('Title + description copied.'),()=>toast('Select and copy manually — clipboard is blocked here.'));
+}
+</script>
+
+<script>
+/* ===================== GOOGLE DRIVE / THE ENGINE ========================
+   A browser cannot read a private Drive file cross-origin, and it cannot
+   transcribe 8 hours locally without shipping a 300 MB model — so the honest
+   split is: the engine (see sieve-engine/, one Node file) streams byte ranges
+   out of Drive, keeps nothing on disk, and hands back the few-MB index. Every
+   decision after that happens here, on your machine, offline.
+   ======================================================================== */
+function driveId(u){
+  u=(u||'').trim();
+  const m=u.match(/\/file\/d\/([\w-]{10,})/)||u.match(/[?&]id=([\w-]{10,})/)||u.match(/\/d\/([\w-]{10,})/);
+  if(m) return m[1];
+  if(/^[\w-]{20,}$/.test(u)) return u;
+  return null;
+}
+const engineUrl=()=>localStorage.getItem('sieve.engine')||new URLSearchParams(location.search).get('engine')||'';
+function startDrive(){
+  const raw=$('#driveUrl').value.trim(), id=driveId(raw), h=$('#pourHint');
+  const eng=engineUrl();
+  // any direct media URL works too — not everyone keeps 8 hours on Drive
+  if(!id&&/^https?:\/\//i.test(raw)){
+    if(eng) return runEngine(eng,{url:raw});
+    return urlDirect(raw);
+  }
+  if(!id){ h.className='hint err';
+    h.textContent='That is not a Drive link. Expected drive.google.com/file/d/<id>/view, …/open?id=<id>, the bare file ID, or any direct https media URL.';
+    return; }
+  if(eng) return runEngine(eng,{driveId:id});
+  return driveDirect(id);          // read it straight into this tab
+}
+
+async function runEngine(base,payload){
+  go('sift'); $('#siftLog').innerHTML='';
+  $('#siftKicker').textContent='Sifting — '+base;
+  $('#siftTitle').textContent='Streaming the audio past the engine.';
+  $('#siftSub').innerHTML='The engine reads byte ranges and pipes them through the decoder. Nothing is written on its disk either — watch the third number.';
+  document.querySelectorAll('.streambox span')[0].textContent='Streamed';
+  setMeters({streamed:'0 MB',minutes:'0 min',disk:'0 bytes',cand:'0',pct:1});
+  logLine('POST '+base+'/index · '+(payload.driveId?'driveId '+payload.driveId:payload.url.slice(0,52)));
+  let job;
+  try{
+    const r=await fetch(base+'/index',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+    if(!r.ok) throw new Error('engine said '+r.status);
+    job=(await r.json()).job;
+    logLine('job <b>'+job+'</b> accepted');
+  }catch(e){
+    logLine('<span style="color:var(--hot)">'+e.message+'</span>');
+    logLine('Is the engine running? <b>cd sieve-engine &amp;&amp; npm i &amp;&amp; npm start</b>');
+    return;
+  }
+  let seen=0;
+  for(;;){
+    await new Promise(r=>setTimeout(r,900));
+    let st;
+    try{ st=await (await fetch(base+'/index/'+job)).json(); }
+    catch(e){ logLine('<span style="color:var(--hot)">lost the engine</span>'); return; }
+    (st.log||[]).slice(seen).forEach(l=>logLine(l)); seen=(st.log||[]).length;
+    setMeters({streamed:mb(st.streamed||0),minutes:Math.round((st.seconds||0)/60)+' min',
+      disk:mb(st.disk||0),pct:st.progress||0});
+    if(st.state==='error'){ logLine('<span style="color:var(--hot)">'+(st.error||'failed')+'</span>'); return; }
+    if(st.state==='done'){ adoptIndex(st.index); return; }
+  }
+}
+function adoptIndex(raw){
+  S.index={source:raw.source,words:raw.words,hz:raw.hz||10,dur:raw.source.durationSec,
+    noText:!!raw.noText||!raw.words.some(w=>w.w&&!w.lau),
+    energy:raw.energy instanceof Float32Array?raw.energy:Float32Array.from(raw.energy)};
+  if(S.index.noText) logLine('<span class="g">no transcript in this index — Hook / Alone / Gap / Land stay blank rather than guessed</span>');
+  SENTS=buildSentences(S.index);
+  logLine('sentences <b>'+nfmt(SENTS.length)+'</b>');
+  S.cands=findCandidates(S.index,SENTS);
+  logLine('candidates <b>'+S.cands.length+'</b>');
+  setMeters({cand:S.cands.length,pct:100});
+  setTimeout(showCatch,400);
+}
+
+/* ===================== DRIVE, READ IN THIS TAB =========================
+   Verified: https://www.googleapis.com/drive/v3/files/<id>?alt=media reflects
+   the page origin in access-control-allow-origin and honours Range. So with a
+   credential in the query string a browser can stream a Drive file directly —
+   no server, no download, and the canvas stays UNTAINTED, which is what lets
+   the renderer use the real pixels.
+
+   The credential goes in the URL because a <video> element cannot send an
+   Authorization header. An API key works for files shared "anyone with the
+   link"; an OAuth access token works for private ones.
+   ====================================================================== */
+const cred=()=>localStorage.getItem('sieve.gcred')||'';
+const credKind=c=>/^ya29\.|^ya\d{2}\.|^1\/\/|access_token/.test(c)?'access_token':'key';
+
+/* THE KEYLESS PATH — the default, and it needs nothing but the link.
+   Measured with a CORS preflight against drive.usercontent.google.com:
+     access-control-allow-origin: *
+     access-control-allow-credentials: false
+     access-control-allow-methods: GET,HEAD,OPTIONS
+     access-control-allow-headers: … Range …
+   ACAO "*" with credentials false is exactly what crossorigin="anonymous"
+   wants, and Range is allowed, so the browser can stream a link-shared file
+   straight off Google with no API key, no OAuth and no project.
+   (drive.google.com/uc answers 403 with no CORS at all; lh3 just redirects.) */
+const keylessUrl=id=>'https://drive.usercontent.google.com/download?id='+
+  encodeURIComponent(id)+'&export=download&confirm=t';
+
+/* Ask for two bytes. It tells us three things: whether the file is reachable
+   without a key, whether Google is serving the real bytes or its "can't scan
+   this for viruses" HTML interstitial, and how big it is. */
+async function driveProbe(id){
+  const r=await fetch(keylessUrl(id),{headers:{Range:'bytes=0-1'}});
+  const ct=(r.headers.get('content-type')||'').toLowerCase();
+  const cr=r.headers.get('content-range')||'';
+  return {
+    ok:r.ok, status:r.status, ct,
+    html:ct.includes('text/html'),
+    size:+(cr.split('/')[1]||r.headers.get('content-length')||0)||0,
+    ranged:r.status===206,
+  };
+}
+
+function mediaUrl(id){
+  const c=cred();
+  if(!c) return keylessUrl(id);
+  return 'https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(id)+
+         '?alt=media&supportsAllDrives=true&'+credKind(c)+'='+encodeURIComponent(c);
+}
+async function driveMeta(id){
+  const c=cred();
+  const u='https://www.googleapis.com/drive/v3/files/'+encodeURIComponent(id)+
+    '?fields=name,size,mimeType,videoMediaMetadata&supportsAllDrives=true&'+credKind(c)+'='+encodeURIComponent(c);
+  const r=await fetch(u);
+  if(!r.ok){
+    let msg=r.status+'';
+    try{ const j=await r.json(); msg=j.error&&j.error.message||msg; }catch(e){}
+    throw new Error(msg);
+  }
+  return r.json();
+}
+
+function credPanel(host,id){
+  const box=el('div'); box.style.marginTop='16px';
+  const f=el('div','paste'); f.style.margin='0 0 10px';
+  const i=el('input'); i.placeholder='Google API key, or an OAuth access token'; i.value=cred(); i.spellcheck=false;
+  const b=el('button','btn primary','Read it in this tab');
+  b.onclick=()=>{ const v=i.value.trim(); if(!v) return toast('Paste a key or a token first.');
+    localStorage.setItem('sieve.gcred',v); driveDirect(id); };
+  i.onkeydown=e=>{ if(e.key==='Enter') b.click(); };
+  f.appendChild(i); f.appendChild(b); box.appendChild(f);
+  const h=el('p','hint');
+  h.innerHTML='Only needed for a <b>private</b> file. An <b>API key</b> is 2 minutes at '+
+    '<a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">console.cloud.google.com/apis/credentials</a> '+
+    '(enable the Drive API, create an API key). For a <b>private</b> file, paste an OAuth access token instead — '+
+    '<a href="https://developers.google.com/oauthplayground/#step1&scopes=https%3A//www.googleapis.com/auth/drive.readonly" target="_blank" rel="noopener">the OAuth playground</a> '+
+    'will give you one with the <code>drive.readonly</code> scope.<br>'+
+    'It is stored in this browser only, and it is sent to Google and nowhere else — this page has no backend to send it to.';
+  box.appendChild(h);
+  host.appendChild(box);
+}
+
+/* Any URL that sends CORS works the same way as Drive does — same element,
+   same scan, same untainted canvas. */
+async function urlDirect(url){
+  go('sift'); $('#siftLog').innerHTML='';
+  $('#siftKicker').textContent='Direct URL — read in this tab';
+  $('#siftTitle').textContent='Opening the file where it lives.';
+  $('#siftSub').innerHTML='This needs the host to send <code>access-control-allow-origin</code>. If it does not, the browser will refuse and say so below.';
+  document.querySelectorAll('.streambox span')[0].textContent='Source';
+  setMeters({streamed:'—',minutes:'—',disk:'0 bytes',cand:'0',pct:6});
+  logLine(url.slice(0,72));
+  const v=$('#src'); v.crossOrigin='anonymous'; v.preload='metadata'; v.muted=false;
+  v.src=url; S.video=v; VSRC=null; VGAIN=null;
+  try{
+    await new Promise((res,rej)=>{ v.onloadedmetadata=res;
+      v.onerror=()=>rej(new Error('the browser refused that stream — either the host sends no CORS header, or this browser will not decode the format'));
+      setTimeout(()=>rej(new Error('timed out opening the stream')),45000); });
+  }catch(e){ logLine('<span style="color:var(--hot)">'+e.message+'</span>'); return; }
+  const dur=v.duration||0;
+  logLine('open · <b>'+v.videoWidth+'×'+v.videoHeight+'</b> · '+hhmmss(dur));
+  setMeters({minutes:Math.round(dur/60)+' min',pct:18});
+  S.pending={id:null,name:url.split('/').pop().split('?')[0]||'direct URL',bytes:0,dur};
+  askScanRange(dur);
+}
+
+async function driveDirect(id){
+  go('sift'); $('#siftLog').innerHTML='';
+  $('#siftKicker').textContent='Drive — read in this tab';
+  $('#siftTitle').textContent='Opening the file where it lives.';
+  $('#siftSub').innerHTML='No key, no sign-in, no server. Google serves link-shared files with '+
+    '<code>access-control-allow-origin: *</code> and honours byte ranges, so the video streams straight into this tab.';
+  document.querySelectorAll('.streambox span')[0].textContent='File size';
+  setMeters({streamed:'—',minutes:'—',disk:'0 bytes',cand:'0',pct:4});
+
+  let url=null, name='Drive '+id, bytes=0;
+
+  // 1. the keyless read: works for anything shared "anyone with the link"
+  if(!cred()){
+    logLine('asking Google for two bytes, without a key…');
+    let pr=null;
+    try{ pr=await driveProbe(id); }
+    catch(e){ logLine('<span style="color:var(--hot)">the browser blocked that request: '+e.message+'</span>'); }
+    if(pr&&pr.ok&&!pr.html){
+      url=keylessUrl(id); bytes=pr.size;
+      logLine('<span class="g">no key needed</span> · '+(pr.ranged?'range request honoured':'served whole')+
+        (bytes?' · '+mb(bytes):'')+' · '+(pr.ct||'unknown type'));
+    } else if(pr&&pr.html){
+      logLine('<span style="color:var(--hot)">Google returned its HTML page instead of the file.</span>');
+      logLine('That means the file is <b>not shared "anyone with the link"</b>, or it is big enough that Google '+
+              'wants a click-through first. Fix the sharing and try again — that is the whole fix, and it is free.');
+    } else if(pr){
+      logLine('<span style="color:var(--hot)">Google said '+pr.status+'</span> — that file is not readable without credentials.');
+    }
+  }
+
+  // 2. only if the keyless read failed do we ever want a credential
+  if(!url){
+    if(!cred()){
+      const h=$('#siftLog');
+      const p2=el('p','hint'); p2.style.marginTop='14px';
+      p2.innerHTML='If it is a <b>private</b> file you cannot re-share, Sieve can use a Google credential instead — '+
+        'it talks to Google directly, so there is nothing in the middle to trust.';
+      h.appendChild(p2);
+      credPanel(h,id);
+      return;
+    }
+    logLine('using your saved credential · GET files/'+id);
+    let meta;
+    try{ meta=await driveMeta(id); }
+    catch(e){
+      logLine('<span style="color:var(--hot)">Google said: '+e.message+'</span>');
+      const row=el('div','btnrow'); row.style.marginTop='14px';
+      const b=el('button','btn sm','Forget it and try without a key');
+      b.onclick=()=>{ localStorage.removeItem('sieve.gcred'); driveDirect(id); };
+      row.appendChild(b); $('#siftLog').appendChild(row);
+      return;
+    }
+    url=mediaUrl(id); name=meta.name||name; bytes=+(meta.size||0);
+    logLine('<b>'+name+'</b> · '+mb(bytes)+' · '+(meta.mimeType||'?'));
+  }
+
+  setMeters({streamed:bytes?mb(bytes):'—',pct:12});
+  const v=$('#src');
+  v.crossOrigin='anonymous'; v.preload='metadata'; v.muted=false;
+  v.src=url; S.video=v; VSRC=null; VGAIN=null;
+  logLine('attaching the video element (crossorigin, so the canvas stays readable)…');
+  try{
+    await new Promise((res,rej)=>{ v.onloadedmetadata=res;
+      v.onerror=()=>rej(new Error('the browser could not decode that stream — either the sharing is wrong, or it is a codec this browser will not play'));
+      setTimeout(()=>rej(new Error('timed out opening the stream')),45000); });
+  }catch(e){ logLine('<span style="color:var(--hot)">'+e.message+'</span>'); return; }
+  const dur=v.duration||0;
+  logLine('open · <b>'+v.videoWidth+'×'+v.videoHeight+'</b> · '+hhmmss(dur));
+  setMeters({minutes:Math.round(dur/60)+' min',pct:18});
+  S.pending={id,name,bytes,dur};
+  askScanRange(dur);
+}
+
+/* A browser can only play at 16x, so scanning is duration/16 — four minutes
+   for an hour, half an hour for eight. Rather than pretend otherwise, let
+   people scan a section: twenty minutes of an eight-hour recording is 75
+   seconds of scanning, and you can come back for the next twenty. */
+function askScanRange(dur){
+  const box=el('div'); box.style.margin='18px 0 0';
+  const est=sec=>sec<90?Math.round(sec)+'s':Math.round(sec/60)+' min';
+  const mk=(label,val,w)=>{ const d=el('div'); d.style.cssText='display:flex;flex-direction:column;gap:5px';
+    const l=el('label',null,label); l.style.cssText='font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)';
+    const i=el('input'); i.value=val; i.spellcheck=false;
+    i.style.cssText='background:var(--bg2);border:1px solid var(--line2);border-radius:9px;padding:11px 12px;color:var(--ink);font-family:var(--mono);font-size:13px;outline:none;width:'+w;
+    d.appendChild(l); d.appendChild(i); return {d,i}; };
+  const from=mk('Scan from','0:00','110px');
+  const mins=mk('For (minutes)',String(Math.min(20,Math.max(1,Math.ceil(dur/60)))),'110px');
+  const row=el('div'); row.style.cssText='display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap';
+  row.appendChild(from.d); row.appendChild(mins.d);
+  const go1=el('button','btn primary','Scan it'); row.appendChild(go1);
+  const all=el('button','btn ghost','Scan all '+hhmmss(dur)+' ('+est(dur/15.5)+')'); row.appendChild(all);
+  box.appendChild(row);
+  const note=el('p','hint'); note.style.marginTop='10px';
+  const upd=()=>{ const m=Math.max(.2,parseFloat(mins.i.value)||1);
+    note.innerHTML='A browser plays at 16× at most, so this scan takes about <b>'+est(m*60/15.5)+'</b> of real time. '+
+      'It is silent, it reads only the bytes it plays, and it writes nothing.'; };
+  mins.i.oninput=upd; upd(); box.appendChild(note);
+  $('#siftLog').appendChild(box);
+  const parse=t=>{ const p=String(t).trim().split(':').map(Number);
+    return p.length>=3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:(p[0]||0); };
+  go1.onclick=()=>{ const a=clamp(parse(from.i.value),0,Math.max(0,dur-2));
+    const b=Math.min(dur,a+Math.max(.2,parseFloat(mins.i.value)||1)*60);
+    box.remove(); scanVideo(a,b); };
+  all.onclick=()=>{ box.remove(); scanVideo(0,dur); };
+}
+
+/* The scan: play silently at 16x, take the RMS of every 128-sample quantum in
+   an AudioWorklet, fold it down to a 10 Hz envelope. Measured at ~22 samples
+   per second of media, so the 10 Hz envelope is comfortably oversampled. */
+async function scanVideo(t0,t1){
+  const v=S.video, span=t1-t0, HZ=10;
+  ac(); const src=videoSource();
+  if(!src){ logLine('<span style="color:var(--hot)">this browser will not give me the audio of that element</span>'); return; }
+  videoAudio(false);
+  /* The tap that measures loudness. An AudioWorklet is the good one — 128
+     frames per callback — but its module has to come from a URL, and a blob
+     URL is refused on a file:// page (AbortError), which is exactly how
+     somebody opens a single HTML file. So fall back to ScriptProcessorNode,
+     which is deprecated, universally supported, and needs no URL at all. */
+  let tap=null, kind='';
+  try{
+    // currentTime inside the worklet is the exact context time of THIS
+    // quantum. Sending it along is the difference between a continuous
+    // envelope and one with a third of its buckets missing, because the
+    // messages reach the main thread in bursts that all share one clock read.
+    const mod="class P extends AudioWorkletProcessor{process(i){const c=i[0][0];if(c){let s=0;"+
+      "for(let k=0;k<c.length;k++)s+=c[k]*c[k];this.port.postMessage([currentTime,Math.sqrt(s/c.length)]);}return true}}"+
+      "registerProcessor('sieve-rms',P);";
+    await AC.audioWorklet.addModule(URL.createObjectURL(new Blob([mod],{type:'text/javascript'})));
+    const wl=new AudioWorkletNode(AC,'sieve-rms');
+    tap={node:wl, set cb(f){ wl.port.onmessage=e=>f(e.data[1],e.data[0]); }, stop(){ try{wl.port.onmessage=null;wl.disconnect()}catch(e){} }};
+    kind='AudioWorklet';
+  }catch(e){
+    if(!AC.createScriptProcessor){
+      logLine('<span style="color:var(--hot)">this browser gives me neither an AudioWorklet nor a ScriptProcessor</span>');
+      videoAudio(true); return;
+    }
+    const sp=AC.createScriptProcessor(256,1,1);
+    tap={node:sp, set cb(f){ sp.onaudioprocess=ev=>{ const c=ev.inputBuffer.getChannelData(0);
+      let q=0; for(let k=0;k<c.length;k++) q+=c[k]*c[k]; f(Math.sqrt(q/c.length),ev.playbackTime); }; },
+      stop(){ try{sp.onaudioprocess=null;sp.disconnect()}catch(e){} }};
+    kind='ScriptProcessor (no worklet on '+(location.protocol||'file:')+')';
+  }
+  const zero=AC.createGain(); zero.gain.value=0;
+  src.connect(tap.node); tap.node.connect(zero).connect(BUS);   // silent, but the graph gets pulled
+
+  const n=Math.ceil(span*HZ), energy=new Float32Array(n), seen=new Uint8Array(n);
+  let peak=0, got=0, rate=1, startCtx=0;
+  /* Attribute each measurement by AUDIO CONTEXT time, not by whatever
+     video.currentTime happens to read when the message is handled: the
+     callbacks arrive in bursts, so reading the element gives several
+     measurements the same timestamp and leaves gaps between. Context time
+     advances one render quantum at a time, and at 16x one second of context
+     time is sixteen seconds of media. If the element stalls to buffer, the
+     two drift apart — so resync whenever they disagree by more than a second. */
+  tap.cb=(val,ts)=>{
+    let mt;
+    if(startCtx&&ts){
+      mt=t0+(ts-startCtx)*rate;
+      if(Math.abs(mt-v.currentTime)>1.5){ startCtx=ts-(v.currentTime-t0)/rate; mt=v.currentTime; }
+    } else mt=v.currentTime;
+    const i=Math.floor((mt-t0)*HZ);
+    if(i<0||i>=n) return;
+    if(val>energy[i]) energy[i]=val;
+    seen[i]=1;
+    if(val>peak) peak=val;
+    got++;
+  };
+  logLine('scanning '+hhmmss(t0)+' → '+hhmmss(t1)+' at 16× · silent · '+kind);
+  v.currentTime=t0;
+  await new Promise(r=>{ v.onseeked=r; setTimeout(r,8000); });
+  try{ v.playbackRate=16; }catch(e){ v.playbackRate=4; }
+  rate=v.playbackRate;
+  const wall0=performance.now();
+  await v.play().catch(()=>{});
+  startCtx=AC.currentTime;
+  let stalledAt=v.currentTime, stalledSince=performance.now();
+  await new Promise(res=>{
+    const tick=()=>{
+      const now=v.currentTime, done=(now-t0)/span;
+      setMeters({pct:18+clamp(done,0,1)*76,minutes:hhmmss(now)});
+      $('#mCand').textContent=Math.round(got/1000)+'k';
+      if(now>=t1||v.ended) return res();
+      // a stream that stops advancing for 8s is not going to start again
+      if(now>stalledAt+.05){ stalledAt=now; stalledSince=performance.now(); }
+      else if(performance.now()-stalledSince>8000){
+        logLine('<span style="color:var(--hot)">the stream stopped advancing at '+hhmmss(now)+' — scanning what we have</span>');
+        return res();
+      }
+      requestAnimationFrame(tick);
+    }; tick();
+  });
+  v.pause(); v.playbackRate=1; videoAudio(true);
+  tap.stop();
+  const wall=(performance.now()-wall0)/1000;
+  logLine('scanned in <b>'+Math.round(wall)+'s</b> · '+(span/wall).toFixed(1)+'× real time · '+
+    nfmt(got)+' RMS windows → '+nfmt(n)+' envelope samples ('+mb(n*4)+')');
+  // the slower tap can miss a bucket; carry the neighbours into it so the
+  // envelope is continuous either way
+  let filled=0;
+  for(let i=0;i<n;i++) if(!seen[i]){
+    let a=i-1,b=i+1;
+    while(a>=0&&!seen[a])a--; while(b<n&&!seen[b])b++;
+    energy[i]=Math.max(a>=0?energy[a]:0,b<n?energy[b]:0); filled++;
+  }
+  if(filled) logLine('interpolated '+filled+' of '+n+' envelope buckets the tap did not land in');
+  // normalise to this file: absolute thresholds mean nothing across recordings
+  if(peak>0) for(let i=0;i<n;i++) energy[i]=Math.min(1,energy[i]/peak);
+  else { logLine('<span style="color:var(--hot)">that section is silent — no audio came through</span>'); return; }
+  const words=[]; const thr=.10;
+  let run=null;
+  for(let i=0;i<=n;i++){
+    const hot=i<n&&energy[i]>thr;
+    if(hot){ if(!run) run={a:i}; run.b=i; }
+    else if(run&&(i-run.b)/HZ>.30){
+      if((run.b-run.a)/HZ>.35) words.push({w:'▮',t:t0+run.a/HZ,d:(run.b-run.a)/HZ,spk:0,nc:1});
+      run=null;
+    }
+  }
+  if(run&&(run.b-run.a)/HZ>.35) words.push({w:'▮',t:t0+run.a/HZ,d:(run.b-run.a)/HZ,spk:0,nc:1});
+  logLine('speech runs · <b>'+words.length+'</b> · loudest point normalised to 1.0');
+  // the envelope covers [t0,t1] but timestamps stay absolute, so pad the front
+  const full=new Float32Array(Math.ceil(t1*HZ));
+  full.set(energy,Math.floor(t0*HZ));
+  S.index={source:{kind:'drive',name:S.pending.name,durationSec:S.pending.dur,bytes:S.pending.bytes,speakers:['SPEAKER']},
+    words,energy:full,hz:HZ,dur:S.pending.dur,noText:true,scanned:[t0,t1]};
+  SENTS=buildSentences(S.index);
+  S.cands=findCandidates(S.index,SENTS);
+  logLine('candidates in that section · <b>'+S.cands.length+'</b>');
+  logLine('<span class="g">no transcript, so Hook / Alone / Gap / Land stay blank — type the line in the editor and Sieve will align it to the audio</span>');
+  setMeters({cand:S.cands.length,pct:100});
+  setTimeout(showCatch,450);
+}
+
+/* ------------------- a file that is already on this laptop ---------------- */
+function pickLocal(){ $('#localFile').click(); }
+$('#localFile').addEventListener('change',async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const v=$('#src'); v.src=URL.createObjectURL(f); S.video=v;
+  await new Promise(r=>{ v.onloadedmetadata=r; setTimeout(r,4000); });
+  if(S.index&&S.index.source.kind!=='demo'){ toast('Footage attached — renders will use real pixels.'); return; }
+  go('sift'); $('#siftLog').innerHTML='';
+  $('#siftKicker').textContent='Sifting — local file, no upload';
+  $('#siftTitle').textContent='Scanning your own audio.';
+  $('#siftSub').innerHTML='Nothing is uploaded and nothing is copied. Sieve decodes the audio once at <b>8 kHz mono</b> — '+
+    'about 60× smaller than the real thing — builds the envelope, and throws the samples away.';
+  document.querySelectorAll('.streambox span')[0].textContent='File size';
+  setMeters({streamed:mb(f.size),minutes:Math.round((v.duration||0)/60)+' min',disk:'0 bytes',cand:'0',pct:6});
+  logLine(f.name+' · <b>'+mb(f.size)+'</b> · '+hhmmss(v.duration||0));
+  if(f.size>300*1048576){
+    logLine('<span style="color:var(--hot)">Over 300 MB — refusing to decode it here.</span>');
+    logLine('That is the whole point of this app: a big file belongs on the engine, not in your RAM.');
+    logLine('The footage is still attached, so an engine index will render real pixels.');
+    return;
+  }
+  try{
+    logLine('decoding audio at 8 kHz mono …');
+    const buf=await f.arrayBuffer();
+    const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+    const oac=new OAC(1,8000,8000);
+    const ab=await oac.decodeAudioData(buf);
+    const ch=ab.getChannelData(0), hz=10, step=Math.floor(8000/hz), n=Math.floor(ch.length/step);
+    const energy=new Float32Array(n);
+    for(let i=0;i<n;i++){ let s=0; for(let k=i*step;k<(i+1)*step;k++) s+=ch[k]*ch[k];
+      energy[i]=Math.min(1,Math.sqrt(s/step)*3.4); }
+    logLine('envelope · <b>'+nfmt(n)+' samples</b> = '+mb(n*4)+' · samples released');
+    setMeters({pct:56});
+    // no transcript without the engine, so build utterances out of silence
+    const thr=.055, words=[]; let run=null;
+    for(let i=0;i<n;i++){
+      if(energy[i]>thr){ if(!run) run={t:i/hz}; run.e=i/hz; }
+      else if(run&&i/hz-run.e>.30){ if(run.e-run.t>.35) words.push({w:'▮',t:run.t,d:run.e-run.t,spk:0,nc:1}); run=null; }
+    }
+    if(run&&run.e-run.t>.35) words.push({w:'▮',t:run.t,d:run.e-run.t,spk:0,nc:1});
+    logLine('speech runs · <b>'+nfmt(words.length)+'</b> (no transcript without the engine)');
+    S.index={source:{kind:'local',name:f.name,durationSec:ab.duration,bytes:f.size},words,energy,hz,dur:ab.duration,noText:true};
+    SENTS=buildSentences(S.index);
+    S.cands=findCandidates(S.index,SENTS);
+    logLine('energy-only candidates · <b>'+S.cands.length+'</b>');
+    logLine('<span class="g">Hook / Alone / Gap / Land need words — those four bars are blank until you run the engine.</span>');
+    setMeters({cand:S.cands.length,pct:100});
+    setTimeout(showCatch,400);
+  }catch(err){
+    logLine('<span style="color:var(--hot)">could not decode that audio: '+err.message+'</span>');
+  }
+});
+
+/* =============================== KEYS ================================== */
+addEventListener('keydown',e=>{
+  if(S.view!=='cut') return;
+  if(/^(INPUT|TEXTAREA)$/.test(e.target.tagName)||e.target.isContentEditable) return;
+  const at=()=>{ const t=localToSrc(S.playT||0); return CLIPSENTS.find(s=>t>=s.t0-.3&&t<=s.t1+.3)||CLIPSENTS[0]; };
+  if(e.code==='Space'){ e.preventDefault(); togglePlay(); }
+  else if(e.key==='x'){ toggleCut(at()); toast('Sentence struck — ' + S.cut.size + ' cut'); }
+  else if(e.key==='j'){ seek((S.playT||0)-2); }
+  else if(e.key==='l'){ seek((S.playT||0)+2); }
+  else if(e.key==='k'){ togglePlay(); }
+  else if(/^[1-8]$/.test(e.key)) dropAtPlayhead(SFXQUICK[+e.key-1]);
+});
+
+/* =============================== BOOT ================================== */
+(function boot(){
+  paintHead();
+  const q=new URLSearchParams(location.search);
+  if(q.get('engine')) localStorage.setItem('sieve.engine',q.get('engine').replace(/\/$/,''));
+  const src=q.get('drive')||q.get('url');
+  if(src){ $('#driveUrl').value=src; startDrive(); }
+  else if(q.get('demo')!=null) startDemo();
+  $('#driveUrl').addEventListener('keydown',e=>{ if(e.key==='Enter') startDrive(); });
+  const x=PV.getContext('2d'); x.fillStyle='#05070a'; x.fillRect(0,0,PV.width,PV.height);
+})();
+</script>
